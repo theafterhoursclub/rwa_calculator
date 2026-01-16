@@ -1,15 +1,19 @@
 """
 This module contains all the schemas for all data inputs for the rwa_calc.
 
+Supports both UK CRR (Basel 3.0, until Dec 2026) and PRA PS9/24 (Basel 3.1, from Jan 2027).
+
 Key Data Inputs:
 - Loan                      # Drawn exposures (leaf nodes in exposure hierarchy)
-- Facility                  # Committed credit limits (parent nodes in exposure hierarchy)
-- Contingents               # Off-balance sheet commitments
-- Counterparty              # Borrower/obligor information and attributes
-- Collateral                # Security/collateral items with values and types
+- Facility                  # Committed credit limits (parent nodes) with seniority, commitment_type
+- Contingents               # Off-balance sheet commitments with CCF category
+- Counterparty              # Borrower/obligor with entity flags (PSE, MDB, institution, etc.)
+- Collateral                # Security items with RE-specific fields (LTV, property type, ADC)
 - Guarantee                 # Guarantees and credit protection
 - Provision                 # IFRS 9 provisions/impairments (SCRA, GCRA)
 - Ratings                   # Internal and external credit ratings
+- Specialised_lending       # Slotting approach for PF, OF, CF, IPRE (CRE33)
+- Equity_exposure           # Equity holdings - SA only under Basel 3.1 (CRE20.58-62)
 
 Mappings:
 - Facility_mappings         # Mappings between Facilities, Loans and Contingents
@@ -59,6 +63,8 @@ FACILITY_SCHEMA = {
     "lgd": pl.Float64,
     "beel": pl.Float64,
     "is_revolving": pl.Boolean,
+    "seniority": pl.String,  # senior, subordinated - affects F-IRB LGD (45% vs 75%)
+    "commitment_type": pl.String,  # unconditionally_cancellable, committed_other - affects CCF (0%/10% vs 40%/75%)
 }
 
 LOAN_SCHEMA = {
@@ -72,6 +78,7 @@ LOAN_SCHEMA = {
     "drawn_amount": pl.Float64,
     "lgd": pl.Float64,
     "beel": pl.Float64,
+    "seniority": pl.String,  # senior, subordinated - affects F-IRB LGD (45% vs 75%)
 }
 
 CONTINGENTS_SCHEMA = {
@@ -87,6 +94,7 @@ CONTINGENTS_SCHEMA = {
     "lgd": pl.Float64,
     "beel": pl.Float64,
     "ccf_category": pl.String,  # Category for CCF lookup
+    "seniority": pl.String,  # senior, subordinated - affects F-IRB LGD (45% vs 75%)
 }
 
 COUNTERPARTY_SCHEMA = {
@@ -95,18 +103,44 @@ COUNTERPARTY_SCHEMA = {
     "entity_type": pl.String,  # corporate, individual, sovereign, institution, etc.
     "country_code": pl.String,
     "annual_revenue": pl.Float64,  # For SME classification (£440m large corp, £50m SME)
+    "total_assets": pl.Float64,  # Alternative to revenue for large corporate threshold (CRE30.6)
     "default_status": pl.Boolean,
+    "sector_code": pl.String,  # Industry classification for specialised lending, correlation adjustments
+    # Entity type flags for exposure class determination (CRR Art 107, 112-118)
+    "is_financial_institution": pl.Boolean,  # Credit institution, investment firm (CRE20.16)
+    "is_regulated": pl.Boolean,  # Prudentially regulated institution (affects RW)
+    "is_pse": pl.Boolean,  # Public Sector Entity - may receive sovereign or institution RW (CRR Art 116)
+    "is_mdb": pl.Boolean,  # Multilateral Development Bank - 0% RW if on eligible list (CRR Art 117)
+    "is_international_org": pl.Boolean,  # International Organisation - 0% RW (CRR Art 118)
+    "is_central_counterparty": pl.Boolean,  # CCP exposure treatment (CRR Art 300-311)
+    "is_regional_govt_local_auth": pl.Boolean,  # RGLA - may receive sovereign RW (CRR Art 115)
 }
 
 COLLATERAL_SCHEMA = {
     "collateral_reference": pl.String,
-    "collateral_type": pl.String,
+    "collateral_type": pl.String,  # cash, gold, equity, bond, real_estate, receivables, other_physical
     "currency": pl.String,
     "maturity_date": pl.Date,
     "market_value": pl.Float64,
     "nominal_value": pl.Float64,
-    "beneficiary_type": pl.String, # counterparty/loan/facility/contingent
-    "beneficiary_reference":pl.String, # reference to find on the above tables
+    "beneficiary_type": pl.String,  # counterparty/loan/facility/contingent
+    "beneficiary_reference": pl.String,  # reference to find on the above tables
+    # For securities collateral - haircut determination (CRE22.52-53)
+    "issuer_cqs": pl.Int8,  # Credit Quality Step of issuer (1-6) for haircut lookup
+    "issuer_type": pl.String,  # sovereign, pse, corporate, securitisation - for haircut table
+    "residual_maturity_years": pl.Float64,  # For haircut bands: <=1yr, 1-3yr, 3-5yr, 5-10yr, >10yr
+    # Eligibility flags
+    "is_eligible_financial_collateral": pl.Boolean,  # Meets SA eligibility (CRR Art 197, CRE22.40)
+    "is_eligible_irb_collateral": pl.Boolean,  # Meets IRB eligibility - wider pool (CRR Art 199)
+    # Valuation requirements (CRE22.75-78)
+    "valuation_date": pl.Date,  # Date of last valuation
+    "valuation_type": pl.String,  # market, indexed, independent - RE must be independent
+    # Real estate specific fields (CRE20.71-87)
+    "property_type": pl.String,  # residential, commercial - different RW tables
+    "property_ltv": pl.Float64,  # Loan-to-value ratio for SA RW lookup (20%-70% bands)
+    "is_income_producing": pl.Boolean,  # Material income dependence affects commercial RE RW
+    "is_adc": pl.Boolean,  # Acquisition/Development/Construction - 150% RW unless pre-sold
+    "is_presold": pl.Boolean,  # ADC pre-sold to qualifying buyer - 100% RW
 }
 
 GUARANTEE_SCHEMA = {
@@ -142,6 +176,36 @@ RATINGS_SCHEMA = {
     "pd": pl.Float64,  # Probability of Default (for internal ratings)
     "rating_date": pl.Date,
     "is_solicited": pl.Boolean,
+}
+
+# Specialised Lending exposures - slotting approach (CRE33.1-8, PS9/24 Ch.5)
+# These are corporate exposures with specific risk characteristics requiring separate treatment
+SPECIALISED_LENDING_SCHEMA = {
+    "exposure_reference": pl.String,  # Links to facility/loan reference
+    "sl_type": pl.String,  # project_finance, object_finance, commodities_finance, ipre
+    "slotting_category": pl.String,  # strong, good, satisfactory, weak, default
+    "remaining_maturity_years": pl.Float64,  # <2.5yr gets reduced RW for strong/good categories
+    "is_hvcre": pl.Boolean,  # High-volatility commercial real estate (higher RW)
+    # Supervisory risk weights by category (CRE33.5):
+    # strong: 70% (50% if <2.5yr), good: 90% (70% if <2.5yr),
+    # satisfactory: 115%, weak: 250%, default: 0%
+}
+
+# Equity exposures - must use SA under Basel 3.1 (CRE20.58-62, CRR Art 133)
+# IRB approaches for equity withdrawn under PRA PS9/24
+EQUITY_EXPOSURE_SCHEMA = {
+    "exposure_reference": pl.String,
+    "counterparty_reference": pl.String,
+    "equity_type": pl.String,  # listed, unlisted, private_equity, ciu, other
+    "currency": pl.String,
+    "carrying_value": pl.Float64,  # Balance sheet value
+    "fair_value": pl.Float64,  # For mark-to-market positions
+    # Classification flags affecting risk weight
+    "is_speculative": pl.Boolean,  # Speculative unlisted equity - 400% RW
+    "is_exchange_traded": pl.Boolean,  # Listed on recognised exchange - 100% RW
+    "is_government_supported": pl.Boolean,  # Certain govt-supported programmes - reduced RW
+    "is_significant_investment": pl.Boolean,  # >10% of CET1 - may require deduction
+    # Risk weight: 100% (listed), 250% (unlisted), 400% (speculative)
 }
 
 
