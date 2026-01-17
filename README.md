@@ -31,15 +31,31 @@ The project follows a **phased, test-first approach** prioritising CRR (Basel 3.
 | CRR Acceptance Tests | Complete | 83 tests (38 validation, 45 implementation stubs) |
 | Basel 3.1 Expected Outputs | Not Started | Planned for Phase 1.2B |
 
-### Phase 2: Process Contracts - IN PROGRESS
+### Phase 2: Process Contracts - COMPLETE
 
-Defining interfaces between components (loader, hierarchy, classification, CRM, SA, IRB) to enable isolated testing and parallel development.
+Interfaces and contracts between RWA calculator components have been implemented:
+
+| Component | Location | Tests |
+|-----------|----------|-------|
+| Domain Enums | `src/rwa_calc/domain/enums.py` | - |
+| Error Contracts | `src/rwa_calc/contracts/errors.py` | 20 |
+| Configuration | `src/rwa_calc/contracts/config.py` | 20 |
+| Data Bundles | `src/rwa_calc/contracts/bundles.py` | 24 |
+| Protocols | `src/rwa_calc/contracts/protocols.py` | 14 |
+| Validation | `src/rwa_calc/contracts/validation.py` | 19 |
+| **Total** | **6 modules** | **97 tests** |
+
+Key features:
+- `CalculationConfig.crr()` and `.basel_3_1()` factory methods for framework-specific configuration
+- Protocol-based interfaces (`LoaderProtocol`, `ClassifierProtocol`, etc.) for dependency injection
+- `LazyFrameResult` for error accumulation without exceptions
+- Intermediate pipeline schemas for data validation at component boundaries
 
 ### Phase 3: Implementation - NOT STARTED
 
 | Component | CRR Status | Basel 3.1 Status |
 |-----------|------------|------------------|
-| Domain enums | Not Started | Not Started |
+| Domain enums | Complete | Complete |
 | Risk weight tables | Not Started | Not Started |
 | CCF tables | Not Started | Not Started |
 | CRM processor | Not Started | Not Started |
@@ -154,11 +170,17 @@ rwa_calculator/
 │   ├── config/                         # Configuration
 │   │   └── fx_rates.py                 # EUR/GBP FX rate configuration
 │   ├── domain/                         # Core domain models
-│   │   └── enums.py                    # ExposureClass, ApproachType, CQS, etc.
+│   │   └── enums.py                    # RegulatoryFramework, ExposureClass, ApproachType, CQS, etc.
+│   ├── contracts/                      # Component interfaces & data contracts
+│   │   ├── bundles.py                  # Data transfer objects (RawDataBundle, etc.)
+│   │   ├── config.py                   # CalculationConfig with .crr()/.basel_3_1() factories
+│   │   ├── errors.py                   # CalculationError, LazyFrameResult
+│   │   ├── protocols.py                # LoaderProtocol, ClassifierProtocol, etc.
+│   │   └── validation.py               # Schema validation utilities
 │   ├── data/                           # Data loading & schemas
 │   │   ├── results.py                  # DataFrame-based calculation results
 │   │   ├── loaders.py                  # File, DuckDB, InMemory loaders
-│   │   └── schemas.py                  # Polars schemas
+│   │   └── schemas.py                  # Polars schemas (input + intermediate pipeline)
 │   ├── engine/                         # Vectorized calculation engines
 │   │   ├── orchestrator.py             # Main calculation pipeline
 │   │   ├── hierarchy_counterparty.py   # Counterparty hierarchy operations
@@ -210,6 +232,12 @@ rwa_calculator/
 │   │   │   ├── test_scenario_crr_b_firb.py
 │   │   │   └── ... (8 test files)
 │   │   └── basel31/                    # Basel 3.1 acceptance tests (planned)
+│   ├── contracts/                      # Contract/interface tests (97 tests)
+│   │   ├── test_bundles.py             # Data bundle tests
+│   │   ├── test_config.py              # Configuration tests
+│   │   ├── test_errors.py              # Error handling tests
+│   │   ├── test_protocols.py           # Protocol compliance tests
+│   │   └── test_validation.py          # Validation utility tests
 │   ├── fixtures/                       # Test data generators
 │   │   ├── counterparty/               # Sovereign, institution, corporate, retail
 │   │   ├── exposures/                  # Facilities, loans, contingents
@@ -248,16 +276,26 @@ rwa_calculator/
 ### Running Tests
 
 ```bash
-# Run all CRR acceptance tests
+# Run all tests
+uv run pytest -v
+
+# Run contract tests (97 tests)
+uv run pytest tests/contracts/ -v
+
+# Run CRR acceptance tests
 uv run pytest tests/acceptance/crr/ -v
 
 # Run specific scenario group
 uv run pytest tests/acceptance/crr/test_scenario_crr_a_sa.py -v
+
+# Run type checking
+uv run mypy --package rwa_calc.contracts --package rwa_calc.domain
 ```
 
 **Test Results:**
-- 38 validation tests PASS - Verify expected outputs structure
-- 45 stub tests SKIP - Await production calculator implementation (Phase 3)
+- 97 contract tests PASS - Verify interfaces, configuration, and validation
+- 38 acceptance validation tests PASS - Verify expected outputs structure
+- 45 acceptance stub tests SKIP - Await production calculator implementation (Phase 3)
 
 ---
 
