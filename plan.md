@@ -69,6 +69,34 @@ All test data fixtures have been created with Python generators and parquet outp
 CRR expected outputs workbook structure created with calculation modules and Marimo scenarios.
 All CRR scenario groups (A through H) have been implemented.
 
+#### CRR Acceptance Tests - COMPLETE
+
+Pytest acceptance tests created that validate production calculator outputs against expected values.
+Tests are structured as stub tests that skip until the production calculator is implemented.
+
+| Test File | Scenario Group | Stub Tests | Validation Tests | Status |
+|-----------|----------------|------------|------------------|--------|
+| `test_scenario_crr_a_sa.py` | CRR-A (SA) | 12 | 4 | Complete |
+| `test_scenario_crr_b_firb.py` | CRR-B (F-IRB) | 6 | 6 | Complete |
+| `test_scenario_crr_c_airb.py` | CRR-C (A-IRB) | 3 | 4 | Complete |
+| `test_scenario_crr_d_crm.py` | CRR-D (CRM) | 6 | 3 | Complete |
+| `test_scenario_crr_e_slotting.py` | CRR-E (Slotting) | 4 | 5 | Complete |
+| `test_scenario_crr_g_provisions.py` | CRR-G (Provisions) | 3 | 4 | Complete |
+| `test_scenario_crr_h_complex.py` | CRR-H (Complex) | 4 | 4 | Complete |
+| `conftest.py` | Shared fixtures | - | - | Complete |
+
+**Test Results:**
+- **30 validation tests PASS** - Verify expected outputs structure is correct
+- **46 stub tests SKIP** - Await production calculator implementation (Phase 3)
+
+**Test Pattern:**
+Each acceptance test follows the pattern:
+1. Load fixture inputs (loan, counterparty, collateral, etc.)
+2. Call production calculator (TODO - marked with `pytest.skip`)
+3. Compare output against pre-calculated expected values
+
+Run tests: `uv run pytest tests/acceptance/crr/ -v`
+
 #### CRR-A: Standardised Approach (SA) - COMPLETE
 
 | Scenario ID | Description | Status |
@@ -1152,17 +1180,17 @@ workbooks/
 - [x] Create CRR-H (Complex/Combined) scenarios (4 scenarios)
 - [x] Generate expected output files (CSV, JSON, Parquet)
 - [x] Create fixture loader for Marimo workbooks
+- [x] Create pytest acceptance tests for CRR scenarios (38 scenarios, 76 total tests)
+- [x] Integrate all scenario groups into main workbook output generator
 
 ### In Progress
-- [ ] Create pytest acceptance tests that validate against expected outputs
-- [ ] Integrate all scenario groups into main workbook output generator
+- [ ] Define process contracts (loader, hierarchy, classification, CRM, SA, IRB)
 
 ### Up Next (CRR Priority)
-1. **Phase 1.2A**: Create pytest acceptance tests that validate against expected outputs
-2. **Phase 1.2A**: Regenerate expected output files (CSV, JSON, Parquet) with all scenarios
-3. **Phase 2**: Define process contracts
-4. **Phase 3.1**: Implement CRR production components in `src/`
-5. **Phase 3.1**: Complete CRR Marimo workbook orchestration
+1. **Phase 2**: Define process contracts
+2. **Phase 3.1**: Implement CRR production components in `src/rwa_calc/`
+3. **Phase 3.1**: Remove `pytest.skip` markers from acceptance tests as components are implemented
+4. **Phase 3.1**: Complete CRR Marimo workbook orchestration
 
 ### Later (Basel 3.1)
 1. **Phase 1.2B**: Create Basel 3.1 acceptance test shells
