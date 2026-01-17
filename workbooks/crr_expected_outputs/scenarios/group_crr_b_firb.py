@@ -43,6 +43,7 @@ def _():
         apply_pd_floor,
         get_firb_lgd,
         calculate_irb_rwa,
+        calculate_irb_rwa_with_turnover,
         calculate_maturity_adjustment,
         calculate_expected_loss,
     )
@@ -62,6 +63,7 @@ def _():
         calculate_correlation,
         calculate_expected_loss,
         calculate_irb_rwa,
+        calculate_irb_rwa_with_turnover,
         get_firb_lgd,
         load_fixtures,
         mo,
@@ -158,12 +160,6 @@ def _(mo):
 
     **Reference:** CRR Art. 153, 161, 162, 163
     """)
-    return
-
-
-@app.cell
-def _(calculate_correlation):
-    print(calculate_correlation(0.001, "CORPORATE"))
     return
 
 
@@ -265,15 +261,11 @@ def _(
     calculate_correlation,
     calculate_expected_loss,
     calculate_irb_rwa,
-    fixtures,
     get_firb_lgd,
 ):
     """Calculate Scenario CRR-B2: Corporate F-IRB - High PD."""
-    loan_b2 = fixtures.get_loan("LOAN_CORP_UK_002")
-    cpty_b2 = fixtures.get_counterparty("CORP_UK_002")
-
-    # Input parameters - higher PD
-    ead_b2 = float(loan_b2["drawn_amount"])
+    # Hypothetical high-PD corporate (no fixture needed)
+    ead_b2 = 5_000_000.0
     pd_raw_b2 = 0.05  # 5.00%
     pd_floored_b2 = apply_pd_floor(pd_raw_b2)  # No effect as 5% > 0.03%
     lgd_b2 = float(get_firb_lgd("unsecured"))
@@ -317,7 +309,7 @@ def _(
         rwa_after_sf=result_dict_b2["rwa"],
         expected_loss=el_b2,
         calculation_details={
-            "counterparty_name": cpty_b2["counterparty_name"],
+            "counterparty_name": "High PD Corporate",
             "pd_floor": float(CRR_PD_FLOOR),
             "pd_floor_binding": pd_raw_b2 < float(CRR_PD_FLOOR),
             "lgd_source": "supervisory",
@@ -530,55 +522,54 @@ def _(
     CRRFIRBResult,
     CRR_PD_FLOOR,
     Decimal,
-    apply_pd_floor,
     apply_sme_supporting_factor,
-    calculate_correlation,
     calculate_expected_loss,
-    calculate_irb_rwa,
+    calculate_irb_rwa_with_turnover,
     fixtures,
     get_firb_lgd,
 ):
-    """Calculate Scenario CRR-B5: SME Corporate F-IRB with Supporting Factor."""
+    """Calculate Scenario CRR-B5: SME Corporate F-IRB with Supporting Factor.
+
+    Demonstrates both SME adjustments under CRR:
+    1. SME firm size adjustment - reduces asset correlation (CRR Art. 153(4))
+       Formula: R_adjusted = R - 0.04 × (1 - (max(S, 5) - 5) / 45)
+       where S = turnover in millions EUR
+
+    2. SME supporting factor - reduces RWA by 23.81% (CRR Art. 501)
+       Factor: 0.7619
+    """
     loan_b5 = fixtures.get_loan("LOAN_CORP_SME_001")
     cpty_b5 = fixtures.get_counterparty("CORP_SME_001")
 
     ead_b5 = float(loan_b5["drawn_amount"])
     pd_raw_b5 = 0.02  # 2.00%
-    pd_floored_b5 = apply_pd_floor(pd_raw_b5)
     lgd_b5 = float(get_firb_lgd("unsecured"))
     maturity_b5 = 2.5
-    turnover_b5 = 25_000_000.0  # £25m
+    turnover_m_b5 = 25.0  # EUR 25m (or ~£22m) - qualifies for firm size adjustment
 
-    # SME correlation adjustment (turnover-based)
-    correlation_b5 = calculate_correlation(
-        pd_floored_b5,
-        "CORPORATE_SME",
-        turnover=turnover_b5
-    )
-
-    result_dict_b5 = calculate_irb_rwa(
+    # Use calculate_irb_rwa_with_turnover which handles SME firm size adjustment
+    # automatically by calculating correlation with turnover internally
+    result_dict_b5 = calculate_irb_rwa_with_turnover(
         ead=ead_b5,
         pd=pd_raw_b5,
         lgd=lgd_b5,
-        correlation=correlation_b5,
         maturity=maturity_b5,
         exposure_class="CORPORATE",
-        apply_maturity_adjustment=True,
-        apply_pd_floor_flag=True,
+        turnover_m=turnover_m_b5,  # Turnover in millions EUR for SME adjustment
     )
 
-    # Apply SME supporting factor
+    # Apply SME supporting factor on top of the firm-size-adjusted RWA
     rwa_before_sf_b5 = Decimal(str(result_dict_b5["rwa"]))
     rwa_after_sf_b5, sf_applied_b5, sf_desc_b5 = apply_sme_supporting_factor(
         rwa=rwa_before_sf_b5,
         is_sme=True,
-        turnover=Decimal(str(turnover_b5)),
-        currency="GBP",
+        turnover=Decimal(str(turnover_m_b5 * 1_000_000)),  # Convert to actual value
+        currency="EUR",
     )
 
     sf_b5 = 0.7619 if sf_applied_b5 else 1.0
 
-    el_b5 = calculate_expected_loss(ead_b5, pd_floored_b5, lgd_b5)
+    el_b5 = calculate_expected_loss(ead_b5, result_dict_b5["pd_floored"], lgd_b5)
 
     result_crr_b5 = CRRFIRBResult(
         scenario_id="CRR-B5",
@@ -590,9 +581,9 @@ def _(
         exposure_class="CORPORATE_SME",
         ead=ead_b5,
         pd_raw=pd_raw_b5,
-        pd_floored=pd_floored_b5,
+        pd_floored=result_dict_b5["pd_floored"],
         lgd=lgd_b5,
-        correlation=correlation_b5,
+        correlation=result_dict_b5["correlation"],
         maturity=maturity_b5,
         maturity_adjustment=result_dict_b5["maturity_adjustment"],
         k=result_dict_b5["k"],
@@ -603,16 +594,22 @@ def _(
         calculation_details={
             "counterparty_name": cpty_b5["counterparty_name"],
             "pd_floor": float(CRR_PD_FLOOR),
-            "turnover": turnover_b5,
-            "sme_correlation_adjustment": True,
+            "turnover_m": turnover_m_b5,
+            "sme_firm_size_adjustment_applied": result_dict_b5["sme_adjustment_applied"],
+            "correlation_with_sme_adj": result_dict_b5["correlation"],
             "sme_supporting_factor": sf_b5,
             "sme_factor_description": sf_desc_b5,
-            "crr_vs_basel31": "SME factor NOT available under Basel 3.1",
+            "crr_vs_basel31": "Both SME adjustments NOT available under Basel 3.1",
         },
-        regulatory_reference="CRR Art. 153, 501",
+        regulatory_reference="CRR Art. 153(4), 501",
     )
 
-    print(f"CRR-B5: EAD=£{ead_b5:,.0f}, PD={pd_floored_b5*100:.2f}%, SF=0.7619, RWA=£{rwa_after_sf_b5:,.0f}")
+    print(f"CRR-B5: EAD=£{ead_b5:,.0f}, PD={result_dict_b5['pd_floored']*100:.2f}%")
+    print(f"  Correlation (with SME firm size adj): {result_dict_b5['correlation']:.4f}")
+    print(f"  SME adjustment applied: {result_dict_b5['sme_adjustment_applied']}")
+    print(f"  RWA before SF: £{rwa_before_sf_b5:,.0f}")
+    print(f"  Supporting factor: {sf_b5}")
+    print(f"  RWA after SF: £{rwa_after_sf_b5:,.0f}")
     return (result_crr_b5,)
 
 

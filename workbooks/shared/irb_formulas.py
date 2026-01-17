@@ -223,6 +223,7 @@ def calculate_irb_rwa(
     lgd_floor: float | None = None,
     apply_maturity_adjustment: bool = True,
     is_retail: bool = False,
+    apply_scaling_factor: bool = False,
 ) -> dict:
     """
     Calculate RWA using IRB approach.
@@ -236,7 +237,8 @@ def calculate_irb_rwa(
         pd_floor: PD floor to apply
         lgd_floor: LGD floor to apply (None = no floor)
         apply_maturity_adjustment: Whether to apply MA
-        is_retail: Whether this is a retail exposure (no MA)
+        is_retail: Whether this is a retail exposure (no MA, no scaling)
+        apply_scaling_factor: Whether to apply 1.06 scaling factor (CRR only)
 
     Returns:
         Dictionary with calculation details:
@@ -247,9 +249,18 @@ def calculate_irb_rwa(
         - correlation: Asset correlation
         - k: Capital requirement
         - maturity_adjustment: MA factor
+        - scaling_factor: 1.06 if applied, 1.0 otherwise
         - rwa: Risk-weighted assets
 
-    Formula: RWA = K x 12.5 x EAD x MA
+    Formula:
+        CRR:       RWA = K × 12.5 × 1.06 × EAD × MA (1.06 for all classes)
+        Basel 3.1: RWA = K × 12.5 × EAD × MA (no 1.06 scaling)
+
+    Note: The 1.06 scaling factor was introduced in Basel II/CRR to account
+    for model uncertainty. It applies to all exposure classes under CRR.
+    It was removed in Basel 3.1. Pass apply_scaling_factor=True for CRR.
+
+    Reference: CRR Art. 153
     """
     # Apply PD floor
     pd_floored = apply_pd_floor(pd, pd_floor)
@@ -267,8 +278,12 @@ def calculate_irb_rwa(
         apply_adjustment=apply_maturity_adjustment and not is_retail,
     )
 
-    # Calculate RWA: K x 12.5 x EAD x MA
-    rwa = k * 12.5 * ead * ma
+    # 1.06 scaling factor: CRR only (applies to all exposure classes)
+    # This factor was removed in Basel 3.1
+    scaling_factor = 1.06 if apply_scaling_factor else 1.0
+
+    # Calculate RWA: K × 12.5 × scaling_factor × EAD × MA
+    rwa = k * 12.5 * scaling_factor * ead * ma
 
     return {
         "pd_raw": pd,
@@ -278,6 +293,7 @@ def calculate_irb_rwa(
         "correlation": correlation,
         "k": k,
         "maturity_adjustment": ma,
+        "scaling_factor": scaling_factor,
         "rwa": rwa,
         "ead": ead,
     }
@@ -302,17 +318,25 @@ def calculate_expected_loss(pd: float, lgd: float, ead: float) -> float:
     return pd * lgd * ead
 
 
-def calculate_risk_weight_from_k(k: float, ma: float = 1.0) -> float:
+def calculate_risk_weight_from_k(
+    k: float,
+    ma: float = 1.0,
+    apply_scaling_factor: bool = False,
+) -> float:
     """
     Convert capital K to equivalent risk weight.
 
     Args:
         k: Capital requirement
         ma: Maturity adjustment
+        apply_scaling_factor: Whether to apply 1.06 scaling (CRR only)
 
     Returns:
         Equivalent risk weight (for comparison with SA)
 
-    Formula: RW = K x 12.5 x MA
+    Formula:
+        CRR:       RW = K × 12.5 × 1.06 × MA
+        Basel 3.1: RW = K × 12.5 × MA
     """
-    return k * 12.5 * ma
+    scaling_factor = 1.06 if apply_scaling_factor else 1.0
+    return k * 12.5 * scaling_factor * ma

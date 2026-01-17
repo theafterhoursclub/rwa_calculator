@@ -45,8 +45,10 @@ from workbooks.crr_expected_outputs.calculations.crr_irb import (
     apply_pd_floor,
     get_firb_lgd,
     calculate_irb_rwa,
+    calculate_irb_rwa_with_turnover,
 )
 from workbooks.shared.correlation import calculate_correlation
+from workbooks.crr_expected_outputs.data.crr_params import CRR_SME_SUPPORTING_FACTOR
 
 
 @dataclass
@@ -627,6 +629,154 @@ def generate_crr_b_scenarios(fixtures) -> list[CRRScenarioOutput]:
         expected_loss=pd_b3 * lgd_b3 * ead_b3,
         regulatory_reference="CRR Art. 153, 161",
         calculation_notes=f"Subordinated: LGD {lgd_b3:.0%} (vs 45% senior)",
+    ))
+
+    # CRR-B4: SME Corporate F-IRB - Firm Size Adjustment
+    # Demonstrates the SME correlation adjustment (CRR Art. 153(4))
+    ead_b4 = 3_000_000.0
+    pd_raw_b4 = 0.015  # 1.50%
+    lgd_b4 = float(get_firb_lgd("unsecured"))  # 45%
+    maturity_b4 = 2.5
+    turnover_b4 = 25.0  # EUR 25m - qualifies for firm size adjustment
+
+    # Use new function with turnover for SME adjustment
+    result_b4 = calculate_irb_rwa_with_turnover(
+        ead=ead_b4,
+        pd=pd_raw_b4,
+        lgd=lgd_b4,
+        maturity=maturity_b4,
+        exposure_class="CORPORATE",
+        turnover_m=turnover_b4,
+    )
+
+    # Also calculate without SME adjustment for comparison
+    correlation_no_sme = calculate_correlation(result_b4["pd_floored"], "CORPORATE")
+    correlation_with_sme = result_b4["correlation"]
+
+    scenarios.append(CRRScenarioOutput(
+        scenario_id="CRR-B4",
+        scenario_group="CRR-B",
+        description="SME Corporate F-IRB - firm size adjustment",
+        regulatory_framework="CRR",
+        approach="F-IRB",
+        exposure_class="CORPORATE_SME",
+        exposure_reference="LOAN_CORP_SME_002",
+        counterparty_reference="CORP_SME_002",
+        ead=ead_b4,
+        pd=result_b4["pd_floored"],
+        lgd=lgd_b4,
+        maturity=maturity_b4,
+        cqs=None,
+        ltv=None,
+        turnover=turnover_b4 * 1_000_000,  # Convert to actual EUR value
+        risk_weight=result_b4["rwa"] / ead_b4 if ead_b4 > 0 else 0,
+        rwa_before_sf=result_b4["rwa"],
+        supporting_factor=1.0,
+        rwa_after_sf=result_b4["rwa"],
+        expected_loss=result_b4["pd_floored"] * lgd_b4 * ead_b4,
+        regulatory_reference="CRR Art. 153(4), 161, 162",
+        calculation_notes=(
+            f"SME firm size adjustment: R={correlation_with_sme:.4f} "
+            f"(vs {correlation_no_sme:.4f} without). "
+            f"Turnover EUR {turnover_b4}m < EUR 50m threshold."
+        ),
+    ))
+
+    # CRR-B5: SME Corporate F-IRB with both adjustments
+    # Demonstrates BOTH firm size adjustment AND SME supporting factor
+    ead_b5 = 2_000_000.0
+    pd_raw_b5 = 0.02  # 2.00%
+    lgd_b5 = float(get_firb_lgd("unsecured"))  # 45%
+    maturity_b5 = 3.0
+    turnover_b5 = 15.0  # EUR 15m - qualifies for both adjustments
+
+    result_b5 = calculate_irb_rwa_with_turnover(
+        ead=ead_b5,
+        pd=pd_raw_b5,
+        lgd=lgd_b5,
+        maturity=maturity_b5,
+        exposure_class="CORPORATE",
+        turnover_m=turnover_b5,
+    )
+
+    # Apply SME supporting factor to the RWA
+    sf_b5 = float(CRR_SME_SUPPORTING_FACTOR)
+    rwa_after_sf_b5 = result_b5["rwa"] * sf_b5
+
+    scenarios.append(CRRScenarioOutput(
+        scenario_id="CRR-B5",
+        scenario_group="CRR-B",
+        description="SME Corporate F-IRB - both adjustments",
+        regulatory_framework="CRR",
+        approach="F-IRB",
+        exposure_class="CORPORATE_SME",
+        exposure_reference="LOAN_CORP_SME_003",
+        counterparty_reference="CORP_SME_003",
+        ead=ead_b5,
+        pd=result_b5["pd_floored"],
+        lgd=lgd_b5,
+        maturity=maturity_b5,
+        cqs=None,
+        ltv=None,
+        turnover=turnover_b5 * 1_000_000,  # Convert to actual EUR value
+        risk_weight=result_b5["rwa"] / ead_b5 if ead_b5 > 0 else 0,
+        rwa_before_sf=result_b5["rwa"],
+        supporting_factor=sf_b5,
+        rwa_after_sf=rwa_after_sf_b5,
+        expected_loss=result_b5["pd_floored"] * lgd_b5 * ead_b5,
+        regulatory_reference="CRR Art. 153(4), 161, 162, 501",
+        calculation_notes=(
+            f"SME with both adjustments: "
+            f"(1) Firm size R={result_b5['correlation']:.4f}, "
+            f"(2) Supporting factor {sf_b5:.4f}. "
+            f"RWA reduced from {result_b5['rwa']:,.0f} to {rwa_after_sf_b5:,.0f}."
+        ),
+    ))
+
+    # CRR-B6: Corporate at SME threshold boundary
+    # Turnover exactly at EUR 50m - no firm size adjustment but within SME supporting factor
+    ead_b6 = 4_000_000.0
+    pd_raw_b6 = 0.01  # 1.00%
+    lgd_b6 = float(get_firb_lgd("unsecured"))  # 45%
+    maturity_b6 = 2.5
+    turnover_b6 = 50.0  # EUR 50m - boundary case (no firm size adjustment)
+
+    result_b6 = calculate_irb_rwa_with_turnover(
+        ead=ead_b6,
+        pd=pd_raw_b6,
+        lgd=lgd_b6,
+        maturity=maturity_b6,
+        exposure_class="CORPORATE",
+        turnover_m=turnover_b6,
+    )
+
+    scenarios.append(CRRScenarioOutput(
+        scenario_id="CRR-B6",
+        scenario_group="CRR-B",
+        description="Corporate F-IRB - at SME threshold",
+        regulatory_framework="CRR",
+        approach="F-IRB",
+        exposure_class="CORPORATE",
+        exposure_reference="LOAN_CORP_UK_004",
+        counterparty_reference="CORP_UK_004",
+        ead=ead_b6,
+        pd=result_b6["pd_floored"],
+        lgd=lgd_b6,
+        maturity=maturity_b6,
+        cqs=None,
+        ltv=None,
+        turnover=turnover_b6 * 1_000_000,
+        risk_weight=result_b6["rwa"] / ead_b6 if ead_b6 > 0 else 0,
+        rwa_before_sf=result_b6["rwa"],
+        supporting_factor=1.0,
+        rwa_after_sf=result_b6["rwa"],
+        expected_loss=result_b6["pd_floored"] * lgd_b6 * ead_b6,
+        regulatory_reference="CRR Art. 153, 161, 162",
+        calculation_notes=(
+            f"At EUR 50m threshold: no firm size adjustment "
+            f"(R={result_b6['correlation']:.4f}, sme_adj={result_b6['sme_adjustment_applied']}). "
+            f"Turnover at boundary."
+        ),
     ))
 
     return scenarios
