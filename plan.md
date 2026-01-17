@@ -6,43 +6,142 @@ This plan follows a **test-first approach** starting with User Acceptance Tests 
 
 ---
 
+## Current Status
+
+### Phase 1.1: Test Data Fixtures - COMPLETE
+
+All test data fixtures have been created with Python generators and parquet output files.
+
+| Fixture Type | Status | Records | Generator |
+|--------------|--------|---------|-----------|
+| Counterparty - Sovereign | Complete | 9 | `counterparty/sovereign.py` |
+| Counterparty - Institution | Complete | 12 | `counterparty/institution.py` |
+| Counterparty - Corporate | Complete | 24 | `counterparty/corporate.py` |
+| Counterparty - Retail | Complete | 26 | `counterparty/retail.py` |
+| Counterparty - Specialised Lending | Complete | 14 | `counterparty/specialised_lending.py` |
+| Exposures - Facilities | Complete | 17 | `exposures/facilities.py` |
+| Exposures - Loans | Complete | 28 | `exposures/loans.py` |
+| Exposures - Contingents | Complete | 17 | `exposures/contingents.py` |
+| Exposures - Facility Mapping | Complete | 15 | `exposures/facility_mapping.py` |
+| Collateral | Complete | 22 | `collateral/collateral.py` |
+| Guarantee | Complete | 15 | `guarantee/guarantee.py` |
+| Provision | Complete | 18 | `provision/provision.py` |
+| Ratings | Complete | 73 | `ratings/ratings.py` |
+| Mapping - Org | Complete | 8 | `mapping/org_mapping.py` |
+| Mapping - Lending | Complete | 7 | `mapping/lending_mapping.py` |
+
+### Phase 1.2: Acceptance Test Scenarios - NOT STARTED
+
+### Phase 2: Process Contracts - NOT STARTED
+
+### Phase 3: Implementation - NOT STARTED
+
+---
+
 ## Phase 1: User Acceptance Tests
 
 Define end-to-end acceptance tests that verify the complete calculation pipeline produces correct RWA outputs for known inputs.
 
-### 1.1 Create Test Data Fixtures
+### 1.1 Test Data Fixtures
 
-Create realistic test datasets covering key regulatory scenarios:
+Test datasets have been created covering key regulatory scenarios. Each fixture type has:
+- A Python generator module with dataclass definitions
+- A `create_*()` function returning a Polars DataFrame
+- A `save_*()` function writing to parquet format
+- A `generate_all.py` runner script with summary output
 
 ```
 tests/
 ├── fixtures/
 │   ├── counterparty/
-│   │   ├── sovereign.parquet         # UK Govt, US Govt, etc.
-│   │   ├── institution.parquet       # Banks, regulated entities
-│   │   ├── corporate.parquet         # Large corp, SME, unrated
-│   │   ├── retail.parquet             # Individuals, small business
-│   │   └── specialised_lending.parquet # Project finance, IPRE
+│   │   ├── sovereign.py              # UK Govt, US Govt, Brazil, Argentina, etc.
+│   │   ├── institution.py            # Banks (Barclays, HSBC, JPMorgan), CCPs
+│   │   ├── corporate.py              # Large corp, SME, unrated, org hierarchy groups
+│   │   ├── retail.py                 # Individuals, mortgages, SME retail, lending groups
+│   │   ├── specialised_lending.py    # Project finance, IPRE, HVCRE, object finance
+│   │   ├── __init__.py
+│   │   └── generate_all.py
 │   ├── exposures/
-│   │   ├── facility.parquet
-│   │   ├── loan.parquet
-│   │   └── contingent.parquet
+│   │   ├── facilities.py             # RCFs, term facilities, mortgages, hierarchy test
+│   │   ├── loans.py                  # Drawn exposures for all acceptance scenarios
+│   │   ├── contingents.py            # Off-balance sheet (LCs, guarantees, commitments)
+│   │   ├── facility_mapping.py       # Facility-to-loan/contingent relationships
+│   │   ├── __init__.py
+│   │   └── generate_all.py
 │   ├── collateral/
-│   │   ├── financial_collateral.parquet
-│   │   ├── real_estate.parquet
-│   │   └── receivables.parquet
-│   ├── guarantee.parquet
-│   ├── provision.parquet
-│   ├── rating.parquet
-│   └── mappings/
-│       ├── facility_mapping.parquet
-│       ├── org_mapping.parquet
-│       └── lending_mapping.parquet
+│   │   ├── collateral.py             # Cash, bonds, equity, real estate, receivables
+│   │   ├── __init__.py
+│   │   └── generate_all.py
+│   ├── guarantee/
+│   │   ├── guarantee.py              # Sovereign, bank, corporate guarantees
+│   │   ├── __init__.py
+│   │   └── generate_all.py
+│   ├── provision/
+│   │   ├── provision.py              # SCRA/GCRA, IFRS9 stages 1-3
+│   │   ├── __init__.py
+│   │   └── generate_all.py
+│   ├── ratings/
+│   │   ├── ratings.py                # External (S&P/Moody's) and internal ratings
+│   │   ├── __init__.py
+│   │   └── generate_all.py
+│   └── mapping/
+│       ├── org_mapping.py            # Parent-subsidiary relationships
+│       ├── lending_mapping.py        # Retail lending group connections
+│       ├── __init__.py
+│       └── generate_all.py
 ```
+
+#### Fixture Data Coverage
+
+**Counterparties (85 total):**
+- Sovereigns: CQS 1-6 coverage (UK, US, Germany, Saudi Arabia, Mexico, Brazil, Argentina), unrated, defaulted
+- Institutions: UK banks (CQS 1-2), US banks, German banks, CCPs, unrated
+- Corporates: Large corp (CQS 1-3), SME, unrated, defaulted, 3 org hierarchy test groups
+- Retail: Individuals, mortgage borrowers, QRRE, SME retail, defaulted, 5 lending groups
+- Specialised Lending: Project finance, IPRE, HVCRE, object finance across slotting categories
+
+**Exposures (77 total):**
+- Facilities: Corporate RCFs, term facilities, mortgages, QRRE, hierarchy test facilities
+- Loans: Coverage for all acceptance test scenarios (A1-A10, H1-H4)
+- Contingents: All CCF categories (0%, 20%, 40%, 50%, 100%)
+- Facility mappings: Single facility with multiple loans, multi-level hierarchies
+
+**Credit Risk Mitigation:**
+- Collateral: Cash (0% haircut), govt bonds, equity (25%), real estate (LTV-based), receivables
+- Guarantees: Sovereign, bank (D4 scenario), corporate/parent guarantees
+- Provisions: Stage 1/2/3, SCRA/GCRA, H4 full CRM chain
+
+**Hierarchy Test Data:**
+- Org hierarchy: 3 corporate groups for rating inheritance testing
+- Lending groups: 5 retail groups for threshold aggregation testing
+- Exposure hierarchy: H1 (multiple loans), H2 (multi-level facilities)
 
 ### 1.2 Acceptance Test Scenarios
 
 Each scenario defines **specific inputs** and **expected outputs** with hand-calculated values.
+
+#### Test Data to Scenario Mapping
+
+| Scenario | Counterparty | Loan/Exposure | Collateral | Guarantee | Provision |
+|----------|--------------|---------------|------------|-----------|-----------|
+| A1 | SOV_UK_001 | LOAN_SOV_UK_001 | - | - | - |
+| A2 | CORP_UR_001 | LOAN_CORP_UR_001 | COLL_EQ_001 | - | PROV_S2_CORP_001 |
+| A3 | CORP_UK_003 | LOAN_CORP_UK_003 | COLL_GILT_001 | GUAR_BANK_001 | - |
+| A4 | INST_UK_003 | LOAN_INST_UK_003 | - | - | - |
+| A5 | RTL_MTG_001 | LOAN_RTL_MTG_001 | COLL_RRE_001 (60% LTV) | - | PROV_S1_MTG_001 |
+| A6 | RTL_MTG_002 | LOAN_RTL_MTG_002 | COLL_RRE_002 (85% LTV) | - | - |
+| A8 | Various | CONT_CCF_* | - | - | - |
+| A9 | RTL_IND_001 | LOAN_RTL_IND_001 | - | - | - |
+| A10 | RTL_SME_001 | LOAN_RTL_SME_001 | COLL_REC_002 | - | PROV_S2_SME_001 |
+| D1 | CORP_UK_001 | LOAN_CORP_UK_001 | COLL_CASH_001 | - | - |
+| D2 | CORP_UK_003 | LOAN_CORP_UK_003 | COLL_GILT_001 | - | - |
+| D3 | CORP_UR_001 | LOAN_CORP_UR_001 | COLL_EQ_001 | - | - |
+| D4 | CORP_UK_003 | LOAN_CORP_UK_003 | - | GUAR_BANK_001 | - |
+| D5 | CORP_GRP2_OPSUB1 | LOAN_HIER_SUB_001_A | COLL_MAT_MISMATCH_001 | - | - |
+| D6 | CORP_GRP2_OPSUB2 | LOAN_HIER_SUB_002_A | COLL_CCY_MISMATCH_001 | - | - |
+| H1 | CORP_GRP1_PARENT | LOAN_HIER_001_A/B/C | COLL_CRE_003/004 | GUAR_MAT_MISMATCH_001 | PROV_S2_HIER_001 |
+| H2 | CORP_GRP1_* | via org_mapping | - | GUAR_CORP_001 | - |
+| H4 | CORP_UK_002 | LOAN_FAC_CORP_002_A | COLL_CRE_002 | GUAR_CRM_CHAIN_001 | PROV_CRM_CHAIN_001 |
 
 #### Scenario Group A: Standardised Approach (SA)
 
@@ -790,37 +889,128 @@ Quick reference for test calculations:
 
 ---
 
-## Appendix B: Acceptance Test Data Templates
+## Appendix B: Test Fixture Reference
 
-Example CSV/Parquet structures for test fixtures.
+Summary of implemented test fixtures with key reference IDs.
 
-### counterparties.csv
+### Counterparty References
 
-```csv
-reference,name,entity_type,country_code,annual_revenue,is_financial_institution,is_regulated,is_pse,default_status
-CPTY001,UK Government,SOVEREIGN,GB,,false,false,false,PERFORMING
-CPTY002,Barclays Bank,INSTITUTION,GB,,true,true,false,PERFORMING
-CPTY003,Acme Corp,CORPORATE,GB,50000000,false,false,false,PERFORMING
-CPTY004,Small Biz Ltd,CORPORATE,GB,500000,false,false,false,PERFORMING
-CPTY005,John Smith,INDIVIDUAL,GB,75000,false,false,false,PERFORMING
-```
+| Type | Reference | Name | CQS | Notes |
+|------|-----------|------|-----|-------|
+| Sovereign | SOV_UK_001 | UK Government | 1 | 0% RW |
+| Sovereign | SOV_US_001 | US Government | 1 | 0% RW |
+| Sovereign | SOV_BR_001 | Brazil | 4 | 100% RW |
+| Sovereign | SOV_AR_001 | Argentina | 6 | 150% RW |
+| Institution | INST_UK_001 | Barclays Bank | 1 | 20% RW |
+| Institution | INST_UK_003 | Metro Bank | 2 | 30% RW (UK deviation) |
+| Institution | INST_UR_001 | Regional Bank | - | 40% RW (unrated) |
+| Corporate | CORP_UK_001 | BP PLC | 1 | 20% RW |
+| Corporate | CORP_UK_003 | Rolls-Royce | 2 | 50% RW |
+| Corporate | CORP_UR_001 | Acme Ltd | - | 100% RW (unrated) |
+| Corporate | CORP_SME_001 | Tech Startup | - | SME support factor |
+| Retail | RTL_IND_001 | John Smith | - | 75% RW |
+| Retail | RTL_MTG_001 | Sarah Johnson | - | Mortgage 60% LTV |
+| Retail | RTL_MTG_002 | Michael Brown | - | Mortgage 85% LTV |
+| Retail | RTL_SME_001 | Corner Shop Ltd | - | SME retail |
 
-### loans.csv
+### Loan References
 
-```csv
-reference,counterparty_reference,product_type,currency,drawn_amount,maturity_date,lgd,seniority
-LOAN001,CPTY001,TERM_LOAN,GBP,1000000,2030-01-01,0.45,SENIOR
-LOAN002,CPTY002,TERM_LOAN,GBP,1000000,2028-06-30,0.45,SENIOR
-LOAN003,CPTY003,TERM_LOAN,GBP,1000000,2029-12-31,0.45,SENIOR
-LOAN004,CPTY004,TERM_LOAN,GBP,500000,2027-03-15,0.45,SENIOR
-LOAN005,CPTY005,MORTGAGE,GBP,500000,2050-01-01,0.10,SENIOR
-```
+| Reference | Counterparty | Amount | Scenario |
+|-----------|--------------|--------|----------|
+| LOAN_SOV_UK_001 | SOV_UK_001 | £1,000,000 | A1 - Sovereign 0% |
+| LOAN_CORP_UR_001 | CORP_UR_001 | £1,000,000 | A2 - Unrated 100% |
+| LOAN_CORP_UK_003 | CORP_UK_003 | £1,000,000 | A3 - Rated CQS2 50% |
+| LOAN_INST_UK_003 | INST_UK_003 | £1,000,000 | A4 - Institution 30% |
+| LOAN_RTL_MTG_001 | RTL_MTG_001 | £500,000 | A5 - Mortgage 60% LTV |
+| LOAN_RTL_MTG_002 | RTL_MTG_002 | £850,000 | A6 - Mortgage 85% LTV |
+| LOAN_RTL_IND_001 | RTL_IND_001 | £50,000 | A9 - Retail 75% |
+| LOAN_RTL_SME_001 | RTL_SME_001 | £500,000 | A10 - SME retail |
+| LOAN_HIER_001_A/B/C | CORP_GRP1_PARENT | £4,500,000 | H1 - Multiple loans |
+| LOAN_FAC_CORP_002_A | CORP_UK_002 | £30,000,000 | H4 - Full CRM chain |
+
+### Collateral References
+
+| Reference | Type | Value | Haircut | Scenario |
+|-----------|------|-------|---------|----------|
+| COLL_CASH_001 | Cash | £500,000 | 0% | D1 |
+| COLL_GILT_001 | Govt Bond (5yr) | £600,000 | 4% | D2 |
+| COLL_EQ_001 | Equity | £400,000 | 25% | D3 |
+| COLL_RRE_001 | Residential RE | £833,333 | 60% LTV | A5 |
+| COLL_RRE_002 | Residential RE | £1,000,000 | 85% LTV | A6 |
+| COLL_MAT_MISMATCH_001 | Bond (2yr) | £500,000 | Maturity adj | D5 |
+| COLL_CCY_MISMATCH_001 | Cash (EUR) | €500,000 | 8% FX | D6 |
+
+### Guarantee References
+
+| Reference | Guarantor | Amount | Coverage | Scenario |
+|-----------|-----------|--------|----------|----------|
+| GUAR_BANK_001 | INST_UK_001 | £600,000 | 60% | D4 |
+| GUAR_CRM_CHAIN_001 | INST_UK_002 | £15,000,000 | 50% | H4 |
+| GUAR_SOV_001 | SOV_UK_001 | £5,000,000 | 100% | Sovereign sub |
+
+### Hierarchy Test References
+
+| Test | Parent | Children | Purpose |
+|------|--------|----------|---------|
+| H1 | FAC_HIER_001 | LOAN_HIER_001_A/B/C | Multiple loans under facility |
+| H2 | FAC_HIER_PARENT_001 | FAC_HIER_SUB_001/002 | Multi-level facility |
+| Org Group 1 | CORP_GRP1_PARENT | CORP_GRP1_SUB1/2/3 | Rating inheritance |
+| Lending Group 2 | RTL_LG2_OWNER | RTL_LG2_COMPANY | Threshold aggregation |
 
 ---
 
 ## Next Steps
 
-1. **Immediate**: Create test fixtures directory structure and sample data
-2. **Week 1**: Implement acceptance test shells (failing tests)
-3. **Week 2**: Define and implement contract protocols
-4. **Week 3+**: Begin implementation following Phase 3 order, making tests pass incrementally
+### Completed
+- [x] Create test fixtures directory structure
+- [x] Implement counterparty fixtures (sovereign, institution, corporate, retail, specialised lending)
+- [x] Implement exposure fixtures (facilities, loans, contingents, facility mappings)
+- [x] Implement CRM fixtures (collateral, guarantees, provisions)
+- [x] Implement ratings fixtures (external and internal)
+- [x] Implement mapping fixtures (org hierarchy, lending groups)
+- [x] Add hierarchy test data for acceptance scenarios H1, H2, H4
+
+### In Progress
+- [ ] Implement acceptance test shells (failing tests) for scenarios A1-A10, B1-B6, C1-C3, D1-D6, E1-E4, F1-F3, G1-G3, H1-H4
+
+### Up Next
+1. **Phase 1.2**: Create acceptance test file structure and implement test shells
+2. **Phase 1.3**: Hand-calculate expected RWA values for each scenario
+3. **Phase 2**: Define and implement contract protocols
+4. **Phase 3**: Begin implementation following dependency order, making tests pass incrementally
+
+### Fixture Generator Commands
+
+To regenerate all fixtures at once (recommended):
+```bash
+uv run python tests/fixtures/generate_all.py
+```
+
+This master script:
+- Generates all 15 parquet files across 7 fixture groups
+- Runs data integrity checks (referential integrity, foreign keys)
+- Produces a summary report with record counts
+
+To regenerate individual fixture groups:
+```bash
+# Counterparties
+uv run python tests/fixtures/counterparty/generate_all.py
+
+# Exposures (facilities, loans, contingents, mappings)
+uv run python tests/fixtures/exposures/generate_all.py
+
+# Collateral
+uv run python tests/fixtures/collateral/generate_all.py
+
+# Guarantees
+uv run python tests/fixtures/guarantee/generate_all.py
+
+# Provisions
+uv run python tests/fixtures/provision/generate_all.py
+
+# Ratings
+uv run python tests/fixtures/ratings/generate_all.py
+
+# Mappings (org, lending)
+uv run python tests/fixtures/mapping/generate_all.py
+```

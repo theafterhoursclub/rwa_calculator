@@ -41,10 +41,10 @@ Configuration:
 - IRB_permissions           # Which exposure classes can use IRB (SA/FIRB/AIRB)
 - Calculation_config        # Basel version toggle (3.0 vs 3.1), reporting date
 
-Output Schemas (defined in results.py):
-- RWA_result                # Calculated RWA with audit trail
-- EL_comparison             # IRB Expected Loss vs Provisions comparison
-- Output_floor_result       # Floor calculation breakdown (72.5% of SA equivalent)
+Output Schemas:
+- Calculation_output        # Full RWA calculation results with complete audit trail
+                            # Includes: classification, EAD breakdown, CRM impact, risk weights,
+                            # IRB parameters, hierarchy tracing, floor impact, and data quality flags
 
 """
 
@@ -325,3 +325,210 @@ CALCULATION_CONFIG_SCHEMA = {
     "config_type": pl.String,  # string, float, date, boolean
     # Expected keys: basel_version (3.0/3.1), reporting_date, output_floor_percentage, etc.
 }
+
+
+# =============================================================================
+# OUTPUT SCHEMAS
+# =============================================================================
+
+# Main RWA calculation output schema
+# Designed to enable full auditability: users can investigate why results occurred
+# and replicate the calculation from the output data alone.
+CALCULATION_OUTPUT_SCHEMA = {
+    # -------------------------------------------------------------------------
+    # IDENTIFICATION & LINEAGE
+    # -------------------------------------------------------------------------
+    "calculation_run_id": pl.String,  # Unique run identifier for audit trail
+    "calculation_timestamp": pl.Datetime,  # When calculation was performed
+    "exposure_reference": pl.String,  # Links to source loan/facility/contingent
+    "exposure_type": pl.String,  # "loan", "facility", "contingent"
+    "counterparty_reference": pl.String,  # Links to counterparty
+    "book_code": pl.String,  # Portfolio/book classification
+    "currency": pl.String,  # Exposure currency
+    "basel_version": pl.String,  # "3.0" or "3.1"
+
+    # -------------------------------------------------------------------------
+    # COUNTERPARTY HIERARCHY (Rating Inheritance)
+    # -------------------------------------------------------------------------
+    "counterparty_has_parent": pl.Boolean,  # Whether counterparty is part of org hierarchy
+    "parent_counterparty_reference": pl.String,  # Immediate parent in org structure
+    "ultimate_parent_reference": pl.String,  # Top-level parent (for group-level analysis)
+    "counterparty_hierarchy_depth": pl.Int8,  # Levels from ultimate parent (0=top)
+    "rating_inherited": pl.Boolean,  # Whether rating came from parent
+    "rating_source_counterparty": pl.String,  # Counterparty whose rating was used
+    "rating_inheritance_reason": pl.String,  # "own_rating", "parent_rating", "group_rating", "unrated"
+
+    # -------------------------------------------------------------------------
+    # LENDING GROUP HIERARCHY (Retail Threshold Aggregation)
+    # -------------------------------------------------------------------------
+    "lending_group_reference": pl.String,  # Lending group parent if applicable
+    "lending_group_total_exposure": pl.Float64,  # Aggregated exposure across group
+    "retail_threshold_applied": pl.Float64,  # £1m (3.0) or £880k (3.1)
+    "retail_eligible_via_group": pl.Boolean,  # Whether retail classification based on group aggregation
+
+    # -------------------------------------------------------------------------
+    # EXPOSURE HIERARCHY (Facility Structure)
+    # -------------------------------------------------------------------------
+    "exposure_has_parent": pl.Boolean,  # Whether exposure is child of a facility
+    "parent_facility_reference": pl.String,  # Parent facility reference
+    "root_facility_reference": pl.String,  # Top-level facility in hierarchy
+    "facility_hierarchy_depth": pl.Int8,  # Levels from root facility (0=top)
+    "facility_hierarchy_path": pl.List(pl.String),  # Full path from root to this exposure
+
+    # -------------------------------------------------------------------------
+    # CRM INHERITANCE (From Hierarchy)
+    # -------------------------------------------------------------------------
+    "collateral_source_level": pl.String,  # "exposure", "facility", "counterparty"
+    "collateral_inherited_from": pl.String,  # Reference of entity collateral inherited from
+    "collateral_allocation_method": pl.String,  # "direct", "pro_rata", "waterfall", "optimised"
+    "guarantee_source_level": pl.String,  # "exposure", "facility", "counterparty"
+    "guarantee_inherited_from": pl.String,  # Reference of entity guarantee inherited from
+    "provision_source_level": pl.String,  # "exposure", "facility", "counterparty"
+    "provision_inherited_from": pl.String,  # Reference of entity provision inherited from
+    "crm_allocation_notes": pl.String,  # Explanation of how CRM was allocated down hierarchy
+
+    # -------------------------------------------------------------------------
+    # EXPOSURE CLASSIFICATION
+    # -------------------------------------------------------------------------
+    "exposure_class": pl.String,  # Determined class (central_govt, institution, corporate, retail, etc.)
+    "exposure_class_reason": pl.String,  # Explanation of classification decision
+    "approach_permitted": pl.String,  # "SA", "FIRB", "AIRB" based on permissions
+    "approach_applied": pl.String,  # Actual approach used
+    "approach_selection_reason": pl.String,  # Why this approach was selected
+
+    # -------------------------------------------------------------------------
+    # ORIGINAL EXPOSURE VALUES
+    # -------------------------------------------------------------------------
+    "drawn_amount": pl.Float64,  # Original drawn balance
+    "undrawn_amount": pl.Float64,  # Undrawn commitment amount
+    "commitment_type": pl.String,  # "unconditionally_cancellable", "committed_other"
+    "original_maturity_date": pl.Date,  # Contractual maturity
+    "residual_maturity_years": pl.Float64,  # Years to maturity
+
+    # -------------------------------------------------------------------------
+    # CCF APPLICATION (Off-balance sheet conversion)
+    # -------------------------------------------------------------------------
+    "ccf_category": pl.String,  # Category used for CCF lookup
+    "ccf_applied": pl.Float64,  # CCF percentage (0%, 20%, 40%, 50%, 100%)
+    "ccf_source": pl.String,  # Reference to regulatory article
+    "converted_undrawn": pl.Float64,  # undrawn_amount × ccf_applied
+
+    # -------------------------------------------------------------------------
+    # CRM - COLLATERAL IMPACT
+    # -------------------------------------------------------------------------
+    "collateral_references": pl.List(pl.String),  # IDs of collateral items used
+    "collateral_types": pl.List(pl.String),  # Types of collateral
+    "collateral_gross_value": pl.Float64,  # Total market value before haircuts
+    "collateral_haircut_applied": pl.Float64,  # Weighted average haircut %
+    "fx_haircut_applied": pl.Float64,  # FX mismatch haircut (8% or 0%)
+    "maturity_mismatch_adjustment": pl.Float64,  # Adjustment for maturity mismatch
+    "collateral_adjusted_value": pl.Float64,  # Net collateral value after haircuts
+
+    # -------------------------------------------------------------------------
+    # CRM - GUARANTEE IMPACT (Substitution approach)
+    # -------------------------------------------------------------------------
+    "guarantee_references": pl.List(pl.String),  # IDs of guarantees used
+    "guarantor_references": pl.List(pl.String),  # Guarantor counterparty IDs
+    "guarantee_coverage_pct": pl.Float64,  # % of exposure guaranteed
+    "guaranteed_amount": pl.Float64,  # Amount covered by guarantee
+    "guarantor_risk_weight": pl.Float64,  # RW of guarantor (for substitution)
+    "guarantee_benefit": pl.Float64,  # RWA reduction from guarantee
+
+    # -------------------------------------------------------------------------
+    # CRM - PROVISION IMPACT
+    # -------------------------------------------------------------------------
+    "provision_references": pl.List(pl.String),  # IDs of provisions applied
+    "scra_provision_amount": pl.Float64,  # Specific provisions
+    "gcra_provision_amount": pl.Float64,  # General provisions
+    "provision_capped_amount": pl.Float64,  # Amount eligible for CRM
+
+    # -------------------------------------------------------------------------
+    # EAD CALCULATION
+    # -------------------------------------------------------------------------
+    "gross_ead": pl.Float64,  # drawn + converted_undrawn
+    "ead_after_collateral": pl.Float64,  # After collateral CRM
+    "ead_after_guarantee": pl.Float64,  # Portion not guaranteed
+    "final_ead": pl.Float64,  # Final EAD for RWA calculation
+    "ead_calculation_method": pl.String,  # "simple", "comprehensive", "supervisory_haircut"
+
+    # -------------------------------------------------------------------------
+    # RISK WEIGHT DETERMINATION - SA
+    # -------------------------------------------------------------------------
+    "sa_cqs": pl.Int8,  # Credit Quality Step used (1-6, 0=unrated)
+    "sa_rating_source": pl.String,  # Rating agency or "internal"
+    "sa_base_risk_weight": pl.Float64,  # Base RW from lookup table
+    "sa_rw_adjustment": pl.Float64,  # Any adjustments applied
+    "sa_rw_adjustment_reason": pl.String,  # Reason for adjustment
+    "sa_final_risk_weight": pl.Float64,  # Final SA risk weight
+    "sa_rw_regulatory_ref": pl.String,  # CRR article / CRE reference
+
+    # -------------------------------------------------------------------------
+    # RISK WEIGHT DETERMINATION - IRB
+    # -------------------------------------------------------------------------
+    "irb_pd_original": pl.Float64,  # PD before flooring
+    "irb_pd_floor": pl.Float64,  # Applicable PD floor
+    "irb_pd_floored": pl.Float64,  # max(pd_original, pd_floor)
+    "irb_lgd_type": pl.String,  # "supervisory" (F-IRB) or "modelled" (A-IRB)
+    "irb_lgd_original": pl.Float64,  # LGD before flooring
+    "irb_lgd_floor": pl.Float64,  # Applicable LGD floor
+    "irb_lgd_floored": pl.Float64,  # max(lgd_original, lgd_floor)
+    "irb_maturity_m": pl.Float64,  # Effective maturity (M)
+    "irb_correlation_r": pl.Float64,  # Asset correlation
+    "irb_maturity_adj_b": pl.Float64,  # Maturity adjustment factor
+    "irb_capital_k": pl.Float64,  # Capital requirement (K)
+    "irb_risk_weight": pl.Float64,  # 12.5 × K × 100%
+
+    # -------------------------------------------------------------------------
+    # SPECIALISED LENDING / EQUITY (Alternative approaches)
+    # -------------------------------------------------------------------------
+    "sl_type": pl.String,  # SL category if applicable
+    "sl_slotting_category": pl.String,  # strong/good/satisfactory/weak/default
+    "sl_risk_weight": pl.Float64,  # Slotting RW
+    "equity_type": pl.String,  # Equity category if applicable
+    "equity_risk_weight": pl.Float64,  # Equity RW
+
+    # -------------------------------------------------------------------------
+    # REAL ESTATE SPECIFIC
+    # -------------------------------------------------------------------------
+    "property_type": pl.String,  # residential/commercial
+    "property_ltv": pl.Float64,  # Loan-to-value ratio
+    "ltv_band": pl.String,  # LTV band for RW lookup
+    "is_income_producing": pl.Boolean,  # CRE income flag
+    "is_adc": pl.Boolean,  # ADC exposure flag
+    "mortgage_risk_weight": pl.Float64,  # LTV-based RW
+
+    # -------------------------------------------------------------------------
+    # FINAL RWA CALCULATION
+    # -------------------------------------------------------------------------
+    "rwa_before_floor": pl.Float64,  # EAD × RW (before output floor)
+    "sa_equivalent_rwa": pl.Float64,  # SA RWA for floor comparison
+    "output_floor_pct": pl.Float64,  # Floor percentage (72.5% for 3.1)
+    "output_floor_rwa": pl.Float64,  # sa_equivalent_rwa × floor_pct
+    "floor_binding": pl.Boolean,  # Whether floor increased RWA
+    "floor_impact": pl.Float64,  # Additional RWA from floor
+    "final_rwa": pl.Float64,  # max(rwa_before_floor, output_floor_rwa)
+    "risk_weight_effective": pl.Float64,  # final_rwa / final_ead (implied RW)
+
+    # -------------------------------------------------------------------------
+    # EXPECTED LOSS (IRB comparison to provisions)
+    # -------------------------------------------------------------------------
+    "irb_expected_loss": pl.Float64,  # PD × LGD × EAD
+    "provision_held": pl.Float64,  # Total provision amount
+    "el_shortfall": pl.Float64,  # max(0, EL - provision)
+    "el_excess": pl.Float64,  # max(0, provision - EL)
+
+    # -------------------------------------------------------------------------
+    # BASEL 3.1 ADJUSTMENTS
+    # -------------------------------------------------------------------------
+    "sme_supporting_factor": pl.Float64,  # SME factor (3.0 only, 0.7619/0.85)
+    "infra_supporting_factor": pl.Float64,  # Infrastructure factor if applicable
+    "supporting_factor_benefit": pl.Float64,  # RWA reduction from factors
+
+    # -------------------------------------------------------------------------
+    # WARNINGS & VALIDATION
+    # -------------------------------------------------------------------------
+    "calculation_warnings": pl.List(pl.String),  # Any issues/assumptions made
+    "data_quality_flags": pl.List(pl.String),  # Missing/imputed values
+}
+
+

@@ -84,6 +84,23 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
         },
+        {
+            "counterparty_reference": "INST_DE_001",
+            "counterparty_name": "Deutsche Bank AG",
+            "entity_type": "institution",
+            "country_code": "DE",
+            "annual_revenue": None,
+            "total_assets": 1_300_000_000_000.0,
+            "default_status": False,
+            "sector_code": "64.19",
+            "is_financial_institution": True,
+            "is_regulated": True,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
         # CQS 2 Institution - 30% Risk Weight (UK deviation)
         {
             "counterparty_reference": "INST_UK_003",

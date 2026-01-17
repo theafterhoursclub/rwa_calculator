@@ -1,0 +1,442 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.4"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "3ca01e300086d45c6346e06eec5bc4a7",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "9b966bba6dd6c1cfed88078662276cc0",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"group-a-standardised-approach-scenarios\">Group A: Standardised Approach Scenarios</h1>\n<span class=\"paragraph\">This workbook calculates expected RWA values for SA scenarios A1-A10.</span>\n<span class=\"paragraph\"><strong>Regulatory References:</strong></span>\n<ul>\n<li>CRE20.7: Sovereign risk weights</li>\n<li>CRE20.16: Institution risk weights (ECRA)</li>\n<li>CRE20.25-26: Corporate risk weights</li>\n<li>CRE20.66: Retail risk weight (75%)</li>\n<li>CRE20.71-73: Residential mortgage risk weights (LTV-based)</li>\n<li>CRE20.83-85: Commercial real estate risk weights</li>\n<li>CRE20.93-98: Credit conversion factors</li>\n<li>PRA PS9/24: UK deviation for institution CQS2 (30% instead of 50%)</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "04516e1a32cdf002b3382e605962f95c",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "d72b5bb8d146aa472b0be74284befe65",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><strong>Available loans:</strong> 28 records</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "a241bf67b62ce52a78219a6b80591d42",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "0daa888377a20f2dcc33ef7be85ffebb",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a1-uk-sovereign-0-risk-weight\">Scenario A1: UK Sovereign - 0% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a31m loan to UK Government (CQS 1)\n<strong>Expected:</strong> 0% RW, \u00a30 RWA\n<strong>Reference:</strong> CRE20.7</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "43790141a6d82f251f4eda7cacdc937b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A1: EAD=\u00a31,000,000, RW=0%, RWA=\u00a30\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "f38ceea446b854d4a7162aa3cbab19d7",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a2-unrated-corporate-100-risk-weight\">Scenario A2: Unrated Corporate - 100% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a31m loan to unrated corporate\n<strong>Expected:</strong> 100% RW, \u00a31m RWA\n<strong>Reference:</strong> CRE20.26</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "6b706c66881d00dc567db08bb56a0633",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A2: EAD=\u00a31,000,000, RW=100%, RWA=\u00a31,000,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "1de5a4f7659410d07c7ed6c824a9d571",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a3-rated-corporate-cqs-2-50-risk-weight\">Scenario A3: Rated Corporate CQS 2 - 50% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a31m loan to A-rated corporate (Rolls-Royce)\n<strong>Expected:</strong> 50% RW, \u00a3500k RWA\n<strong>Reference:</strong> CRE20.25</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "5e2524163b1df524d0683bd49922a142",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A3: EAD=\u00a31,000,000, RW=50%, RWA=\u00a3500,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "emfo",
+      "code_hash": "d09ee822d90aca5dd0ec97533659a26b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a4-uk-institution-cqs-2-30-risk-weight-uk-deviation\">Scenario A4: UK Institution CQS 2 - 30% Risk Weight (UK Deviation)</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a31m loan to UK bank with CQS 2 rating\n<strong>Expected:</strong> 30% RW, \u00a3300k RWA (UK deviation from Basel 50%)\n<strong>Reference:</strong> CRE20.16, PRA PS9/24 Ch.3</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "f1d41b15c7b3be6aa1aa592c4716665f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A4: EAD=\u00a31,000,000, RW=30%, RWA=\u00a3300,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "nWHF",
+      "code_hash": "f67284b7db3f4866c6375028a966cb78",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a5-residential-mortgage-60-ltv-20-risk-weight\">Scenario A5: Residential Mortgage 60% LTV - 20% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a3500k mortgage, \u00a3833k property value (60% LTV)\n<strong>Expected:</strong> 20% RW, \u00a3100k RWA\n<strong>Reference:</strong> CRE20.71</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "iLit",
+      "code_hash": "73222b769cf3a06ee4b3a81882e3f87d",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A5: EAD=\u00a3500,000, LTV=60%, RW=20%, RWA=\u00a3100,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "ZHCJ",
+      "code_hash": "f1ad6110c73ab371b846db03faaacdbd",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a6-residential-mortgage-85-ltv-35-risk-weight\">Scenario A6: Residential Mortgage 85% LTV - 35% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a3850k mortgage, \u00a31m property value (85% LTV)\n<strong>Expected:</strong> 35% RW, \u00a3297.5k RWA\n<strong>Reference:</strong> CRE20.71</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ROlb",
+      "code_hash": "50d07a219a4d94850dae2a00371bc205",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A6: EAD=\u00a3850,000, LTV=85%, RW=35%, RWA=\u00a3297,500\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "qnkX",
+      "code_hash": "aa759add66c08af1056eee4760d83dd0",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a7-commercial-real-estate-60-ltv-60-risk-weight\">Scenario A7: Commercial Real Estate 60% LTV - 60% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a3600k loan, \u00a31m property value (60% LTV)\n<strong>Expected:</strong> 60% RW, \u00a3360k RWA\n<strong>Reference:</strong> CRE20.83</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "TqIu",
+      "code_hash": "a162b3f2e2728b16c1e2ddb40787c53f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A7: EAD=\u00a3600,000, LTV=60%, RW=60%, RWA=\u00a3360,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Vxnm",
+      "code_hash": "5f54f45c1ad5fd403da444a63945ae0c",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a8-off-balance-sheet-commitment-40-ccf\">Scenario A8: Off-Balance Sheet Commitment - 40% CCF</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a31m undrawn committed facility\n<strong>Expected:</strong> 40% CCF, \u00a3400k EAD\n<strong>Reference:</strong> CRE20.94-96</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "DnEU",
+      "code_hash": "714d0cf603f1f6a5582c345f663af42f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A8: Nominal=\u00a31,000,000, CCF=40%, EAD=\u00a3400,000, RWA=\u00a3400,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "ulZA",
+      "code_hash": "8a173d3dd6ec5ed60fdfea6afba5164e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a9-retail-exposure-75-risk-weight\">Scenario A9: Retail Exposure - 75% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a350k personal loan\n<strong>Expected:</strong> 75% RW, \u00a337.5k RWA\n<strong>Reference:</strong> CRE20.66</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ecfG",
+      "code_hash": "d1cbe490681effb31f48de3eb84242d0",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A9: EAD=\u00a350,000, RW=75%, RWA=\u00a337,500\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Pvdt",
+      "code_hash": "403ce7f609147aefd0b337d6b34cca01",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-a10-sme-retail-75-risk-weight\">Scenario A10: SME Retail - 75% Risk Weight</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a3500k loan to SME (turnover &lt; \u00a3880k)\n<strong>Expected:</strong> 75% RW (retail treatment), \u00a3375k RWA\n<strong>Reference:</strong> CRE20.66</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ZBYS",
+      "code_hash": "24accfe9d034a321e368f053705d54fb",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "A10: EAD=\u00a3500,000, RW=75%, RWA=\u00a3375,000\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "aLJB",
+      "code_hash": "3b913b5203ab4e07ba7ecfa0ea56e37f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"summary-group-a-results\">Summary: Group A Results</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "nHfw",
+      "code_hash": "25fdaeab37a0082fa5e52c42a82058ae",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<marimo-ui-element object-id='nHfw-0' random-id='17699628-6180-ebb2-73f4-5c2bc32193e6'><marimo-table data-initial-value='[]' data-label='null' data-data='&quot;[{&#92;&quot;_marimo_row_id&#92;&quot;:0,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A1&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;UK Sovereign exposure - 0% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;1,000,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;0%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;0&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.7&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:1,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A2&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Unrated corporate - 100% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;1,000,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;100%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;1,000,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.26&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:2,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A3&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Rated corporate CQS 2 - 50% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;1,000,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;50%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;500,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.25&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:3,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A4&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;UK Institution CQS 2 - 30% RW (UK deviation)&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;1,000,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;30%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;300,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.16, PRA PS9/24&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:4,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A5&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Residential mortgage 60% LTV - 20% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;500,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;20%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;100,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.71&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:5,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A6&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Residential mortgage 85% LTV - 35% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;850,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;35%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;297,500&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.71&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:6,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A7&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Commercial real estate 60% LTV - 60% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;600,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;60%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;360,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.83&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:7,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A8&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Off-balance sheet commitment - 40% CCF&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;400,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;100%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;400,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.94-96&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:8,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A9&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Retail exposure - 75% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;50,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;75%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;37,500&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.66&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:9,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;A10&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;SME retail - 75% RW&#92;&quot;,&#92;&quot;EAD (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;500,000&#92;&quot;,&#92;&quot;Risk Weight&#92;&quot;:&#92;&quot;75%&#92;&quot;,&#92;&quot;RWA (&#92;&#92;u00a3)&#92;&quot;:&#92;&quot;375,000&#92;&quot;,&#92;&quot;Reference&#92;&quot;:&#92;&quot;CRE20.66&#92;&quot;}]&quot;' data-total-rows='10' data-total-columns='6' data-max-columns='50' data-banner-text='&quot;&quot;' data-pagination='false' data-page-size='10' data-field-types='[[&quot;Scenario&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Description&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;EAD (\u00a3)&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Risk Weight&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;RWA (\u00a3)&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Reference&quot;,[&quot;string&quot;,&quot;str&quot;]]]' data-selection='&quot;multi&quot;' data-show-filters='true' data-show-download='true' data-show-column-summaries='false' data-show-data-types='true' data-show-page-size-selector='true' data-show-column-explorer='true' data-show-chart-builder='true' data-row-headers='[]' data-has-stable-row-id='true' data-lazy='false' data-preload='false'></marimo-table></marimo-ui-element>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "xXTn",
+      "code_hash": "722a125f3898e3fcc4f9716fcc24820c",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    }
+  ]
+}

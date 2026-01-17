@@ -416,7 +416,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
         # =============================================================================
         # ORG HIERARCHY TEST GROUP 3: SME Turnover Aggregation
         # Tests consolidated turnover for SME classification
-        # Group turnover aggregates to determine SME vs Large Corporate treatment
+        # Group turnover used to determine SME vs Large Corporate treatment
         # =============================================================================
         {
             "counterparty_reference": "CORP_GRP3_PARENT",
