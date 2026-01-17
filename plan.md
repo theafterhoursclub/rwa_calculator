@@ -18,6 +18,7 @@ This ensures we can validate against the current regulatory framework before ext
 
 | Area | CRR (Basel 3.0) | Basel 3.1 |
 |------|-----------------|-----------|
+| **1.06 Scaling Factor** | **Applies to ALL IRB RWA** (+6%) | **Removed** |
 | **Output Floor** | None | 72.5% of SA RWA |
 | **IRB Scope** | All exposure classes permitted | Excludes central govt exposures, equity, large/mid corporates (revenue >€500m), CIUs |
 | **PD Floors** | 0.03% (all) | Differentiated: 0.03% corp, 0.05% retail, 0.10% QRRE |
@@ -29,6 +30,26 @@ This ensures we can validate against the current regulatory framework before ext
 | **Real Estate** | Whole loan approach | Split by LTV bands, ADC treatment |
 | **Institutions** | ECRA with CQS | ECRA with SCRA fallback |
 | **Specialised Lending** | Slotting approach | Slotting with revised weights |
+
+### Critical IRB Formula Difference: 1.06 Scaling Factor
+
+**CRR (Basel 3.0)** applies a **1.06 scaling factor** to all IRB risk-weighted assets. This factor was introduced in Basel II to provide a buffer during the transition to IRB approaches and has been retained in CRR.
+
+**IRB RWA Formula:**
+```
+CRR:      RWA = K × 12.5 × 1.06 × EAD
+Basel 3.1: RWA = K × 12.5 × EAD
+```
+
+Where K is the capital requirement from the IRB formula.
+
+**Impact**: The 1.06 factor increases IRB RWA by 6% compared to the base formula. This means:
+- A £100m IRB portfolio under CRR has 6% higher RWA than the same portfolio under Basel 3.1 (before considering other differences)
+- The removal of the 1.06 factor in Basel 3.1 is partially offset by the introduction of the output floor (72.5% of SA RWA)
+
+**Regulatory References:**
+- CRR Art. 153(1): "...multiplied by 1.06"
+- Basel 3.1 CRE30: No scaling factor applied
 
 ### UK-Specific Deviations (Both Frameworks)
 
