@@ -18,6 +18,11 @@ project_root = Path(__file__).parent.parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+from src.rwa_calc.config.fx_rates import (
+    CRR_REGULATORY_THRESHOLDS_EUR,
+    get_crr_threshold_gbp,
+)
+
 
 # =============================================================================
 # Expected Outputs Fixtures
@@ -115,7 +120,12 @@ def crr_h_scenarios(expected_outputs_df: pl.DataFrame) -> list[dict[str, Any]]:
 
 @pytest.fixture
 def crr_config() -> dict[str, Any]:
-    """Standard CRR configuration for all tests."""
+    """
+    Standard CRR configuration for all tests.
+
+    Note: GBP thresholds are derived from EUR regulatory values using
+    the configurable FX rate in src/rwa_calc/config/fx_rates.py
+    """
     return {
         "regulatory_framework": "CRR",
         "basel_version": "3.0",
@@ -123,11 +133,13 @@ def crr_config() -> dict[str, Any]:
         "apply_sme_supporting_factor": True,
         "apply_infrastructure_factor": True,
         # SME eligibility threshold (turnover)
-        "sme_turnover_threshold_gbp": Decimal("44000000"),
-        "sme_turnover_threshold_eur": Decimal("50000000"),
+        # EUR is regulatory source of truth; GBP derived from FX rate
+        "sme_turnover_threshold_gbp": get_crr_threshold_gbp("sme_turnover"),
+        "sme_turnover_threshold_eur": CRR_REGULATORY_THRESHOLDS_EUR["sme_turnover"],
         # SME supporting factor - tiered approach (CRR2 Art. 501)
-        "sme_exposure_threshold_gbp": Decimal("2200000"),  # £2.2m
-        "sme_exposure_threshold_eur": Decimal("2500000"),  # €2.5m
+        # EUR is regulatory source of truth; GBP derived from FX rate
+        "sme_exposure_threshold_gbp": get_crr_threshold_gbp("sme_exposure"),
+        "sme_exposure_threshold_eur": CRR_REGULATORY_THRESHOLDS_EUR["sme_exposure"],
         "sme_supporting_factor_tier1": Decimal("0.7619"),  # Up to threshold
         "sme_supporting_factor_tier2": Decimal("0.85"),    # Above threshold
         # Infrastructure factor (not tiered)
