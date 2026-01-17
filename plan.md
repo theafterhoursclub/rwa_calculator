@@ -64,7 +64,83 @@ All test data fixtures have been created with Python generators and parquet outp
 | Mapping - Org | Complete | 8 | `mapping/org_mapping.py` |
 | Mapping - Lending | Complete | 7 | `mapping/lending_mapping.py` |
 
-### Phase 1.2A: CRR Acceptance Test Scenarios - NOT STARTED
+### Phase 1.2A: CRR Acceptance Test Scenarios - IN PROGRESS
+
+CRR expected outputs workbook structure created with calculation modules and Marimo scenarios.
+
+#### CRR-A: Standardised Approach (SA) - COMPLETE
+
+| Scenario ID | Description | Status |
+|-------------|-------------|--------|
+| CRR-A1 | UK Sovereign - 0% RW | Complete |
+| CRR-A2 | Unrated Corporate - 100% RW | Complete |
+| CRR-A3 | Rated Corporate CQS 2 - 50% RW | Complete |
+| CRR-A4 | UK Institution CQS 2 - 30% RW (UK deviation) | Complete |
+| CRR-A5 | Residential Mortgage 60% LTV - 35% RW | Complete |
+| CRR-A6 | Residential Mortgage 85% LTV - Split treatment | Complete |
+| CRR-A7 | Commercial RE 40% LTV - 50% RW | Complete |
+| CRR-A8 | Off-balance sheet - 50% CCF | Complete |
+| CRR-A9 | Retail - 75% RW | Complete |
+| CRR-A10 | SME Corporate with supporting factor (0.7619) | Complete |
+| CRR-A11 | SME Retail with supporting factor (0.7619) | Complete |
+| CRR-A12 | Large Corporate (no supporting factor) | Complete |
+
+#### CRR-B: Foundation IRB (F-IRB) - COMPLETE
+
+| Scenario ID | Description | Status |
+|-------------|-------------|--------|
+| CRR-B1 | Corporate F-IRB - Low PD (0.10%) | Complete |
+| CRR-B2 | Corporate F-IRB - High PD (5.00%) | Complete |
+| CRR-B3 | Subordinated Exposure - 75% LGD | Complete |
+| CRR-B4 | SME Corporate F-IRB - Firm size adjustment | Complete |
+| CRR-B5 | SME Corporate F-IRB - Both adjustments (firm size + SF) | Complete |
+| CRR-B6 | Corporate at SME threshold (EUR 50m boundary) | Complete |
+| CRR-B7 | Long Maturity Exposure (7Y -> 5Y cap) | Complete |
+
+**Note**: F-IRB only applies to wholesale exposures (corporate, institution, sovereign). Retail exposures require A-IRB (internal LGD) or Standardised Approach.
+
+#### CRR-C: Advanced IRB (A-IRB) - NOT STARTED
+
+#### CRR-D: Credit Risk Mitigation (CRM) - NOT STARTED
+
+#### CRR-E: Specialised Lending (Slotting) - NOT STARTED
+
+#### CRR-G: Provisions & Impairments - NOT STARTED
+
+#### CRR-H: Complex/Combined - NOT STARTED
+
+### CRR Workbook Implementation Status
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| Fixture Loader | `workbooks/shared/fixture_loader.py` | Complete |
+| CRR Parameters | `workbooks/crr_expected_outputs/data/crr_params.py` | Complete |
+| SA Risk Weights | `workbooks/crr_expected_outputs/calculations/crr_risk_weights.py` | Complete |
+| CCF Tables | `workbooks/crr_expected_outputs/calculations/crr_ccf.py` | Complete |
+| Supporting Factors | `workbooks/crr_expected_outputs/calculations/crr_supporting_factors.py` | Complete |
+| IRB Formulas (shared) | `workbooks/shared/irb_formulas.py` | Complete |
+| CRR IRB (wrapper) | `workbooks/crr_expected_outputs/calculations/crr_irb.py` | Complete |
+| Correlation (shared) | `workbooks/shared/correlation.py` | Complete |
+| Output Generator | `workbooks/crr_expected_outputs/generate_outputs.py` | Complete |
+| CRR-A SA Scenarios | `workbooks/crr_expected_outputs/scenarios/group_crr_a_sa.py` | Complete |
+| CRR-B F-IRB Scenarios | `workbooks/crr_expected_outputs/scenarios/group_crr_b_firb.py` | Complete |
+
+### Key CRR Implementation Details
+
+1. **1.06 Scaling Factor**: Implemented in IRB formulas - applies to ALL exposure classes under CRR (removed in Basel 3.1)
+2. **SME Firm Size Adjustment**: R_adjusted = R - 0.04 × (1 - (max(S, 5) - 5) / 45) for turnover < EUR 50m
+3. **SME Supporting Factor**: 0.7619 multiplier on RWA (CRR Art. 501) - NOT available under Basel 3.1
+4. **PD Floor**: Single 0.03% floor for all exposure classes (Basel 3.1 has differentiated floors)
+5. **F-IRB LGDs**: 45% unsecured senior, 75% subordinated
+6. **Maturity**: Floor 1 year, Cap 5 years
+
+### Expected Output Files Generated
+
+| File | Location |
+|------|----------|
+| CSV | `tests/expected_outputs/crr/expected_rwa_crr.csv` |
+| JSON | `tests/expected_outputs/crr/expected_rwa_crr.json` |
+| Parquet | `tests/expected_outputs/crr/expected_rwa_crr.parquet` |
 
 ### Phase 1.2B: Basel 3.1 Acceptance Test Scenarios - NOT STARTED
 
@@ -154,19 +230,24 @@ Each scenario defines **specific inputs** and **expected outputs** with hand-cal
 
 #### Scenario Group CRR-B: Foundation IRB (F-IRB) - CRR
 
+**Important**: F-IRB only applies to wholesale exposures (corporate, institution, sovereign). Retail exposures must use A-IRB (with internal LGD estimates) or Standardised Approach.
+
 | ID | Description | Key Inputs | Expected RWA | Notes |
 |----|-------------|------------|--------------|-------|
-| CRR-B1 | Corporate unsecured | PD=1%, LGD=45%, M=2.5y, EAD=£1m | IRB formula | CRR Art. 153 |
-| CRR-B2 | Corporate with financial collateral | PD=1%, £500k cash, EAD=£1m | Adjusted LGD | CRR Art. 230 |
-| CRR-B3 | Corporate with real estate | PD=1%, £1m property (60% LTV) | LGD=35% | CRR Art. 230 |
-| CRR-B4 | SME with F-IRB | PD=1%, LGD=45%, turnover=£10m | Size adjustment | CRR Art. 153(4) |
-| CRR-B5 | Retail mortgage | PD=0.5%, LGD=10%, EAD=£500k | Retail formula | CRR Art. 154 |
-| CRR-B6 | QRRE | PD=0.5%, LGD=75%, EAD=£10k | QRRE correlation | CRR Art. 154 |
+| CRR-B1 | Corporate unsecured - low PD | PD=0.10%, LGD=45%, M=2.5y, EAD=£25m | £7.86m | CRR Art. 153, 161-163 |
+| CRR-B2 | Corporate unsecured - high PD | PD=5.00%, LGD=45%, M=3.0y, EAD=£5m | £8.26m | CRR Art. 153, 161-162 |
+| CRR-B3 | Subordinated exposure | PD=1.00%, LGD=75%, M=4.0y, EAD=£2m | £3.93m | CRR Art. 153, 161 |
+| CRR-B4 | SME Corporate - firm size adj | PD=1.50%, LGD=45%, M=2.5y, T=€25m | Reduced R | CRR Art. 153(4), 161 |
+| CRR-B5 | SME Corporate - both adjustments | PD=2.00%, LGD=45%, M=3.0y, T=€15m | R adj + SF 0.7619 | CRR Art. 153(4), 501 |
+| CRR-B6 | Corporate at SME threshold | PD=1.00%, LGD=45%, M=2.5y, T=€50m | No firm size adj | CRR Art. 153, 161 |
+| CRR-B7 | Long maturity exposure | PD=0.80%, LGD=45%, M=7y (capped 5y) | Maturity capped | CRR Art. 153, 162 |
 
 **CRR F-IRB Notes:**
 - Supervisory LGDs: Unsecured 45%, Subordinated 75%
-- Secured LGDs vary by collateral type
-- PD floor: 0.03% for all classes
+- Secured LGDs vary by collateral type (0% cash, 35% receivables/RE)
+- PD floor: 0.03% for all classes (single floor)
+- 1.06 scaling factor applied to all exposures (RWA = K × 12.5 × 1.06 × EAD × MA)
+- SME firm size adjustment: R = R - 0.04 × (1 - (max(S,5)-5)/45) for turnover < EUR 50m
 - No A-IRB LGD floors under CRR
 
 #### Scenario Group CRR-C: Advanced IRB (A-IRB) - CRR
@@ -1009,21 +1090,35 @@ workbooks/
 - [x] Implement ratings fixtures
 - [x] Implement mapping fixtures
 - [x] Restructure plan for CRR-first approach
+- [x] Create CRR workbook structure (`workbooks/crr_expected_outputs/`)
+- [x] Implement CRR regulatory parameter tables
+- [x] Implement shared IRB formulas with 1.06 scaling factor
+- [x] Implement correlation calculation with SME firm size adjustment
+- [x] Implement CRR SA risk weights (Art. 112-134)
+- [x] Implement CRR CCF tables (Art. 111)
+- [x] Implement CRR SME supporting factor (Art. 501)
+- [x] Create CRR-A (SA) scenarios (12 scenarios)
+- [x] Create CRR-B (F-IRB) scenarios (7 scenarios - wholesale only)
+- [x] Generate expected output files (CSV, JSON, Parquet)
+- [x] Create fixture loader for Marimo workbooks
 
 ### In Progress
-- [ ] Create CRR acceptance test scenarios with hand-calculated values
-- [ ] Create CRR regulatory parameter tables
+- [ ] Create CRR-C (A-IRB) scenarios
+- [ ] Create CRR-D (CRM) scenarios
+- [ ] Create CRR-E (Slotting) scenarios
+- [ ] Create CRR-G (Provisions) scenarios
+- [ ] Create CRR-H (Complex/Combined) scenarios
 
 ### Up Next (CRR Priority)
-1. **Phase 1.2A**: Create CRR acceptance test shells (failing tests)
-2. **Phase 1.2A**: Hand-calculate expected CRR RWA values
+1. **Phase 1.2A (continued)**: Complete remaining CRR scenario groups (C, D, E, G, H)
+2. **Phase 1.2A**: Create pytest acceptance tests that validate against expected outputs
 3. **Phase 2**: Define process contracts
-4. **Phase 3.1**: Implement CRR components
-5. **Phase 3.1**: CRR Marimo workbook
+4. **Phase 3.1**: Implement CRR production components in `src/`
+5. **Phase 3.1**: Complete CRR Marimo workbook orchestration
 
 ### Later (Basel 3.1)
 1. **Phase 1.2B**: Create Basel 3.1 acceptance test shells
-2. **Phase 3.2**: Extend for Basel 3.1
+2. **Phase 3.2**: Extend for Basel 3.1 (with differentiated PD/LGD floors, no 1.06 factor)
 3. **Phase 3.2**: Basel 3.1 Marimo workbook
 4. **Phase 3.3**: Framework comparison workbook
 
