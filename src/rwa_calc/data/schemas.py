@@ -532,3 +532,92 @@ CALCULATION_OUTPUT_SCHEMA = {
 }
 
 
+# =============================================================================
+# FRAMEWORK-SPECIFIC OUTPUT SCHEMA ADDITIONS
+# =============================================================================
+
+# CRR (Basel 3.0) specific output fields
+# These fields track CRR-specific treatments not available under Basel 3.1
+CRR_OUTPUT_SCHEMA_ADDITIONS = {
+    "regulatory_framework": pl.String,  # "CRR"
+    "crr_effective_date": pl.Date,  # Regulation effective date
+    # SME Supporting Factor (Art. 501)
+    "sme_supporting_factor_eligible": pl.Boolean,  # Turnover < EUR 50m
+    "sme_supporting_factor_applied": pl.Boolean,  # Whether factor was applied
+    "sme_supporting_factor_value": pl.Float64,  # 0.7619
+    "rwa_before_sme_factor": pl.Float64,  # RWA before SME factor
+    "rwa_sme_factor_benefit": pl.Float64,  # RWA reduction from SME factor
+    # Infrastructure Supporting Factor (Art. 501a)
+    "infrastructure_factor_eligible": pl.Boolean,  # Qualifies as infrastructure
+    "infrastructure_factor_applied": pl.Boolean,  # Whether factor was applied
+    "infrastructure_factor_value": pl.Float64,  # 0.75
+    "rwa_infrastructure_factor_benefit": pl.Float64,  # RWA reduction
+    # CRR exposure classes (Art. 112)
+    "crr_exposure_class": pl.String,  # CRR-specific classification
+    "crr_exposure_subclass": pl.String,  # Sub-classification where applicable
+    # CCF categories (Art. 111)
+    "crr_ccf_category": pl.String,  # low_risk, medium_low, medium, full_risk
+    # Residential mortgage treatment (Art. 125)
+    "crr_mortgage_treatment": pl.String,  # "35_pct" or "split_treatment"
+    "crr_mortgage_ltv_threshold": pl.Float64,  # 80% LTV threshold
+    # PD floor (Art. 163) - single floor for all classes
+    "crr_pd_floor": pl.Float64,  # 0.03% single floor
+    # No LGD floors under CRR A-IRB
+    "crr_airb_lgd_floor_applied": pl.Boolean,  # Always False under CRR
+}
+
+# Basel 3.1 (PRA PS9/24) specific output fields
+# These fields track Basel 3.1-specific treatments
+BASEL31_OUTPUT_SCHEMA_ADDITIONS = {
+    "regulatory_framework": pl.String,  # "BASEL_3_1"
+    "b31_effective_date": pl.Date,  # 1 January 2027
+    # Output floor (CRE99.1-8, PS9/24 Ch.12)
+    "output_floor_applicable": pl.Boolean,  # Whether floor applies to this exposure
+    "output_floor_percentage": pl.Float64,  # 72.5% (fully phased in)
+    "rwa_irb_unrestricted": pl.Float64,  # IRB RWA before floor
+    "rwa_sa_equivalent": pl.Float64,  # Parallel SA calculation
+    "rwa_floor_amount": pl.Float64,  # sa_equivalent × floor_pct
+    "rwa_floor_impact": pl.Float64,  # Additional RWA from floor
+    "is_floor_binding": pl.Boolean,  # Whether floor increased RWA
+    # LTV bands for real estate (CRE20.71-87)
+    "b31_ltv_band": pl.String,  # "0-50%", "50-60%", "60-70%", etc.
+    "b31_ltv_band_rw": pl.Float64,  # Risk weight for LTV band (20%-70%)
+    # Differentiated PD floors (CRE30.55, PS9/24 Ch.5)
+    "b31_pd_floor_class": pl.String,  # Exposure class for PD floor
+    "b31_pd_floor_value": pl.Float64,  # 0.03% (corp), 0.05% (retail), 0.10% (QRRE)
+    "b31_pd_floor_binding": pl.Boolean,  # Whether PD floor was binding
+    # A-IRB LGD floors (CRE30.41, PS9/24 Ch.5)
+    "b31_lgd_floor_class": pl.String,  # Classification for LGD floor
+    "b31_lgd_floor_value": pl.Float64,  # 0%, 5%, 10%, 15%, 25% depending on collateral
+    "b31_lgd_floor_binding": pl.Boolean,  # Whether LGD floor was binding
+    # SME factors NOT available under Basel 3.1
+    "b31_sme_factor_note": pl.String,  # "Not available under Basel 3.1"
+}
+
+
+# Combined expected output schema for acceptance testing
+EXPECTED_OUTPUT_SCHEMA = {
+    "scenario_id": pl.String,  # e.g., "CRR-A1", "B31-A1"
+    "scenario_group": pl.String,  # e.g., "CRR-A", "B31-A"
+    "regulatory_framework": pl.String,  # "CRR" or "BASEL_3_1"
+    "description": pl.String,  # Human-readable scenario description
+    "exposure_reference": pl.String,  # Link to test fixture
+    "counterparty_reference": pl.String,  # Link to test fixture
+    "approach": pl.String,  # "SA", "FIRB", "AIRB"
+    "exposure_class": pl.String,  # Exposure classification
+    # Input summary
+    "ead": pl.Float64,  # Exposure at default
+    "pd": pl.Float64,  # Probability of default (IRB)
+    "lgd": pl.Float64,  # Loss given default (IRB)
+    "maturity": pl.Float64,  # Effective maturity (IRB)
+    # Output values
+    "risk_weight": pl.Float64,  # Applied risk weight
+    "rwa_before_sf": pl.Float64,  # RWA before supporting factors
+    "supporting_factor": pl.Float64,  # SME/infrastructure factor (1.0 if none)
+    "rwa_after_sf": pl.Float64,  # Final RWA
+    "expected_loss": pl.Float64,  # EL for IRB
+    # Regulatory reference
+    "regulatory_reference": pl.String,  # CRR Art. xxx or CRE xx.xx
+    # Calculation details (JSON string for flexibility)
+    "calculation_details_json": pl.String,  # JSON-encoded calculation breakdown
+}

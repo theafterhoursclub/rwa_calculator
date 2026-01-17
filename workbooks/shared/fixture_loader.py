@@ -3,6 +3,8 @@ Fixture loader for test data.
 
 Loads parquet fixture files from tests/fixtures and provides them
 as a structured FixtureData object for use in RWA calculations.
+
+This is a shared module used by both CRR and Basel 3.1 workbooks.
 """
 
 from dataclasses import dataclass
@@ -68,29 +70,56 @@ class FixtureData:
             return None
         return result.row(0, named=True)
 
+    def get_facility(self, reference: str) -> dict | None:
+        """Get a single facility by reference."""
+        result = self.facilities.filter(
+            pl.col("facility_reference") == reference
+        ).collect()
+        if result.height == 0:
+            return None
+        return result.row(0, named=True)
+
+    def get_contingent(self, reference: str) -> dict | None:
+        """Get a single contingent exposure by reference."""
+        result = self.contingents.filter(
+            pl.col("contingent_reference") == reference
+        ).collect()
+        if result.height == 0:
+            return None
+        return result.row(0, named=True)
+
     def get_collateral_for_beneficiary(
         self, beneficiary_reference: str
-    ) -> pl.LazyFrame:
+    ) -> list[dict]:
         """Get all collateral linked to a specific beneficiary."""
-        return self.collateral.filter(
+        result = self.collateral.filter(
             pl.col("beneficiary_reference") == beneficiary_reference
-        )
+        ).collect()
+        if result.height == 0:
+            return []
+        return result.to_dicts()
 
     def get_guarantee_for_beneficiary(
         self, beneficiary_reference: str
-    ) -> pl.LazyFrame:
+    ) -> list[dict]:
         """Get all guarantees linked to a specific beneficiary."""
-        return self.guarantees.filter(
+        result = self.guarantees.filter(
             pl.col("beneficiary_reference") == beneficiary_reference
-        )
+        ).collect()
+        if result.height == 0:
+            return []
+        return result.to_dicts()
 
     def get_provision_for_beneficiary(
         self, beneficiary_reference: str
-    ) -> pl.LazyFrame:
+    ) -> list[dict]:
         """Get all provisions linked to a specific beneficiary."""
-        return self.provisions.filter(
+        result = self.provisions.filter(
             pl.col("beneficiary_reference") == beneficiary_reference
-        )
+        ).collect()
+        if result.height == 0:
+            return []
+        return result.to_dicts()
 
     def get_rating(self, counterparty_reference: str) -> dict | None:
         """Get the most recent external rating for a counterparty."""
@@ -105,12 +134,34 @@ class FixtureData:
             return None
         return result.row(0, named=True)
 
+    def get_internal_rating(self, counterparty_reference: str) -> dict | None:
+        """Get the most recent internal rating for a counterparty."""
+        result = (
+            self.ratings
+            .filter(pl.col("counterparty_reference") == counterparty_reference)
+            .filter(pl.col("rating_type") == "internal")
+            .sort("rating_date", descending=True)
+            .collect()
+        )
+        if result.height == 0:
+            return None
+        return result.row(0, named=True)
+
+    def get_specialised_lending_counterparty(self, reference: str) -> dict | None:
+        """Get a specialised lending counterparty by reference."""
+        result = self.specialised_lending.filter(
+            pl.col("counterparty_reference") == reference
+        ).collect()
+        if result.height == 0:
+            return None
+        return result.row(0, named=True)
+
 
 def get_fixture_path() -> Path:
     """Get the path to the fixtures directory."""
-    # Navigate from workbooks/rwa_expected_outputs/data to tests/fixtures
+    # Navigate from workbooks/shared to tests/fixtures
     current_dir = Path(__file__).parent
-    project_root = current_dir.parent.parent.parent
+    project_root = current_dir.parent.parent
     return project_root / "tests" / "fixtures"
 
 

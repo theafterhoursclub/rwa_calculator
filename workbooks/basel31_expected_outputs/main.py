@@ -68,7 +68,7 @@ def _(mo):
 def _(Path, project_root):
     """Define paths."""
     scenarios_path = Path(__file__).parent / "scenarios"
-    output_path = project_root / "tests" / "expected_outputs"
+    output_path = project_root / "tests" / "expected_outputs" / "basel31"
     output_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Scenarios path: {scenarios_path}")

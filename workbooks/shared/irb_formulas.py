@@ -2,25 +2,17 @@
 IRB (Internal Ratings-Based) formula calculations.
 
 Implements the capital requirement (K) formula and RWA calculations
-for F-IRB and A-IRB approaches per CRE31-32.
+for F-IRB and A-IRB approaches. The core IRB formula (Basel II/III) is
+the same for both CRR and Basel 3.1 - only the floors differ.
+
+This is a shared module - floors should be passed as parameters.
+
+References:
+- CRR Art. 153-154: IRB risk weight functions
+- CRE31: Basel 3.1 IRB approach
 """
 
 import math
-from typing import Literal
-import sys
-from pathlib import Path
-
-# Add project root to path for imports
-project_root = Path(__file__).parent.parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-from workbooks.rwa_expected_outputs.data.regulatory_params import (
-    PD_FLOORS,
-    AIRB_LGD_FLOORS,
-    MATURITY_FLOOR,
-    MATURITY_CAP,
-)
 
 
 def _norm_cdf(x: float) -> float:
@@ -92,60 +84,48 @@ def _norm_ppf(p: float) -> float:
                 ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1)
 
 
-def apply_pd_floor(pd: float, exposure_class: str) -> float:
+def apply_pd_floor(pd: float, pd_floor: float = 0.0003) -> float:
     """
-    Apply PD floor based on exposure class.
+    Apply PD floor.
 
     Args:
         pd: Raw probability of default
-        exposure_class: Exposure class for floor lookup
+        pd_floor: PD floor to apply (default 0.03% for CRR/Basel 3.1 corporate)
 
     Returns:
         Floored PD
 
-    Reference: CRE31.6 (Basel 3.1 PD floors)
+    Note: PD floors differ between CRR and Basel 3.1 for retail classes.
+    - CRR: 0.03% for all classes
+    - Basel 3.1: 0.03% corporate, 0.05% retail, 0.10% QRRE
     """
-    floor = PD_FLOORS.get(exposure_class, PD_FLOORS.get("CORPORATE", 0.0003))
-    return max(pd, floor)
+    return max(pd, pd_floor)
 
 
-def apply_lgd_floor(
-    lgd: float,
-    collateral_type: str = "unsecured",
-    exposure_class: str = "CORPORATE",
-) -> float:
+def apply_lgd_floor(lgd: float, lgd_floor: float | None = None) -> float:
     """
     Apply LGD floor for A-IRB approach.
 
     Args:
         lgd: Raw LGD estimate
-        collateral_type: Type of collateral securing the exposure
-        exposure_class: Exposure class
+        lgd_floor: LGD floor to apply (None = no floor, as in CRR A-IRB)
 
     Returns:
         Floored LGD
 
-    Reference: CRE32.20 (Basel 3.1 LGD floors)
+    Note: LGD floors only apply under Basel 3.1 A-IRB, not CRR.
     """
-    # Map exposure class to floor key
-    if "RETAIL" in exposure_class:
-        if "MORTGAGE" in exposure_class:
-            floor_key = "retail_mortgage"
-        elif "QRRE" in exposure_class:
-            floor_key = "retail_qrre"
-        else:
-            floor_key = "retail_unsecured"
-    else:
-        floor_key = collateral_type
-
-    floor = AIRB_LGD_FLOORS.get(floor_key, AIRB_LGD_FLOORS.get("unsecured", 0.25))
-    return max(lgd, floor)
+    if lgd_floor is None:
+        return lgd
+    return max(lgd, lgd_floor)
 
 
 def calculate_maturity_adjustment(
     pd: float,
     maturity: float,
     apply_adjustment: bool = True,
+    maturity_floor: float = 1.0,
+    maturity_cap: float = 5.0,
 ) -> float:
     """
     Calculate maturity adjustment factor for corporate/wholesale exposures.
@@ -154,21 +134,21 @@ def calculate_maturity_adjustment(
         pd: Probability of default (floored)
         maturity: Effective maturity in years
         apply_adjustment: Whether to apply adjustment (False for retail)
+        maturity_floor: Minimum maturity (default 1 year)
+        maturity_cap: Maximum maturity (default 5 years)
 
     Returns:
         Maturity adjustment factor
 
-    Formula (CRE31.7):
+    Formula (CRR Art. 153 / CRE31.7):
         b = (0.11852 - 0.05478 * ln(PD))^2
         MA = (1 + (M - 2.5) * b) / (1 - 1.5 * b)
-
-    Reference: CRE31.7
     """
     if not apply_adjustment:
         return 1.0
 
     # Apply maturity floor and cap
-    m = max(MATURITY_FLOOR, min(MATURITY_CAP, maturity))
+    m = max(maturity_floor, min(maturity_cap, maturity))
 
     # Avoid log of zero
     pd_safe = max(pd, 0.00001)
@@ -198,7 +178,7 @@ def calculate_k(
     Returns:
         Capital requirement as decimal
 
-    Formula (CRE31.4):
+    Formula (CRR Art. 153 / CRE31.4):
         K = LGD x N[(1-R)^(-0.5) x G(PD) + (R/(1-R))^(0.5) x G(0.999)] - PD x LGD
 
     Where:
@@ -239,9 +219,10 @@ def calculate_irb_rwa(
     lgd: float,
     correlation: float,
     maturity: float = 2.5,
-    exposure_class: str = "CORPORATE",
+    pd_floor: float = 0.0003,
+    lgd_floor: float | None = None,
     apply_maturity_adjustment: bool = True,
-    apply_pd_floor_flag: bool = True,
+    is_retail: bool = False,
 ) -> dict:
     """
     Calculate RWA using IRB approach.
@@ -252,32 +233,34 @@ def calculate_irb_rwa(
         lgd: Loss given default
         correlation: Asset correlation
         maturity: Effective maturity in years
-        exposure_class: Exposure class for floors
-        apply_maturity_adjustment: Whether to apply MA (False for retail)
-        apply_pd_floor_flag: Whether to apply PD floor
+        pd_floor: PD floor to apply
+        lgd_floor: LGD floor to apply (None = no floor)
+        apply_maturity_adjustment: Whether to apply MA
+        is_retail: Whether this is a retail exposure (no MA)
 
     Returns:
         Dictionary with calculation details:
         - pd_raw: Original PD
         - pd_floored: PD after floor
-        - lgd: LGD used
+        - lgd_raw: Original LGD
+        - lgd_floored: LGD after floor
         - correlation: Asset correlation
         - k: Capital requirement
         - maturity_adjustment: MA factor
         - rwa: Risk-weighted assets
 
     Formula: RWA = K x 12.5 x EAD x MA
-
-    Reference: CRE31.4, CRE31.7
     """
     # Apply PD floor
-    pd_floored = apply_pd_floor(pd, exposure_class) if apply_pd_floor_flag else pd
+    pd_floored = apply_pd_floor(pd, pd_floor)
+
+    # Apply LGD floor (Basel 3.1 A-IRB only)
+    lgd_floored = apply_lgd_floor(lgd, lgd_floor)
 
     # Calculate capital requirement
-    k = calculate_k(pd_floored, lgd, correlation)
+    k = calculate_k(pd_floored, lgd_floored, correlation)
 
-    # Calculate maturity adjustment
-    is_retail = "RETAIL" in exposure_class
+    # Calculate maturity adjustment (not for retail)
     ma = calculate_maturity_adjustment(
         pd_floored,
         maturity,
@@ -290,7 +273,8 @@ def calculate_irb_rwa(
     return {
         "pd_raw": pd,
         "pd_floored": pd_floored,
-        "lgd": lgd,
+        "lgd_raw": lgd,
+        "lgd_floored": lgd_floored,
         "correlation": correlation,
         "k": k,
         "maturity_adjustment": ma,
@@ -313,6 +297,22 @@ def calculate_expected_loss(pd: float, lgd: float, ead: float) -> float:
 
     Formula: EL = PD x LGD x EAD
 
-    Reference: CRE35.1
+    Reference: CRR Art. 158 / CRE35.1
     """
     return pd * lgd * ead
+
+
+def calculate_risk_weight_from_k(k: float, ma: float = 1.0) -> float:
+    """
+    Convert capital K to equivalent risk weight.
+
+    Args:
+        k: Capital requirement
+        ma: Maturity adjustment
+
+    Returns:
+        Equivalent risk weight (for comparison with SA)
+
+    Formula: RW = K x 12.5 x MA
+    """
+    return k * 12.5 * ma

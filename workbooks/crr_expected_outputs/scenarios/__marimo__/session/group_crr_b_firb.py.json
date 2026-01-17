@@ -1,0 +1,390 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.4"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "b279915246eebc899addc5d5ee2b825a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "9d3ebe450b3b82350c57982c6014567b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"group-crr-b-crr-foundation-irb-f-irb-scenarios\">Group CRR-B: CRR Foundation IRB (F-IRB) Scenarios</h1>\n<span class=\"paragraph\">This workbook calculates expected RWA values for CRR F-IRB scenarios CRR-B1 to CRR-B8.</span>\n<span class=\"paragraph\"><strong>Regulatory Framework:</strong> CRR (Capital Requirements Regulation)\n<strong>Effective:</strong> Until 31 December 2026</span>\n<span class=\"paragraph\"><strong>Key CRR F-IRB Features:</strong></span>\n<ul>\n<li>Bank provides own PD estimates</li>\n<li>\n<span class=\"paragraph\">Supervisory LGD values (Art. 161):</span>\n<ul>\n<li>45% unsecured senior</li>\n<li>75% subordinated</li>\n<li>Reduced LGD for collateralised exposures</li>\n</ul>\n</li>\n<li>Single PD floor: 0.03% for all exposure classes</li>\n<li>Maturity adjustment: 1-5 year floor/cap</li>\n<li>SME supporting factor (0.7619) available</li>\n</ul>\n<span class=\"paragraph\"><strong>Key differences from Basel 3.1:</strong></span>\n<ul>\n<li>CRR has single 0.03% PD floor (Basel 3.1 has differentiated floors)</li>\n<li>CRR SME factor available (not in Basel 3.1)</li>\n<li>No output floor under CRR</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "04516e1a32cdf002b3382e605962f95c",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "f131532abc82ac6cc8cd2993c0dde1b8",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "91e070b674585ed73a174d1dbc5538bd",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b1-corporate-f-irb-low-pd\">Scenario CRR-B1: Corporate F-IRB - Low PD</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a310m corporate loan, PD 0.10%, 2.5 year maturity\n<strong>Expected:</strong> F-IRB calculation with supervisory LGD 45%</span>\n<span class=\"paragraph\"><strong>CRR Treatment:</strong></span>\n<ul>\n<li>PD floor: 0.03% (CRR Art. 163)</li>\n<li>LGD: 45% supervisory (CRR Art. 161)</li>\n<li>Maturity adjustment applied (CRR Art. 162)</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 161, 162, 163</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ipjo",
+      "code_hash": "e53b258798d2bc024039c9250e03ea34",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "0.23414753094008567\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "PKri",
+      "code_hash": "7d340c2f230305fe1f24a7a26f63af5d",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B1: EAD=\u00a325,000,000, PD=0.10%, LGD=45%, MATURITY=2.5, MAT ADJ=1.5883, CORRELATION=0.2341, K=0.0149 RWA=\u00a37,413,498\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Xref",
+      "code_hash": "2c9710c8e862b2f3e855f6f4c1745b52",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b2-corporate-f-irb-high-pd\">Scenario CRR-B2: Corporate F-IRB - High PD</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a35m corporate loan, PD 5.00%, 3 year maturity\n<strong>Expected:</strong> Higher RWA due to increased PD</span>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 161, 162</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "be61ed0fac4615045c583a73d65d6c31",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "exception",
+          "evalue": "'NoneType' object is not subscriptable",
+          "traceback": []
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "<span class=\"codehilite\"><div class=\"highlight\"><pre><span></span><span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">&quot;C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\.venv\\Lib\\site-packages\\marimo\\_runtime\\executor.py&quot;</span>, line <span class=\"m\">138</span>, in <span class=\"n\">execute_cell</span>\n<span class=\"w\">    </span><span class=\"n\">exec</span><span class=\"p\">(</span><span class=\"n\">cell</span><span class=\"o\">.</span><span class=\"n\">body</span><span class=\"p\">,</span> <span class=\"n\">glbls</span><span class=\"p\">)</span>\n<span class=\"w\">    </span><span class=\"pm\">~~~~^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;C:\\Users\\philm\\AppData\\Local\\Temp\\marimo_23044\\__marimo__cell_SFPL_.py&quot;</span>, line <span class=\"m\">6</span>, in <span class=\"n\">&lt;module&gt;</span>\n<span class=\"w\">    </span><span class=\"n\">ead_b2</span> <span class=\"o\">=</span> <span class=\"nb\">float</span><span class=\"p\">(</span><span class=\"n\">loan_b2</span><span class=\"p\">[</span><span class=\"s2\">&quot;drawn_amount&quot;</span><span class=\"p\">])</span>\n<span class=\"w\">                   </span><span class=\"pm\">~~~~~~~^^^^^^^^^^^^^^^^</span>\n<span class=\"gr\">TypeError</span>: <span class=\"n\">&#39;NoneType&#39; object is not subscriptable</span>\n</pre></div>\n</span>",
+          "mimetype": "application/vnd.marimo+traceback"
+        }
+      ]
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "e973744abad37f00df4d48ea7e06f196",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b3-subordinated-exposure-75-lgd\">Scenario CRR-B3: Subordinated Exposure - 75% LGD</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a32m subordinated loan, PD 1.00%\n<strong>Expected:</strong> Higher LGD (75%) for subordinated claims</span>\n<span class=\"paragraph\"><strong>CRR Treatment (Art. 161):</strong></span>\n<ul>\n<li>Subordinated claims: 75% LGD</li>\n<li>Senior unsecured: 45% LGD</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 161</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "9de060a354f86c42a0c06a2efc67e982",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B3: EAD=\u00a32,000,000, PD=1.00%, LGD=75%, RWA=\u00a33,711,841\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "d7a07400033729789925e104f15311ac",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b4-financial-collateral-reduced-lgd\">Scenario CRR-B4: Financial Collateral - Reduced LGD</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a35m loan with cash collateral covering 50%\n<strong>Expected:</strong> Reduced effective LGD for collateralised portion</span>\n<span class=\"paragraph\"><strong>CRR Treatment (Art. 161):</strong></span>\n<ul>\n<li>Financial collateral (cash): 0% LGD on collateralised portion</li>\n<li>Blended LGD for partially collateralised exposures</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 161, 228</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "69e5f77b0c1124051013c52b4a39a4b1",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B4: EAD=\u00a35,000,000, PD=0.50%, LGD=22.5%, RWA=\u00a31,740,293\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "191c5e0d278eff4def3a0e3a7d975367",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b5-sme-corporate-f-irb-with-supporting-factor\">Scenario CRR-B5: SME Corporate F-IRB with Supporting Factor</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a33m SME loan, PD 2.00%, turnover \u00a325m\n<strong>Expected:</strong> F-IRB RWA \u00d7 0.7619 SME factor</span>\n<span class=\"paragraph\"><strong>CRR Treatment:</strong></span>\n<ul>\n<li>SME firm size adjustment in correlation</li>\n<li>SME supporting factor (0.7619) on top</li>\n<li>Combined effect: significant RWA reduction</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 501</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "nWHF",
+      "code_hash": "56f9d5924c078ccd14088a0c575423c8",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B5: EAD=\u00a32,000,000, PD=2.00%, SF=0.7619, RWA=\u00a31,750,149\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "iLit",
+      "code_hash": "78d09b446cbff2728f450f0f4b33436d",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b6-pd-floor-binding\">Scenario CRR-B6: PD Floor Binding</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a35m loan with very low internal PD estimate (0.01%)\n<strong>Expected:</strong> PD floored to 0.03%</span>\n<span class=\"paragraph\"><strong>CRR Treatment (Art. 163):</strong></span>\n<ul>\n<li>Single PD floor: 0.03% for all non-defaulted exposures</li>\n<li>Unlike Basel 3.1 which has differentiated floors</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 163</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ZHCJ",
+      "code_hash": "db46cd1d6c36bc18e775b4baf24e31d9",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B6: EAD=\u00a31,000,000, PD=0.01% -> 0.03%, RWA=\u00a3121,555\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "ROlb",
+      "code_hash": "e8325620fc9856b38c26dcb763ff5bd2",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b7-retail-f-irb-no-maturity-adjustment\">Scenario CRR-B7: Retail F-IRB (No Maturity Adjustment)</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a3200k retail exposure, PD 1.50%\n<strong>Expected:</strong> No maturity adjustment for retail</span>\n<span class=\"paragraph\"><strong>CRR Treatment:</strong></span>\n<ul>\n<li>Retail exposures: no maturity adjustment</li>\n<li>Different correlation function for retail</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 154</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "qnkX",
+      "code_hash": "d9c0ab63a62991f7f22719ba589e4066",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B7: EAD=\u00a3200,000, PD=1.50%, RWA=\u00a3172,695\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "TqIu",
+      "code_hash": "ea73d9983956b8f078ed61dcd5e53689",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"scenario-crr-b8-long-maturity-exposure-5y-cap\">Scenario CRR-B8: Long Maturity Exposure (5Y Cap)</h2>\n<span class=\"paragraph\"><strong>Input:</strong> \u00a38m loan with 7 year maturity (capped at 5)\n<strong>Expected:</strong> Maturity capped at 5 years</span>\n<span class=\"paragraph\"><strong>CRR Treatment (Art. 162):</strong></span>\n<ul>\n<li>Maturity floor: 1 year</li>\n<li>Maturity cap: 5 years</li>\n</ul>\n<span class=\"paragraph\"><strong>Reference:</strong> CRR Art. 153, 162</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Vxnm",
+      "code_hash": "ae5b2007cab9d7bf8d745ede44833800",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "CRR-B8: EAD=\u00a38,000,000, Maturity=7.0y -> 5.0y, RWA=\u00a39,284,639\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "DnEU",
+      "code_hash": "b88129043bf18b6abfc7369a2f499246",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"summary-group-crr-b-f-irb-results\">Summary: Group CRR-B F-IRB Results</h2>\n<span class=\"paragraph\">Key CRR F-IRB observations:</span>\n<ol>\n<li>Single PD floor (0.03%) for all exposure classes</li>\n<li>Supervisory LGD: 45% senior, 75% subordinated</li>\n<li>SME supporting factor (0.7619) available</li>\n<li>Maturity capped at 5 years, floored at 1 year</li>\n<li>No maturity adjustment for retail exposures</li>\n</ol></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ulZA",
+      "code_hash": "3cd35ac55038c413370f93545aaabe46",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "exception",
+          "evalue": "Name `result_crr_b2` is not defined. It was expected to be defined in ",
+          "traceback": []
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "<span class=\"codehilite\"><div class=\"highlight\"><pre><span></span><span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">&quot;C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\.venv\\Lib\\site-packages\\marimo\\_runtime\\executor.py&quot;</span>, line <span class=\"m\">138</span>, in <span class=\"n\">execute_cell</span>\n<span class=\"w\">    </span><span class=\"n\">exec</span><span class=\"p\">(</span><span class=\"n\">cell</span><span class=\"o\">.</span><span class=\"n\">body</span><span class=\"p\">,</span> <span class=\"n\">glbls</span><span class=\"p\">)</span>\n<span class=\"w\">    </span><span class=\"pm\">~~~~^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;C:\\Users\\philm\\AppData\\Local\\Temp\\marimo_23044\\__marimo__cell_ulZA_.py&quot;</span>, line <span class=\"m\">3</span>, in <span class=\"n\">&lt;module&gt;</span>\n<span class=\"w\">    </span><span class=\"n\">result_crr_b1</span><span class=\"p\">,</span> <span class=\"n\">result_crr_b2</span><span class=\"p\">,</span> <span class=\"n\">result_crr_b3</span><span class=\"p\">,</span> <span class=\"n\">result_crr_b4</span><span class=\"p\">,</span>\n<span class=\"w\">                   </span><span class=\"pm\">^^^^^^^^^^^^^</span>\n<span class=\"gr\">NameError</span>: <span class=\"n\">name &#39;result_crr_b2&#39; is not defined. Did you mean: &#39;result_crr_b3&#39;?</span>\n</pre></div>\n</span>",
+          "mimetype": "application/vnd.marimo+traceback"
+        }
+      ]
+    },
+    {
+      "id": "ecfG",
+      "code_hash": "af0e47828f5eda362949ebfdf3ca3ed6",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "exception",
+          "evalue": "An ancestor raised an exception (MarimoExceptionRaisedError): ",
+          "traceback": []
+        }
+      ],
+      "console": []
+    }
+  ]
+}
