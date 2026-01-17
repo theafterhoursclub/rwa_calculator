@@ -105,7 +105,7 @@ COUNTERPARTY_SCHEMA = {
     "annual_revenue": pl.Float64,  # For SME classification (£440m large corp, £50m SME)
     "total_assets": pl.Float64,  # Alternative to revenue for large corporate threshold (CRE30.6)
     "default_status": pl.Boolean,
-    "sector_code": pl.String,  # Industry classification for specialised lending, correlation adjustments
+    "sector_code": pl.String,  # Based on SIC
     # Entity type flags for exposure class determination (CRR Art 107, 112-118)
     "is_financial_institution": pl.Boolean,  # Credit institution, investment firm (CRE20.16)
     "is_regulated": pl.Boolean,  # Prudentially regulated institution (affects RW)
