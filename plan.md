@@ -268,7 +268,30 @@ This tiered approach means smaller SME exposures get proportionally more capital
 
 ### Phase 1.2B: Basel 3.1 Acceptance Test Scenarios - NOT STARTED
 
-### Phase 2: Process Contracts - NOT STARTED
+### Phase 2: Process Contracts - COMPLETE
+
+Interfaces and contracts between RWA calculator components have been implemented to enable:
+- Isolated unit testing of each component
+- Parallel development of different components
+- Clear data flow boundaries
+- Dual-framework support (CRR + Basel 3.1)
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| Domain Enums | `src/rwa_calc/domain/enums.py` | Complete |
+| Error Contracts | `src/rwa_calc/contracts/errors.py` | Complete |
+| Configuration Contracts | `src/rwa_calc/contracts/config.py` | Complete |
+| Bundle Contracts | `src/rwa_calc/contracts/bundles.py` | Complete |
+| Protocol Definitions | `src/rwa_calc/contracts/protocols.py` | Complete |
+| Validation Utilities | `src/rwa_calc/contracts/validation.py` | Complete |
+| Intermediate Schemas | `src/rwa_calc/data/schemas.py` | Complete |
+| Contract Tests | `tests/contracts/` | Complete (97 tests) |
+
+**Key Design Decisions:**
+- **Protocol-based interfaces**: Structural typing with `@runtime_checkable` for easy mocking
+- **Frozen dataclasses**: Immutable configuration and data bundles
+- **Result pattern**: `LazyFrameResult` accumulates errors without exceptions
+- **Factory methods**: `CalculationConfig.crr()` and `.basel_3_1()` for self-documenting configuration
 
 ### Phase 3: Implementation - NOT STARTED
 
@@ -1236,13 +1259,16 @@ workbooks/
 - [x] Create fixture loader for Marimo workbooks
 - [x] Create pytest acceptance tests for CRR scenarios (45 scenarios, 83 total tests)
 - [x] Integrate all scenario groups into main workbook output generator
+- [x] **Phase 2**: Define process contracts (domain enums, bundles, config, protocols, validation)
+- [x] **Phase 2**: Create contract tests (97 tests passing)
+- [x] **Phase 2**: Add intermediate pipeline schemas to `data/schemas.py`
+- [x] **Phase 2**: Add `py.typed` marker for PEP 561 compliance
 
 ### In Progress
-- [ ] Define process contracts (loader, hierarchy, classification, CRM, SA, IRB)
+- [ ] None - Phase 2 complete, ready for Phase 3
 
 ### Up Next (CRR Priority)
-1. **Phase 2**: Define process contracts
-2. **Phase 3.1**: Implement CRR production components in `src/rwa_calc/`
+1. **Phase 3.1**: Implement CRR production components in `src/rwa_calc/`
 3. **Phase 3.1**: Remove `pytest.skip` markers from acceptance tests as components are implemented
 4. **Phase 3.1**: Complete CRR Marimo workbook orchestration
 
