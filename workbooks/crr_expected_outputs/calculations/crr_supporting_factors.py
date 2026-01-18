@@ -5,13 +5,16 @@ Implements SME and infrastructure supporting factors unique to CRR.
 These factors are NOT available under Basel 3.1.
 
 SME Supporting Factor - Tiered Approach (CRR2 Art. 501):
-- Exposures up to €2.5m (£2.2m): factor of 0.7619 (23.81% RWA reduction)
-- Exposures above €2.5m (£2.2m): factor of 0.85 (15% RWA reduction)
+- Exposures up to €2.5m: factor of 0.7619 (23.81% RWA reduction)
+- Exposures above €2.5m: factor of 0.85 (15% RWA reduction)
 
 The effective factor is calculated as:
     SME_factor = [min(E, threshold) × 0.7619 + max(E - threshold, 0) × 0.85] / E
 
 This means smaller SME exposures get more capital relief than larger ones.
+
+Note: EUR thresholds are the regulatory source of truth. GBP equivalents are
+derived using the configurable FX rate in src/rwa_calc/config/fx_rates.py
 
 References:
 - CRR2 Art. 501 (EU 2019/876 amending EU 575/2013)
@@ -54,8 +57,8 @@ def is_sme_eligible(
         True if SME eligible (turnover < threshold)
 
     Threshold:
-    - EUR 50m (standard)
-    - GBP 44m (UK approximation)
+    - EUR 50m (regulatory source of truth)
+    - GBP equivalent derived from configurable FX rate
     """
     if turnover is None:
         return False
@@ -74,8 +77,8 @@ def calculate_sme_supporting_factor(
     Calculate the effective SME supporting factor based on total exposure.
 
     The SME supporting factor uses a tiered structure (CRR2 Art. 501):
-    - Exposures up to €2.5m (£2.2m): factor of 0.7619
-    - Exposures above €2.5m (£2.2m): factor of 0.85
+    - Exposures up to €2.5m: factor of 0.7619
+    - Exposures above €2.5m: factor of 0.85
 
     Formula:
         factor = [min(E, threshold) × 0.7619 + max(E - threshold, 0) × 0.85] / E
@@ -86,6 +89,10 @@ def calculate_sme_supporting_factor(
 
     Returns:
         Effective supporting factor (between 0.7619 and 0.85)
+
+    Note:
+        EUR threshold (€2.5m) is the regulatory source of truth.
+        GBP threshold is derived from configurable FX rate.
 
     Examples:
         - €1m exposure: factor = 0.7619
@@ -127,8 +134,8 @@ def apply_sme_supporting_factor(
     Apply SME supporting factor (CRR2 Art. 501).
 
     Uses tiered approach based on total exposure amount:
-    - Up to €2.5m (£2.2m): factor of 0.7619
-    - Above €2.5m (£2.2m): factor of 0.85
+    - Up to €2.5m: factor of 0.7619
+    - Above €2.5m: factor of 0.85
 
     Args:
         rwa: RWA before factor
@@ -140,7 +147,9 @@ def apply_sme_supporting_factor(
     Returns:
         Tuple of (adjusted_rwa, factor_applied, was_applied, description)
 
-    Note: This factor is NOT available under Basel 3.1
+    Note:
+        This factor is NOT available under Basel 3.1.
+        EUR threshold is regulatory source of truth; GBP derived from FX rate.
     """
     # Check eligibility
     eligible = is_sme or (turnover is not None and is_sme_eligible(turnover, currency))
