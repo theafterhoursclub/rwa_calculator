@@ -962,7 +962,7 @@ Implement in dependency order (each stage produces output consumed by next):
 | 3.1.C2 | Hierarchy Resolver | `HierarchyResolverProtocol` | `src/rwa_calc/engine/hierarchy.py` | Resolve org/facility hierarchies, rating inheritance | Complete |
 | 3.1.C3 | Exposure Classifier | `ClassifierProtocol` | `src/rwa_calc/engine/classifier.py` | Classify exposures, assign approach (SA/IRB) | Complete |
 | 3.1.C4 | CRM Processor | `CRMProcessorProtocol` | `src/rwa_calc/engine/crm/processor.py` | Apply collateral, guarantees, provisions, CCFs | Complete |
-| 3.1.C5 | SA Calculator | `SACalculatorProtocol` | `src/rwa_calc/engine/sa/calculator.py` | SA risk weights, supporting factors | Not Started |
+| 3.1.C5 | SA Calculator | `SACalculatorProtocol` | `src/rwa_calc/engine/sa/calculator.py` | SA risk weights, supporting factors | Complete |
 | 3.1.C6 | IRB Calculator | `IRBCalculatorProtocol` | `src/rwa_calc/engine/irb/calculator.py` | F-IRB/A-IRB K formula, 1.06 scaling | Not Started |
 | 3.1.C7 | Slotting Calculator | `SlottingCalculatorProtocol` | `src/rwa_calc/engine/slotting/calculator.py` | Specialised lending slotting approach | Not Started |
 | 3.1.C8 | Output Aggregator | `OutputAggregatorProtocol` | `src/rwa_calc/engine/aggregator.py` | Combine results, apply supporting factors | Not Started |
@@ -986,11 +986,12 @@ Implement in dependency order (each stage produces output consumed by next):
 | 3.1.E2 | Loader tests | `tests/unit/test_loader.py` | Test data loading | Complete (35 tests) |
 | 3.1.E3 | Hierarchy tests | `tests/unit/test_hierarchy.py` | Test hierarchy resolution | Complete (21 tests) |
 | 3.1.E4 | Classifier tests | `tests/unit/test_classifier.py` | Test classification logic | Complete (20 tests) |
-| 3.1.E5 | CRM tests | `tests/unit/crr/test_crr_crm.py` | Test CRM processor | Complete (22 tests) |
-| 3.1.E6 | SA tests | `tests/unit/crr/test_crr_sa.py` | Test SA calculator | Not Started |
-| 3.1.E7 | IRB tests | `tests/unit/crr/test_crr_irb.py` | Test IRB calculator | Not Started |
-| 3.1.E8 | Slotting tests | `tests/unit/crr/test_crr_slotting.py` | Test slotting calculator | Not Started |
-| 3.1.E9 | Pipeline tests | `tests/unit/test_pipeline.py` | Test full pipeline | Not Started |
+| 3.1.E5 | CCF tests | `tests/unit/test_ccf.py` | Test CCF calculator | Complete (11 tests) |
+| 3.1.E6 | CRM tests | `tests/unit/crr/test_crr_crm.py` | Test CRM processor | Complete (15 tests) |
+| 3.1.E7 | SA tests | `tests/unit/crr/test_crr_sa.py` | Test SA calculator | Complete (29 tests) |
+| 3.1.E8 | IRB tests | `tests/unit/crr/test_crr_irb.py` | Test IRB calculator | Not Started |
+| 3.1.E9 | Slotting tests | `tests/unit/crr/test_crr_slotting.py` | Test slotting calculator | Not Started |
+| 3.1.E10 | Pipeline tests | `tests/unit/test_pipeline.py` | Test full pipeline | Not Started |
 
 #### Implementation Notes for 3.1.C
 
