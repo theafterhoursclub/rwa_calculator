@@ -46,6 +46,7 @@ def create_org_mappings() -> pl.DataFrame:
         *_group1_single_level_hierarchy(),
         *_group2_multi_level_hierarchy(),
         *_group3_sme_turnover_aggregation(),
+        *_complex_scenario_hierarchy(),
     ]
 
     return pl.DataFrame(
@@ -112,6 +113,28 @@ def _group3_sme_turnover_aggregation() -> list[OrgRelationship]:
     return [
         OrgRelationship(parent, "CORP_GRP3_SUB1"),
         OrgRelationship(parent, "CORP_GRP3_SUB2"),
+    ]
+
+
+def _complex_scenario_hierarchy() -> list[OrgRelationship]:
+    """
+    CRR-H2: Counterparty group for rating inheritance testing.
+
+    Tests rating inheritance from rated parent to unrated subsidiaries.
+
+    Structure:
+        CORP_GRP_001 (Group Holdings Parent PLC) - rated CQS 2 (50% RW)
+        ├── CORP_GRP_001_SUB1 (unrated) - inherits parent CQS 2
+        └── CORP_GRP_001_SUB2 (rated CQS 3 = 100% RW) - uses own rating
+
+    Rating inheritance rule:
+        - Unrated subsidiary inherits parent's rating
+        - Subsidiary with own rating uses its own rating
+    """
+    parent = "CORP_GRP_001"
+    return [
+        OrgRelationship(parent, "CORP_GRP_001_SUB1"),
+        OrgRelationship(parent, "CORP_GRP_001_SUB2"),
     ]
 
 

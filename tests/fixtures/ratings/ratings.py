@@ -82,6 +82,7 @@ def create_ratings() -> pl.DataFrame:
         *_airb_scenario_internal_ratings(),
         *_provision_scenario_internal_ratings(),
         *_retail_internal_ratings(),
+        *_complex_scenario_external_ratings(),
     ]
 
     return pl.DataFrame([r.to_dict() for r in ratings], schema=RATINGS_SCHEMA)
@@ -426,6 +427,50 @@ def _retail_internal_ratings() -> list[Rating]:
         Rating("RTG_INT_RTL_FLOOR_001", "RTL_MTG_001", "internal", "internal", "M1A+", 1, 0.0003, RATING_DATE, False),
         # QRRE floor is 0.10% (0.0010)
         Rating("RTG_INT_QRRE_FLOOR_001", "RTL_QRRE_001", "internal", "internal", "Q1A+", 1, 0.0005, RATING_DATE, False),
+    ]
+
+
+def _complex_scenario_external_ratings() -> list[Rating]:
+    """
+    External ratings for CRR-H complex scenario testing.
+
+    CRR-H2: Counterparty group with rating inheritance
+        - CORP_GRP_001 (parent): rated CQS 2 (A = 50% RW for corporates)
+        - CORP_GRP_001_SUB1: intentionally unrated (inherits parent CQS 2)
+        - CORP_GRP_001_SUB2: rated CQS 3 (BBB = 100% RW for corporates)
+    """
+    return [
+        # =============================================================================
+        # CRR-H2: Group parent - rated CQS 2 (A rating)
+        # Risk weight 50% for corporates with CQS 2
+        # =============================================================================
+        Rating(
+            rating_reference="RTG_EXT_GRP_001_PARENT",
+            counterparty_reference="CORP_GRP_001",
+            rating_type="external",
+            rating_agency="S&P",
+            rating_value="A",
+            cqs=2,
+            pd=None,
+            rating_date=RATING_DATE,
+            is_solicited=True,
+        ),
+        # =============================================================================
+        # CRR-H2: Group subsidiary 2 - rated CQS 3 (BBB rating)
+        # Risk weight 100% for corporates with CQS 3
+        # SUB1 is intentionally unrated to test rating inheritance
+        # =============================================================================
+        Rating(
+            rating_reference="RTG_EXT_GRP_001_SUB2",
+            counterparty_reference="CORP_GRP_001_SUB2",
+            rating_type="external",
+            rating_agency="S&P",
+            rating_value="BBB",
+            cqs=3,
+            pd=None,
+            rating_date=RATING_DATE,
+            is_solicited=True,
+        ),
     ]
 
 

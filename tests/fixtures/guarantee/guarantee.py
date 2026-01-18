@@ -333,6 +333,24 @@ def _crm_test_guarantees() -> list[Guarantee]:
             beneficiary_type="loan",
             beneficiary_reference="LOAN_HIER_001_C",
         ),
+        # =============================================================================
+        # CRR-H4: Full CRM Chain - Bank Guarantee
+        # Part of combined CRM: provision + cash + guarantee
+        # £2m gross, £100k provision, £500k cash, £400k bank guarantee (CQS 2 = 30%)
+        # Net exposure after cash/prov = £1.4m
+        # Guaranteed: £400k at 30% RW, Non-guaranteed: £1m at 100% RW
+        # =============================================================================
+        Guarantee(
+            guarantee_reference="GUAR_CRM_FULL_BANK",
+            guarantee_type="bank_guarantee",
+            guarantor="INST_UK_003",  # Metro Bank - CQS 2 (30% RW UK deviation)
+            currency="GBP",
+            maturity_date=date(2030, 1, 1),  # Maturity >= loan maturity
+            amount_covered=400_000.0,  # £400k guaranteed
+            percentage_covered=0.2857,  # 400k / 1.4m net exposure ≈ 28.57%
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_FULL",
+        ),
     ]
 
 

@@ -663,6 +663,119 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
         },
+        # =============================================================================
+        # CRR-H: Complex/Combined Scenario Test Counterparties
+        # These counterparties support the complex scenario acceptance tests
+        # =============================================================================
+        # CRR-H1: Facility with multiple loans (unrated corporate = 100% RW)
+        {
+            "counterparty_reference": "CORP_FAC_001",
+            "counterparty_name": "Multi-Facility Corporate Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 120_000_000.0,  # £120m - large corporate (unrated)
+            "total_assets": 100_000_000.0,
+            "default_status": False,
+            "sector_code": "46.49",  # Wholesale of other household goods
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-H2: Counterparty group parent (rated CQS 2 = 50% RW)
+        # Has unrated subsidiary (inherits 50%) and rated subsidiary (CQS 3 = 100%)
+        {
+            "counterparty_reference": "CORP_GRP_001",
+            "counterparty_name": "Group Holdings Parent PLC",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 500_000_000.0,  # £500m - large corporate
+            "total_assets": 400_000_000.0,
+            "default_status": False,
+            "sector_code": "64.20",  # Holding company activities
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-H2: Unrated subsidiary (inherits parent CQS 2 = 50% RW)
+        {
+            "counterparty_reference": "CORP_GRP_001_SUB1",
+            "counterparty_name": "Group Subsidiary One Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 80_000_000.0,
+            "total_assets": 60_000_000.0,
+            "default_status": False,
+            "sector_code": "46.73",  # Wholesale of building materials
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-H2: Rated subsidiary (own CQS 3 = 100% RW)
+        {
+            "counterparty_reference": "CORP_GRP_001_SUB2",
+            "counterparty_name": "Group Subsidiary Two Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 60_000_000.0,
+            "total_assets": 45_000_000.0,
+            "default_status": False,
+            "sector_code": "43.21",  # Electrical installation
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-H3: SME chain with supporting factor (turnover £25m)
+        {
+            "counterparty_reference": "CORP_SME_CHAIN",
+            "counterparty_name": "SME Chain Test Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 25_000_000.0,  # £25m - below £44m SME threshold
+            "total_assets": 20_000_000.0,
+            "default_status": False,
+            "sector_code": "25.62",  # Machining
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-H4: Full CRM chain (unrated corporate = 100% RW base)
+        {
+            "counterparty_reference": "CORP_CRM_FULL",
+            "counterparty_name": "Full CRM Chain Corporate Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 90_000_000.0,  # Large corporate (unrated)
+            "total_assets": 70_000_000.0,
+            "default_status": False,
+            "sector_code": "28.21",  # Manufacture of ovens and furnaces
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
     ]
 
     return pl.DataFrame(corporates, schema=COUNTERPARTY_SCHEMA)

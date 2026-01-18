@@ -45,7 +45,6 @@ class TestCRRGroupH_ComplexScenarios:
     - Chained CRM treatments
     """
 
-    @pytest.mark.skip(reason="Fixture FAC_MULTI_001 not available")
     def test_crr_h1_facility_multiple_loans(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -73,7 +72,6 @@ class TestCRRGroupH_ComplexScenarios:
             scenario_id="CRR-H1",
         )
 
-    @pytest.mark.skip(reason="Fixture GRP_MULTI_001 not available")
     def test_crr_h2_counterparty_group_rating_inheritance(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -104,7 +102,6 @@ class TestCRRGroupH_ComplexScenarios:
             scenario_id="CRR-H2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SME_CHAIN not available")
     def test_crr_h3_sme_chain_supporting_factor(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -137,7 +134,6 @@ class TestCRRGroupH_ComplexScenarios:
             scenario_id="CRR-H3",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_FULL not available")
     def test_crr_h4_full_crm_chain(
         self,
         pipeline_results_df: pl.DataFrame,

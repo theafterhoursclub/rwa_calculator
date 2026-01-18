@@ -338,6 +338,21 @@ def _crm_test_provisions() -> list[Provision]:
             beneficiary_type="loan",
             beneficiary_reference="LOAN_HIER_001_B",
         ),
+        # =============================================================================
+        # CRR-H4: Full CRM Chain Provision
+        # Part of combined CRM: provision + cash + guarantee
+        # £2m gross, £100k provision reduces EAD to £1.9m
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRM_FULL_001",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=100_000.0,  # £100k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_FULL",
+        ),
     ]
 
 

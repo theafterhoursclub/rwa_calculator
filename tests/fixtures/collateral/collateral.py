@@ -109,6 +109,7 @@ def create_collateral() -> pl.DataFrame:
         *_receivables_collateral(),
         *_crm_test_collateral(),
         *_crr_d_scenario_collateral(),
+        *_complex_scenario_collateral(),
     ]
 
     return pl.DataFrame([c.to_dict() for c in collateral], schema=COLLATERAL_SCHEMA)
@@ -845,6 +846,45 @@ def _crr_d_scenario_collateral() -> list[Collateral]:
             nominal_value=500_000.0,
             beneficiary_type="loan",
             beneficiary_reference="LOAN_CRM_D6",
+            issuer_cqs=None,
+            issuer_type=None,
+            residual_maturity_years=None,
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+    ]
+
+
+def _complex_scenario_collateral() -> list[Collateral]:
+    """
+    Collateral for CRR-H complex scenario testing.
+
+    CRR-H4: Full CRM chain - £500k cash collateral
+        - Cash collateral: £500k (0% haircut)
+        - Combined with guarantee and provision for full CRM demonstration
+    """
+    return [
+        # =============================================================================
+        # CRR-H4: Full CRM Chain - Cash Collateral
+        # £500k cash collateral against £2m gross exposure
+        # 0% haircut, fully reduces EAD
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_FULL_CASH",
+            collateral_type="cash",
+            currency="GBP",
+            maturity_date=None,
+            market_value=500_000.0,  # £500k cash
+            nominal_value=500_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_FULL",
             issuer_cqs=None,
             issuer_type=None,
             residual_maturity_years=None,
