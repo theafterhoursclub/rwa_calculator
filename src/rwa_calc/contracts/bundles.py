@@ -161,6 +161,7 @@ class CRMAdjustedBundle:
         exposures: Exposures with CRM-adjusted EAD and LGD
         sa_exposures: SA exposures after CRM
         irb_exposures: IRB exposures after CRM
+        slotting_exposures: Specialised lending exposures for slotting approach
         crm_audit: Detailed audit trail of CRM application
         collateral_allocation: How collateral was allocated to exposures
         crm_errors: Any errors during CRM processing
@@ -169,6 +170,7 @@ class CRMAdjustedBundle:
     exposures: pl.LazyFrame
     sa_exposures: pl.LazyFrame
     irb_exposures: pl.LazyFrame
+    slotting_exposures: pl.LazyFrame | None = None
     crm_audit: pl.LazyFrame | None = None
     collateral_allocation: pl.LazyFrame | None = None
     crm_errors: list = field(default_factory=list)
@@ -213,6 +215,24 @@ class IRBResultBundle:
 
 
 @dataclass(frozen=True)
+class SlottingResultBundle:
+    """
+    Output from the Slotting calculator component.
+
+    Contains slotting approach RWA calculations for specialised lending.
+
+    Attributes:
+        results: Slotting calculation results with risk weights and RWA
+        calculation_audit: Detailed calculation breakdown
+        errors: Any errors during slotting calculation
+    """
+
+    results: pl.LazyFrame
+    calculation_audit: pl.LazyFrame | None = None
+    errors: list = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class AggregatedResultBundle:
     """
     Final aggregated output from the output aggregator.
@@ -224,6 +244,7 @@ class AggregatedResultBundle:
         results: Final RWA results with all adjustments
         sa_results: Original SA results (for floor comparison)
         irb_results: Original IRB results (before floor)
+        slotting_results: Original slotting results
         floor_impact: Output floor impact analysis
         supporting_factor_impact: Supporting factor impact (CRR only)
         summary_by_class: RWA summarised by exposure class
@@ -234,6 +255,7 @@ class AggregatedResultBundle:
     results: pl.LazyFrame
     sa_results: pl.LazyFrame | None = None
     irb_results: pl.LazyFrame | None = None
+    slotting_results: pl.LazyFrame | None = None
     floor_impact: pl.LazyFrame | None = None
     supporting_factor_impact: pl.LazyFrame | None = None
     summary_by_class: pl.LazyFrame | None = None
