@@ -182,9 +182,9 @@ class SupportingFactorCalculator:
             ])
 
         # Get threshold in GBP
-        threshold_eur = config.supporting_factors.sme_exposure_threshold_eur
-        threshold_gbp = float(threshold_eur * config.eur_gbp_rate)
-
+        threshold_gbp = float(
+            config.supporting_factors.sme_exposure_threshold_eur * config.eur_gbp_rate
+        )
         factor_tier1 = float(config.supporting_factors.sme_factor_under_threshold)
         factor_tier2 = float(config.supporting_factors.sme_factor_above_threshold)
         infra_factor = float(config.supporting_factors.infrastructure_factor)
@@ -194,74 +194,41 @@ class SupportingFactorCalculator:
         has_sme = "is_sme" in schema.names()
         has_infra = "is_infrastructure" in schema.names()
 
-        # Calculate SME tiered factor
+        # Build SME factor expression inline
         if has_sme:
-            exposures = exposures.with_columns([
-                # Tier 1 amount: min(exposure, threshold)
-                pl.when(pl.col("ead_final") <= threshold_gbp)
-                .then(pl.col("ead_final"))
-                .otherwise(pl.lit(threshold_gbp))
-                .alias("_tier1_amount"),
+            tier1_expr = pl.when(pl.col("ead_final") <= threshold_gbp).then(
+                pl.col("ead_final")
+            ).otherwise(pl.lit(threshold_gbp))
 
-                # Tier 2 amount: max(exposure - threshold, 0)
-                pl.when(pl.col("ead_final") > threshold_gbp)
-                .then(pl.col("ead_final") - threshold_gbp)
-                .otherwise(pl.lit(0.0))
-                .alias("_tier2_amount"),
-            ])
+            tier2_expr = pl.when(pl.col("ead_final") > threshold_gbp).then(
+                pl.col("ead_final") - threshold_gbp
+            ).otherwise(pl.lit(0.0))
 
-            # Calculate SME factor
-            exposures = exposures.with_columns([
-                pl.when(pl.col("is_sme") & (pl.col("ead_final") > 0))
-                .then(
-                    (pl.col("_tier1_amount") * factor_tier1 +
-                     pl.col("_tier2_amount") * factor_tier2) /
-                    pl.col("ead_final")
-                )
-                .otherwise(pl.lit(1.0))
-                .alias("_sme_factor"),
-            ])
+            sme_factor_expr = pl.when(
+                pl.col("is_sme") & (pl.col("ead_final") > 0)
+            ).then(
+                (tier1_expr * factor_tier1 + tier2_expr * factor_tier2) / pl.col("ead_final")
+            ).otherwise(pl.lit(1.0))
         else:
-            exposures = exposures.with_columns([
-                pl.lit(1.0).alias("_sme_factor"),
-            ])
+            sme_factor_expr = pl.lit(1.0)
 
-        # Calculate infrastructure factor
+        # Build infrastructure factor expression inline
         if has_infra:
-            exposures = exposures.with_columns([
-                pl.when(pl.col("is_infrastructure"))
-                .then(pl.lit(infra_factor))
-                .otherwise(pl.lit(1.0))
-                .alias("_infra_factor"),
-            ])
+            infra_factor_expr = pl.when(pl.col("is_infrastructure")).then(
+                pl.lit(infra_factor)
+            ).otherwise(pl.lit(1.0))
         else:
-            exposures = exposures.with_columns([
-                pl.lit(1.0).alias("_infra_factor"),
-            ])
+            infra_factor_expr = pl.lit(1.0)
 
-        # Get minimum (most beneficial) factor
-        exposures = exposures.with_columns([
-            pl.min_horizontal(
-                pl.col("_sme_factor"),
-                pl.col("_infra_factor"),
-            ).alias("supporting_factor"),
+        # Compute minimum (most beneficial) factor
+        min_factor_expr = pl.min_horizontal(sme_factor_expr, infra_factor_expr)
+
+        # Single with_columns call for maximum performance
+        return exposures.with_columns([
+            min_factor_expr.alias("supporting_factor"),
+            (pl.col("rwa_pre_factor") * min_factor_expr).alias("rwa_post_factor"),
+            (min_factor_expr < 1.0).alias("supporting_factor_applied"),
         ])
-
-        # Apply factor to RWA
-        exposures = exposures.with_columns([
-            (pl.col("rwa_pre_factor") * pl.col("supporting_factor"))
-            .alias("rwa_post_factor"),
-
-            (pl.col("supporting_factor") < 1.0).alias("supporting_factor_applied"),
-        ])
-
-        # Drop temporary columns
-        exposures = exposures.drop([
-            col for col in ["_tier1_amount", "_tier2_amount", "_sme_factor", "_infra_factor"]
-            if col in exposures.collect_schema().names()
-        ])
-
-        return exposures
 
 
 def create_supporting_factor_calculator() -> SupportingFactorCalculator:

@@ -244,27 +244,28 @@ def simple_raw_data_bundle(
 
 
 # =============================================================================
-# Parent Lookup Tests
+# Ultimate Parent Lookup Tests (LazyFrame-based)
 # =============================================================================
 
 
-class TestBuildParentLookups:
-    """Tests for _build_parent_lookups method."""
+class TestBuildUltimateParentLazy:
+    """Tests for _build_ultimate_parent_lazy method."""
 
     def test_single_level_hierarchy(
         self,
         resolver: HierarchyResolver,
         simple_org_mappings: pl.LazyFrame,
     ) -> None:
-        """Single-level hierarchy should have parent == ultimate parent."""
-        parent_lookup, ultimate_parent_lookup = resolver._build_parent_lookups(
-            simple_org_mappings
-        )
+        """Single-level hierarchy should have correct ultimate parent."""
+        ultimate_parents = resolver._build_ultimate_parent_lazy(simple_org_mappings)
+        df = ultimate_parents.collect()
 
-        assert parent_lookup["CP002"] == "CP001"
-        assert parent_lookup["CP003"] == "CP001"
-        assert ultimate_parent_lookup["CP002"] == "CP001"
-        assert ultimate_parent_lookup["CP003"] == "CP001"
+        # CP002 -> CP001, CP003 -> CP001
+        cp002 = df.filter(pl.col("counterparty_reference") == "CP002")
+        cp003 = df.filter(pl.col("counterparty_reference") == "CP003")
+
+        assert cp002["ultimate_parent_reference"][0] == "CP001"
+        assert cp003["ultimate_parent_reference"][0] == "CP001"
 
     def test_multi_level_hierarchy(
         self,
@@ -272,122 +273,91 @@ class TestBuildParentLookups:
         multi_level_org_mappings: pl.LazyFrame,
     ) -> None:
         """Multi-level hierarchy should resolve ultimate parent correctly."""
-        parent_lookup, ultimate_parent_lookup = resolver._build_parent_lookups(
-            multi_level_org_mappings
-        )
+        ultimate_parents = resolver._build_ultimate_parent_lazy(multi_level_org_mappings)
+        df = ultimate_parents.collect()
 
-        # Direct parents
-        assert parent_lookup["HOLDING"] == "ULTIMATE"
-        assert parent_lookup["OPSUB1"] == "HOLDING"
-        assert parent_lookup["OPSUB2"] == "HOLDING"
+        # All should ultimately resolve to "ULTIMATE"
+        holding = df.filter(pl.col("counterparty_reference") == "HOLDING")
+        opsub1 = df.filter(pl.col("counterparty_reference") == "OPSUB1")
+        opsub2 = df.filter(pl.col("counterparty_reference") == "OPSUB2")
 
-        # Ultimate parents
-        assert ultimate_parent_lookup["HOLDING"] == "ULTIMATE"
-        assert ultimate_parent_lookup["OPSUB1"] == "ULTIMATE"
-        assert ultimate_parent_lookup["OPSUB2"] == "ULTIMATE"
+        assert holding["ultimate_parent_reference"][0] == "ULTIMATE"
+        assert opsub1["ultimate_parent_reference"][0] == "ULTIMATE"
+        assert opsub2["ultimate_parent_reference"][0] == "ULTIMATE"
+
+        # Verify hierarchy depths
+        assert holding["hierarchy_depth"][0] == 1
+        assert opsub1["hierarchy_depth"][0] == 2
+        assert opsub2["hierarchy_depth"][0] == 2
 
     def test_empty_mappings(self, resolver: HierarchyResolver) -> None:
-        """Empty mappings should return empty lookups."""
+        """Empty mappings should return empty LazyFrame."""
         empty_mappings = pl.LazyFrame(schema={
             "parent_counterparty_reference": pl.String,
             "child_counterparty_reference": pl.String,
         })
 
-        parent_lookup, ultimate_parent_lookup = resolver._build_parent_lookups(
-            empty_mappings
-        )
+        ultimate_parents = resolver._build_ultimate_parent_lazy(empty_mappings)
+        df = ultimate_parents.collect()
 
-        assert parent_lookup == {}
-        assert ultimate_parent_lookup == {}
-
-
-class TestFindUltimateParent:
-    """Tests for _find_ultimate_parent method."""
-
-    def test_no_parent(self, resolver: HierarchyResolver) -> None:
-        """Entity with no parent should return self."""
-        parent_lookup: dict[str, str] = {}
-        result = resolver._find_ultimate_parent("ORPHAN", parent_lookup)
-        assert result == "ORPHAN"
-
-    def test_single_parent(self, resolver: HierarchyResolver) -> None:
-        """Entity with single parent should return parent."""
-        parent_lookup = {"CHILD": "PARENT"}
-        result = resolver._find_ultimate_parent("CHILD", parent_lookup)
-        assert result == "PARENT"
-
-    def test_multi_level(self, resolver: HierarchyResolver) -> None:
-        """Multi-level hierarchy should traverse to top."""
-        parent_lookup = {
-            "LEVEL3": "LEVEL2",
-            "LEVEL2": "LEVEL1",
-            "LEVEL1": "ROOT",
-        }
-        result = resolver._find_ultimate_parent("LEVEL3", parent_lookup)
-        assert result == "ROOT"
-
-    def test_circular_reference_protection(self, resolver: HierarchyResolver) -> None:
-        """Circular reference should not cause infinite loop."""
-        # A -> B -> C -> A (circular)
-        parent_lookup = {
-            "A": "B",
-            "B": "C",
-            "C": "A",
-        }
-        # Should terminate and return some value (not hang)
-        result = resolver._find_ultimate_parent("A", parent_lookup)
-        assert result in ["A", "B", "C"]
+        assert df.height == 0
 
 
 # =============================================================================
-# Rating Inheritance Tests
+# Rating Inheritance Tests (LazyFrame-based)
 # =============================================================================
 
 
-class TestBuildRatingLookup:
-    """Tests for _build_rating_lookup method."""
+class TestBuildRatingInheritanceLazy:
+    """Tests for _build_rating_inheritance_lazy method."""
 
     def test_entity_with_own_rating(
         self,
         resolver: HierarchyResolver,
         simple_counterparties: pl.LazyFrame,
         simple_ratings: pl.LazyFrame,
+        simple_org_mappings: pl.LazyFrame,
     ) -> None:
         """Entity with own rating should not inherit."""
-        ultimate_parent_lookup: dict[str, str] = {}
+        ultimate_parents = resolver._build_ultimate_parent_lazy(simple_org_mappings)
 
-        rating_lookup = resolver._build_rating_lookup(
+        rating_inheritance = resolver._build_rating_inheritance_lazy(
             simple_counterparties,
             simple_ratings,
-            ultimate_parent_lookup,
+            ultimate_parents,
         )
+        df = rating_inheritance.collect()
 
         # CP001 has own rating
-        assert rating_lookup["CP001"]["cqs"] == 2
-        assert rating_lookup["CP001"]["inherited"] is False
-        assert rating_lookup["CP001"]["source_counterparty"] == "CP001"
-        assert rating_lookup["CP001"]["inheritance_reason"] == "own_rating"
+        cp001 = df.filter(pl.col("counterparty_reference") == "CP001")
+        assert cp001["cqs"][0] == 2
+        assert cp001["inherited"][0] is False
+        assert cp001["source_counterparty"][0] == "CP001"
+        assert cp001["inheritance_reason"][0] == "own_rating"
 
     def test_entity_inherits_from_parent(
         self,
         resolver: HierarchyResolver,
         simple_counterparties: pl.LazyFrame,
         simple_ratings: pl.LazyFrame,
+        simple_org_mappings: pl.LazyFrame,
     ) -> None:
         """Unrated child should inherit parent rating."""
-        ultimate_parent_lookup = {"CP002": "CP001", "CP003": "CP001"}
+        ultimate_parents = resolver._build_ultimate_parent_lazy(simple_org_mappings)
 
-        rating_lookup = resolver._build_rating_lookup(
+        rating_inheritance = resolver._build_rating_inheritance_lazy(
             simple_counterparties,
             simple_ratings,
-            ultimate_parent_lookup,
+            ultimate_parents,
         )
+        df = rating_inheritance.collect()
 
         # CP002 inherits from CP001
-        assert rating_lookup["CP002"]["cqs"] == 2
-        assert rating_lookup["CP002"]["inherited"] is True
-        assert rating_lookup["CP002"]["source_counterparty"] == "CP001"
-        assert rating_lookup["CP002"]["inheritance_reason"] == "parent_rating"
+        cp002 = df.filter(pl.col("counterparty_reference") == "CP002")
+        assert cp002["cqs"][0] == 2
+        assert cp002["inherited"][0] is True
+        assert cp002["source_counterparty"][0] == "CP001"
+        assert cp002["inheritance_reason"][0] == "parent_rating"
 
     def test_standalone_unrated_entity(
         self,
@@ -396,18 +366,25 @@ class TestBuildRatingLookup:
         simple_ratings: pl.LazyFrame,
     ) -> None:
         """Standalone unrated entity should be marked as unrated."""
-        ultimate_parent_lookup: dict[str, str] = {}
+        # Empty org mappings - no hierarchy
+        empty_mappings = pl.LazyFrame(schema={
+            "parent_counterparty_reference": pl.String,
+            "child_counterparty_reference": pl.String,
+        })
+        ultimate_parents = resolver._build_ultimate_parent_lazy(empty_mappings)
 
-        rating_lookup = resolver._build_rating_lookup(
+        rating_inheritance = resolver._build_rating_inheritance_lazy(
             simple_counterparties,
             simple_ratings,
-            ultimate_parent_lookup,
+            ultimate_parents,
         )
+        df = rating_inheritance.collect()
 
         # CP004 is standalone and unrated
-        assert rating_lookup["CP004"]["cqs"] is None
-        assert rating_lookup["CP004"]["inherited"] is False
-        assert rating_lookup["CP004"]["inheritance_reason"] == "unrated"
+        cp004 = df.filter(pl.col("counterparty_reference") == "CP004")
+        assert cp004["cqs"][0] is None
+        assert cp004["inherited"][0] is False
+        assert cp004["inheritance_reason"][0] == "unrated"
 
 
 # =============================================================================
@@ -538,6 +515,8 @@ class TestLendingGroupAggregation:
         enriched_counterparties = lending_group_counterparties.with_columns([
             pl.lit(False).alias("counterparty_has_parent"),
             pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
             pl.lit(False).alias("rating_inherited"),
             pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
             pl.lit("unrated").alias("rating_inheritance_reason"),
@@ -545,9 +524,24 @@ class TestLendingGroupAggregation:
 
         counterparty_lookup = CounterpartyLookup(
             counterparties=enriched_counterparties,
-            parent_lookup={},
-            ultimate_parent_lookup={},
-            rating_lookup={},
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
         )
 
         exposures, _ = resolver._unify_exposures(
@@ -601,6 +595,8 @@ class TestLendingGroupAggregation:
         enriched_counterparties = lending_group_counterparties.with_columns([
             pl.lit(False).alias("counterparty_has_parent"),
             pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
             pl.lit(False).alias("rating_inherited"),
             pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
             pl.lit("unrated").alias("rating_inheritance_reason"),
@@ -608,9 +604,24 @@ class TestLendingGroupAggregation:
 
         counterparty_lookup = CounterpartyLookup(
             counterparties=enriched_counterparties,
-            parent_lookup={},
-            ultimate_parent_lookup={},
-            rating_lookup={},
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
         )
 
         exposures, _ = resolver._unify_exposures(
@@ -852,4 +863,4 @@ class TestEdgeCases:
 
         # Should work without org hierarchy
         assert isinstance(result, ResolvedHierarchyBundle)
-        assert result.counterparty_lookup.parent_lookup == {}
+        assert result.counterparty_lookup.parent_mappings.collect().height == 0

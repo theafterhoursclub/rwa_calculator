@@ -270,6 +270,8 @@ def create_resolved_bundle(
     enriched_cp = counterparties.with_columns([
         pl.lit(False).alias("counterparty_has_parent"),
         pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+        pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+        pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
         pl.lit(False).alias("rating_inherited"),
         pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
         pl.lit("own_rating").alias("rating_inheritance_reason"),
@@ -282,9 +284,24 @@ def create_resolved_bundle(
         exposures=exposures,
         counterparty_lookup=CounterpartyLookup(
             counterparties=enriched_cp,
-            parent_lookup={},
-            ultimate_parent_lookup={},
-            rating_lookup={},
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
         ),
         collateral=pl.LazyFrame(),
         guarantees=pl.LazyFrame(),

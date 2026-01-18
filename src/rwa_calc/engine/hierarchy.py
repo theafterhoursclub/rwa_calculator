@@ -121,21 +121,19 @@ class HierarchyResolver:
         ratings: pl.LazyFrame,
     ) -> tuple[CounterpartyLookup, list[HierarchyError]]:
         """
-        Build counterparty hierarchy lookup with rating inheritance.
+        Build counterparty hierarchy lookup using pure LazyFrame operations.
 
         Returns:
             Tuple of (CounterpartyLookup, list of errors)
         """
         errors: list[HierarchyError] = []
 
-        # Collect org mappings to build parent/ultimate parent dicts
-        parent_lookup, ultimate_parent_lookup = self._build_parent_lookups(org_mappings)
+        # Build ultimate parent mapping (LazyFrame)
+        ultimate_parents = self._build_ultimate_parent_lazy(org_mappings)
 
-        # Build rating lookup with inheritance
-        rating_lookup = self._build_rating_lookup(
-            counterparties,
-            ratings,
-            ultimate_parent_lookup,
+        # Build rating inheritance (LazyFrame)
+        rating_info = self._build_rating_inheritance_lazy(
+            counterparties, ratings, ultimate_parents
         )
 
         # Enrich counterparties with hierarchy info
@@ -143,167 +141,196 @@ class HierarchyResolver:
             counterparties,
             org_mappings,
             ratings,
+            ultimate_parents,
+            rating_info,
         )
 
         return CounterpartyLookup(
             counterparties=enriched_counterparties,
-            parent_lookup=parent_lookup,
-            ultimate_parent_lookup=ultimate_parent_lookup,
-            rating_lookup=rating_lookup,
+            parent_mappings=org_mappings.select([
+                "child_counterparty_reference",
+                "parent_counterparty_reference",
+            ]),
+            ultimate_parent_mappings=ultimate_parents,
+            rating_inheritance=rating_info,
         ), errors
 
-    def _build_parent_lookups(
+    def _build_ultimate_parent_lazy(
         self,
         org_mappings: pl.LazyFrame,
-    ) -> tuple[dict[str, str], dict[str, str]]:
+        max_depth: int = 10,
+    ) -> pl.LazyFrame:
         """
-        Build parent and ultimate parent lookup dictionaries.
+        Build ultimate parent mapping using iterative joins.
 
-        Returns:
-            Tuple of (parent_lookup, ultimate_parent_lookup)
+        Returns LazyFrame with columns:
+        - counterparty_reference: The entity
+        - ultimate_parent_reference: Its ultimate parent
+        - hierarchy_depth: Number of levels traversed
         """
-        # Collect mappings to build dicts
-        mappings_df = org_mappings.collect()
+        # Get unique child references
+        entities = org_mappings.select(
+            pl.col("child_counterparty_reference").alias("counterparty_reference")
+        ).unique()
 
-        # Build direct parent lookup
-        parent_lookup: dict[str, str] = {}
-        for row in mappings_df.iter_rows(named=True):
-            child = row["child_counterparty_reference"]
-            parent = row["parent_counterparty_reference"]
-            parent_lookup[child] = parent
+        # Parent lookup for joins (alias child column to avoid name collision)
+        parent_map = org_mappings.select([
+            pl.col("child_counterparty_reference").alias("_lookup_child"),
+            pl.col("parent_counterparty_reference").alias("_lookup_parent"),
+        ])
 
-        # Build ultimate parent lookup by traversing hierarchy
-        ultimate_parent_lookup: dict[str, str] = {}
-        for child in parent_lookup:
-            ultimate = self._find_ultimate_parent(child, parent_lookup)
-            ultimate_parent_lookup[child] = ultimate
+        # Initialize: each entity's current parent is its direct parent (or self)
+        # Depth starts at 1 for entities with a parent, 0 for root entities
+        result = entities.join(
+            parent_map,
+            left_on="counterparty_reference",
+            right_on="_lookup_child",
+            how="left",
+        ).with_columns([
+            pl.coalesce(
+                pl.col("_lookup_parent"),
+                pl.col("counterparty_reference")
+            ).alias("current_parent"),
+            pl.when(pl.col("_lookup_parent").is_not_null())
+            .then(pl.lit(1).cast(pl.Int32))
+            .otherwise(pl.lit(0).cast(pl.Int32))
+            .alias("depth"),
+        ]).select([
+            pl.col("counterparty_reference"),
+            pl.col("current_parent"),
+            pl.col("depth"),
+        ])
 
-        return parent_lookup, ultimate_parent_lookup
+        # Iteratively traverse upward - each iteration adds one level of depth
+        for _ in range(max_depth):
+            result = result.join(
+                parent_map,
+                left_on="current_parent",
+                right_on="_lookup_child",
+                how="left",
+            ).with_columns([
+                pl.coalesce(pl.col("_lookup_parent"), pl.col("current_parent")).alias("current_parent"),
+                pl.when(pl.col("_lookup_parent").is_not_null())
+                .then(pl.col("depth") + 1)
+                .otherwise(pl.col("depth"))
+                .alias("depth"),
+            ]).select([
+                pl.col("counterparty_reference"),
+                pl.col("current_parent"),
+                pl.col("depth"),
+            ])
 
-    def _find_ultimate_parent(
-        self,
-        entity: str,
-        parent_lookup: dict[str, str],
-        max_depth: int = 100,
-    ) -> str:
-        """
-        Find the ultimate parent of an entity by traversing hierarchy.
+        return result.select([
+            pl.col("counterparty_reference"),
+            pl.col("current_parent").alias("ultimate_parent_reference"),
+            pl.col("depth").alias("hierarchy_depth"),
+        ])
 
-        Args:
-            entity: Starting entity reference
-            parent_lookup: Direct parent mappings
-            max_depth: Maximum traversal depth to prevent infinite loops
-
-        Returns:
-            Ultimate parent reference (or self if no parent)
-        """
-        current = entity
-        depth = 0
-        visited = {current}
-
-        while current in parent_lookup and depth < max_depth:
-            parent = parent_lookup[current]
-            if parent in visited:
-                # Circular reference detected
-                break
-            visited.add(parent)
-            current = parent
-            depth += 1
-
-        return current
-
-    def _build_rating_lookup(
+    def _build_rating_inheritance_lazy(
         self,
         counterparties: pl.LazyFrame,
         ratings: pl.LazyFrame,
-        ultimate_parent_lookup: dict[str, str],
-    ) -> dict[str, dict]:
+        ultimate_parents: pl.LazyFrame,
+    ) -> pl.LazyFrame:
         """
-        Build rating lookup with parent inheritance for unrated entities.
+        Build rating lookup with inheritance via LazyFrame joins.
 
-        Returns:
-            Dict mapping counterparty_reference to rating info
+        Returns LazyFrame with columns:
+        - counterparty_reference: The entity
+        - cqs, pd, rating_value, rating_agency, rating_type, rating_date: Rating info
+        - inherited: Whether the rating was inherited
+        - source_counterparty: Where the rating came from
+        - inheritance_reason: own_rating, parent_rating, or unrated
         """
-        # Collect ratings
-        ratings_df = ratings.collect()
+        # Get first rating per counterparty
+        first_ratings = ratings.group_by("counterparty_reference").first().select([
+            pl.col("counterparty_reference").alias("rated_cp"),
+            pl.col("rating_type"),
+            pl.col("rating_agency"),
+            pl.col("rating_value"),
+            pl.col("cqs"),
+            pl.col("pd"),
+            pl.col("rating_date"),
+        ])
 
-        # Build direct rating lookup (best rating per counterparty)
-        direct_ratings: dict[str, dict] = {}
-        for row in ratings_df.iter_rows(named=True):
-            cp_ref = row["counterparty_reference"]
-            rating_info = {
-                "rating_type": row.get("rating_type"),
-                "rating_agency": row.get("rating_agency"),
-                "rating_value": row.get("rating_value"),
-                "cqs": row.get("cqs"),
-                "pd": row.get("pd"),
-                "rating_date": row.get("rating_date"),
-            }
-            # Keep the first rating (or could implement priority logic)
-            if cp_ref not in direct_ratings:
-                direct_ratings[cp_ref] = rating_info
+        # Start with all counterparties
+        result = counterparties.select("counterparty_reference")
 
-        # Build final rating lookup with inheritance
-        rating_lookup: dict[str, dict] = {}
+        # Join with own ratings
+        result = result.join(
+            first_ratings,
+            left_on="counterparty_reference",
+            right_on="rated_cp",
+            how="left",
+        )
 
-        # Get all counterparty references
-        cp_refs = counterparties.select("counterparty_reference").collect()
+        # Join with ultimate parents
+        result = result.join(
+            ultimate_parents.select([
+                pl.col("counterparty_reference").alias("_cp"),
+                pl.col("ultimate_parent_reference"),
+            ]),
+            left_on="counterparty_reference",
+            right_on="_cp",
+            how="left",
+        )
 
-        for row in cp_refs.iter_rows(named=True):
-            cp_ref = row["counterparty_reference"]
+        # Join to get parent's ratings
+        parent_ratings = first_ratings.select([
+            pl.col("rated_cp").alias("parent_cp"),
+            pl.col("cqs").alias("parent_cqs"),
+            pl.col("pd").alias("parent_pd"),
+            pl.col("rating_value").alias("parent_rating_value"),
+            pl.col("rating_agency").alias("parent_rating_agency"),
+            pl.col("rating_type").alias("parent_rating_type"),
+            pl.col("rating_date").alias("parent_rating_date"),
+        ])
 
-            if cp_ref in direct_ratings:
-                # Has own rating
-                rating_lookup[cp_ref] = {
-                    **direct_ratings[cp_ref],
-                    "inherited": False,
-                    "source_counterparty": cp_ref,
-                    "inheritance_reason": "own_rating",
-                }
-            elif cp_ref in ultimate_parent_lookup:
-                # Try to inherit from ultimate parent
-                ultimate_parent = ultimate_parent_lookup[cp_ref]
-                if ultimate_parent in direct_ratings:
-                    rating_lookup[cp_ref] = {
-                        **direct_ratings[ultimate_parent],
-                        "inherited": True,
-                        "source_counterparty": ultimate_parent,
-                        "inheritance_reason": "parent_rating",
-                    }
-                else:
-                    # Neither entity nor parent rated
-                    rating_lookup[cp_ref] = {
-                        "rating_type": None,
-                        "rating_agency": None,
-                        "rating_value": None,
-                        "cqs": None,
-                        "pd": None,
-                        "rating_date": None,
-                        "inherited": False,
-                        "source_counterparty": None,
-                        "inheritance_reason": "unrated",
-                    }
-            else:
-                # No hierarchy, check if rated
-                rating_lookup[cp_ref] = {
-                    "rating_type": None,
-                    "rating_agency": None,
-                    "rating_value": None,
-                    "cqs": None,
-                    "pd": None,
-                    "rating_date": None,
-                    "inherited": False,
-                    "source_counterparty": None,
-                    "inheritance_reason": "unrated",
-                }
+        result = result.join(
+            parent_ratings,
+            left_on="ultimate_parent_reference",
+            right_on="parent_cp",
+            how="left",
+        )
 
-        return rating_lookup
+        # Resolve inheritance with coalesce
+        has_own_rating = pl.col("cqs").is_not_null() | pl.col("rating_value").is_not_null()
+        has_parent_rating = pl.col("parent_cqs").is_not_null() | pl.col("parent_rating_value").is_not_null()
+
+        result = result.with_columns([
+            pl.coalesce(pl.col("cqs"), pl.col("parent_cqs")).alias("cqs"),
+            pl.coalesce(pl.col("pd"), pl.col("parent_pd")).alias("pd"),
+            pl.coalesce(pl.col("rating_value"), pl.col("parent_rating_value")).alias("rating_value"),
+            pl.coalesce(pl.col("rating_agency"), pl.col("parent_rating_agency")).alias("rating_agency"),
+            pl.coalesce(pl.col("rating_type"), pl.col("parent_rating_type")).alias("rating_type"),
+            pl.coalesce(pl.col("rating_date"), pl.col("parent_rating_date")).alias("rating_date"),
+
+            pl.when(has_own_rating).then(pl.lit(False))
+            .when(has_parent_rating).then(pl.lit(True))
+            .otherwise(pl.lit(False)).alias("inherited"),
+
+            pl.when(has_own_rating).then(pl.col("counterparty_reference"))
+            .when(has_parent_rating).then(pl.col("ultimate_parent_reference"))
+            .otherwise(pl.lit(None).cast(pl.String)).alias("source_counterparty"),
+
+            pl.when(has_own_rating).then(pl.lit("own_rating"))
+            .when(has_parent_rating).then(pl.lit("parent_rating"))
+            .otherwise(pl.lit("unrated")).alias("inheritance_reason"),
+        ])
+
+        # Drop intermediate columns
+        return result.select([
+            "counterparty_reference", "cqs", "pd", "rating_value", "rating_agency",
+            "rating_type", "rating_date", "inherited", "source_counterparty", "inheritance_reason",
+        ])
 
     def _enrich_counterparties_with_hierarchy(
         self,
         counterparties: pl.LazyFrame,
         org_mappings: pl.LazyFrame,
         ratings: pl.LazyFrame,
+        ultimate_parents: pl.LazyFrame,
+        rating_inheritance: pl.LazyFrame,
     ) -> pl.LazyFrame:
         """
         Enrich counterparties with hierarchy and rating information.
@@ -333,32 +360,37 @@ class HierarchyResolver:
             pl.col("parent_counterparty_reference").is_not_null().alias("counterparty_has_parent"),
         ])
 
-        # Join with ratings for own rating
+        # Join with ultimate parents
         enriched = enriched.join(
-            ratings.select([
-                pl.col("counterparty_reference").alias("rating_counterparty"),
-                pl.col("cqs"),
-                pl.col("rating_value"),
-                pl.col("rating_agency"),
-            ]).group_by("rating_counterparty").first(),
+            ultimate_parents.select([
+                pl.col("counterparty_reference").alias("_up_cp"),
+                pl.col("ultimate_parent_reference"),
+                pl.col("hierarchy_depth").alias("counterparty_hierarchy_depth"),
+            ]),
             left_on="counterparty_reference",
-            right_on="rating_counterparty",
+            right_on="_up_cp",
             how="left",
         )
 
-        # Add rating inheritance fields (simplified - full inheritance in lookup)
+        # Join with rating inheritance info
+        enriched = enriched.join(
+            rating_inheritance.select([
+                pl.col("counterparty_reference").alias("_ri_cp"),
+                pl.col("cqs"),
+                pl.col("rating_value"),
+                pl.col("rating_agency"),
+                pl.col("inherited").alias("rating_inherited"),
+                pl.col("source_counterparty").alias("rating_source_counterparty"),
+                pl.col("inheritance_reason").alias("rating_inheritance_reason"),
+            ]),
+            left_on="counterparty_reference",
+            right_on="_ri_cp",
+            how="left",
+        )
+
+        # Fill null hierarchy depth with 0 for entities without hierarchy
         enriched = enriched.with_columns([
-            pl.col("cqs").is_not_null().not_().alias("rating_inherited"),
-            pl.when(pl.col("cqs").is_not_null())
-            .then(pl.col("counterparty_reference"))
-            .otherwise(pl.col("parent_counterparty_reference"))
-            .alias("rating_source_counterparty"),
-            pl.when(pl.col("cqs").is_not_null())
-            .then(pl.lit("own_rating"))
-            .when(pl.col("parent_counterparty_reference").is_not_null())
-            .then(pl.lit("parent_rating"))
-            .otherwise(pl.lit("unrated"))
-            .alias("rating_inheritance_reason"),
+            pl.col("counterparty_hierarchy_depth").fill_null(0),
         ])
 
         return enriched
@@ -437,12 +469,14 @@ class HierarchyResolver:
             pl.lit(1).cast(pl.Int8).alias("facility_hierarchy_depth"),
         ])
 
-        # Add counterparty hierarchy fields from lookup
+        # Add counterparty hierarchy fields from lookup (now includes ultimate parent)
         exposures = exposures.join(
             counterparty_lookup.counterparties.select([
                 pl.col("counterparty_reference"),
                 pl.col("counterparty_has_parent"),
                 pl.col("parent_counterparty_reference"),
+                pl.col("ultimate_parent_reference"),
+                pl.col("counterparty_hierarchy_depth"),
                 pl.col("rating_inherited"),
                 pl.col("rating_source_counterparty"),
                 pl.col("rating_inheritance_reason"),
@@ -450,14 +484,6 @@ class HierarchyResolver:
             on="counterparty_reference",
             how="left",
         )
-
-        # Add ultimate parent using the lookup dict
-        # Note: This requires collecting the dict, which is done in _build_parent_lookups
-        # For LazyFrame, we'll add a placeholder - full resolution happens at runtime
-        exposures = exposures.with_columns([
-            pl.col("parent_counterparty_reference").alias("ultimate_parent_reference"),
-            pl.lit(1).cast(pl.Int8).alias("counterparty_hierarchy_depth"),
-        ])
 
         return exposures, errors
 

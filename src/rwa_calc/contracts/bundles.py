@@ -72,20 +72,20 @@ class CounterpartyLookup:
     """
     Resolved counterparty hierarchy information.
 
-    Provides quick access to counterparty attributes including
-    inherited values from parent entities.
+    All lookups are LazyFrames for maximum performance.
+    Use joins to look up values instead of dict access.
 
     Attributes:
         counterparties: Counterparty data with resolved hierarchy
-        parent_lookup: Mapping child -> immediate parent reference
-        ultimate_parent_lookup: Mapping child -> ultimate parent reference
-        rating_lookup: Counterparty -> rating information (possibly inherited)
+        parent_mappings: LazyFrame with child_counterparty_reference -> parent_counterparty_reference
+        ultimate_parent_mappings: LazyFrame with counterparty_reference -> ultimate_parent_reference, hierarchy_depth
+        rating_inheritance: LazyFrame with counterparty_reference -> rating info with inheritance metadata
     """
 
     counterparties: pl.LazyFrame
-    parent_lookup: dict[str, str] = field(default_factory=dict)
-    ultimate_parent_lookup: dict[str, str] = field(default_factory=dict)
-    rating_lookup: dict[str, dict] = field(default_factory=dict)
+    parent_mappings: pl.LazyFrame
+    ultimate_parent_mappings: pl.LazyFrame
+    rating_inheritance: pl.LazyFrame
 
 
 @dataclass(frozen=True)
@@ -297,10 +297,25 @@ def create_empty_counterparty_lookup() -> CounterpartyLookup:
     import polars as pl
 
     return CounterpartyLookup(
-        counterparties=pl.LazyFrame(),
-        parent_lookup={},
-        ultimate_parent_lookup={},
-        rating_lookup={},
+        counterparties=pl.LazyFrame(schema={"counterparty_reference": pl.String}),
+        parent_mappings=pl.LazyFrame(schema={
+            "child_counterparty_reference": pl.String,
+            "parent_counterparty_reference": pl.String,
+        }),
+        ultimate_parent_mappings=pl.LazyFrame(schema={
+            "counterparty_reference": pl.String,
+            "ultimate_parent_reference": pl.String,
+            "hierarchy_depth": pl.Int32,
+        }),
+        rating_inheritance=pl.LazyFrame(schema={
+            "counterparty_reference": pl.String,
+            "cqs": pl.Int8,
+            "pd": pl.Float64,
+            "rating_value": pl.String,
+            "inherited": pl.Boolean,
+            "source_counterparty": pl.String,
+            "inheritance_reason": pl.String,
+        }),
     )
 
 
