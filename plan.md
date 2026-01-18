@@ -961,7 +961,7 @@ Implement in dependency order (each stage produces output consumed by next):
 | 3.1.C1 | Data Loader | `LoaderProtocol` | `src/rwa_calc/engine/loader.py` | Load from Parquet/CSV, returns `RawDataBundle` | Complete |
 | 3.1.C2 | Hierarchy Resolver | `HierarchyResolverProtocol` | `src/rwa_calc/engine/hierarchy.py` | Resolve org/facility hierarchies, rating inheritance | Complete |
 | 3.1.C3 | Exposure Classifier | `ClassifierProtocol` | `src/rwa_calc/engine/classifier.py` | Classify exposures, assign approach (SA/IRB) | Complete |
-| 3.1.C4 | CRM Processor | `CRMProcessorProtocol` | `src/rwa_calc/engine/crm/processor.py` | Apply collateral, guarantees, provisions, CCFs | Not Started |
+| 3.1.C4 | CRM Processor | `CRMProcessorProtocol` | `src/rwa_calc/engine/crm/processor.py` | Apply collateral, guarantees, provisions, CCFs | Complete |
 | 3.1.C5 | SA Calculator | `SACalculatorProtocol` | `src/rwa_calc/engine/sa/calculator.py` | SA risk weights, supporting factors | Not Started |
 | 3.1.C6 | IRB Calculator | `IRBCalculatorProtocol` | `src/rwa_calc/engine/irb/calculator.py` | F-IRB/A-IRB K formula, 1.06 scaling | Not Started |
 | 3.1.C7 | Slotting Calculator | `SlottingCalculatorProtocol` | `src/rwa_calc/engine/slotting/calculator.py` | Specialised lending slotting approach | Not Started |
@@ -974,8 +974,8 @@ Implement in dependency order (each stage produces output consumed by next):
 |------|-----------|----------|-------------|--------|
 | 3.1.D1 | IRB Formulas | `src/rwa_calc/engine/irb/formulas.py` | Core K calculation, maturity adjustment | Not Started |
 | 3.1.D2 | Correlation | `src/rwa_calc/engine/irb/correlation.py` | Asset correlation by exposure class | Not Started |
-| 3.1.D3 | CRM Haircuts | `src/rwa_calc/engine/crm/haircuts.py` | Apply supervisory haircuts to collateral | Not Started |
-| 3.1.D4 | CCF Calculator | `src/rwa_calc/engine/crm/ccf.py` | Calculate EAD from undrawn | Not Started |
+| 3.1.D3 | CRM Haircuts | `src/rwa_calc/engine/crm/haircuts.py` | Apply supervisory haircuts to collateral | Complete |
+| 3.1.D4 | CCF Calculator | `src/rwa_calc/engine/ccf.py` | Calculate EAD from undrawn (exposure measurement, not CRM) | Complete |
 | 3.1.D5 | Supporting Factors | `src/rwa_calc/engine/sa/supporting_factors.py` | SME/infrastructure factor calculation | Not Started |
 
 #### 3.1.E Unit Tests (TDD)
@@ -986,7 +986,7 @@ Implement in dependency order (each stage produces output consumed by next):
 | 3.1.E2 | Loader tests | `tests/unit/test_loader.py` | Test data loading | Complete (35 tests) |
 | 3.1.E3 | Hierarchy tests | `tests/unit/test_hierarchy.py` | Test hierarchy resolution | Complete (21 tests) |
 | 3.1.E4 | Classifier tests | `tests/unit/test_classifier.py` | Test classification logic | Complete (20 tests) |
-| 3.1.E5 | CRM tests | `tests/unit/crr/test_crr_crm.py` | Test CRM processor | Not Started |
+| 3.1.E5 | CRM tests | `tests/unit/crr/test_crr_crm.py` | Test CRM processor | Complete (22 tests) |
 | 3.1.E6 | SA tests | `tests/unit/crr/test_crr_sa.py` | Test SA calculator | Not Started |
 | 3.1.E7 | IRB tests | `tests/unit/crr/test_crr_irb.py` | Test IRB calculator | Not Started |
 | 3.1.E8 | Slotting tests | `tests/unit/crr/test_crr_slotting.py` | Test slotting calculator | Not Started |
@@ -1400,7 +1400,7 @@ workbooks/
 1. [x] Implement Data Loader (`engine/loader.py`) - `LoaderProtocol` - Complete (35 tests)
 2. [x] Implement Hierarchy Resolver (`engine/hierarchy.py`) - `HierarchyResolverProtocol` - Complete (21 tests)
 3. [x] Implement Exposure Classifier (`engine/classifier.py`) - `ClassifierProtocol` - Complete (20 tests)
-4. [ ] Implement CRM Processor (`engine/crm/processor.py`) - `CRMProcessorProtocol`
+4. [x] Implement CRM Processor (`engine/crm/processor.py`) - `CRMProcessorProtocol` - Complete (22 tests)
 5. [ ] Implement SA Calculator (`engine/sa/calculator.py`) - `SACalculatorProtocol`
 6. [ ] Implement IRB Calculator (`engine/irb/calculator.py`) - `IRBCalculatorProtocol`
 7. [ ] Implement Slotting Calculator (`engine/slotting/calculator.py`) - `SlottingCalculatorProtocol`
@@ -1410,8 +1410,8 @@ workbooks/
 **Phase 3.1.D - Supporting Modules:**
 1. [ ] IRB Formulas (`engine/irb/formulas.py`)
 2. [ ] Correlation (`engine/irb/correlation.py`)
-3. [ ] CRM Haircuts (`engine/crm/haircuts.py`)
-4. [ ] CCF Calculator (`engine/crm/ccf.py`)
+3. [x] CRM Haircuts (`engine/crm/haircuts.py`) - Complete
+4. [x] CCF Calculator (`engine/ccf.py`) - Complete (moved from crm/ - exposure measurement, not CRM)
 5. [ ] Supporting Factors (`engine/sa/supporting_factors.py`)
 
 **Phase 3.1.E - Unit Tests (TDD alongside implementation):**
@@ -1419,7 +1419,7 @@ workbooks/
 2. [x] Loader tests (35 tests)
 3. [x] Hierarchy tests (21 tests)
 4. [x] Classifier tests (20 tests)
-5. [ ] CRM tests
+5. [x] CRM tests (22 tests)
 6. [ ] SA tests
 7. [ ] IRB tests
 8. [ ] Slotting tests
