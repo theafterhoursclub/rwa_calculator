@@ -80,6 +80,7 @@ def create_ratings() -> pl.DataFrame:
         *_corporate_internal_ratings(),
         *_firb_scenario_internal_ratings(),
         *_airb_scenario_internal_ratings(),
+        *_provision_scenario_internal_ratings(),
         *_retail_internal_ratings(),
     ]
 
@@ -331,6 +332,36 @@ def _airb_scenario_internal_ratings() -> list[Rating]:
         Rating(
             "RTG_INT_AIRB_C3", "SL_PF_001", "internal", "internal",
             "3B", 3, 0.0150, airb_rating_date, False
+        ),
+    ]
+
+
+def _provision_scenario_internal_ratings() -> list[Rating]:
+    """
+    Internal ratings for CRR-G Provisions & Impairments scenario testing.
+
+    These ratings provide specific PD values for IRB scenarios that test
+    EL shortfall and EL excess calculations.
+
+    Scenarios:
+        CRR-G2: EL Shortfall - PD 2.00% (EL > provisions)
+        CRR-G3: EL Excess - PD 0.50% (provisions > EL)
+    """
+    # Use same date as FIRB ratings for consistency
+    provision_rating_date = date(2026, 1, 2)
+
+    return [
+        # CRR-G2: IRB EL Shortfall - PD 2.00%
+        # EL = 2% × 45% × £5m = £45,000 (provisions = £30k -> shortfall)
+        Rating(
+            "RTG_INT_PROV_G2", "CORP_PROV_G2", "internal", "internal",
+            "4B", 4, 0.0200, provision_rating_date, False
+        ),
+        # CRR-G3: IRB EL Excess - PD 0.50%
+        # EL = 0.5% × 45% × £5m = £11,250 (provisions = £50k -> excess)
+        Rating(
+            "RTG_INT_PROV_G3", "CORP_PROV_G3", "internal", "internal",
+            "3A", 3, 0.0050, provision_rating_date, False
         ),
     ]
 

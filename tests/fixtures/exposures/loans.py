@@ -88,6 +88,7 @@ def create_loans() -> pl.DataFrame:
         *_crm_scenario_loans(),
         *_slotting_scenario_loans(),
         *_supporting_factor_scenario_loans(),
+        *_provision_scenario_loans(),
     ]
 
     return pl.DataFrame([ln.to_dict() for ln in loans], schema=LOAN_SCHEMA)
@@ -1081,6 +1082,89 @@ def _supporting_factor_scenario_loans() -> list[Loan]:
             maturity_date=date(2029, 6, 30),
             currency="GBP",
             drawn_amount=2_200_000.0,  # £2.2m exactly
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _provision_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-G Provisions & Impairments scenario testing.
+
+    Tests provision treatment for SA and EL shortfall/excess for IRB.
+
+    SA Treatment (CRR Art. 110):
+        - Specific provisions reduce EAD directly
+        - RWA calculated on net exposure
+
+    IRB Treatment (CRR Art. 158-159):
+        - Expected Loss = PD × LGD × EAD
+        - EL Shortfall (provisions < EL): 50% CET1 + 50% T2 deduction
+        - EL Excess (provisions > EL): T2 credit capped at 0.6% IRB RWA
+
+    Scenarios:
+        CRR-G1: SA with specific provision - £1m gross, £50k provision
+        CRR-G2: IRB EL shortfall - £5m, PD 2%, provisions £30k < EL £45k
+        CRR-G3: IRB EL excess - £5m, PD 0.5%, provisions £50k > EL £11.25k
+    """
+    return [
+        # =============================================================================
+        # CRR-G1: SA with Specific Provision
+        # £1m gross exposure, £50k specific provision
+        # EAD_net = £950k, RWA = £950k × 100% = £950k
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G1",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G1",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),
+            currency="GBP",
+            drawn_amount=1_000_000.0,  # £1m gross
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-G2: IRB EL Shortfall
+        # £5m gross, PD 2%, LGD 45%
+        # EL = 2% × 45% × £5m = £45,000
+        # Provisions = £30,000 (specific £20k + general £10k)
+        # Shortfall = £45,000 - £30,000 = £15,000
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G2",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G2",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),
+            currency="GBP",
+            drawn_amount=5_000_000.0,  # £5m gross
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-G3: IRB EL Excess
+        # £5m gross, PD 0.5%, LGD 45%
+        # EL = 0.5% × 45% × £5m = £11,250
+        # Provisions = £50,000 (specific £35k + general £15k)
+        # Excess = £50,000 - £11,250 = £38,750
+        # T2 credit capped at 0.6% × RWA
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G3",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G3",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),
+            currency="GBP",
+            drawn_amount=5_000_000.0,  # £5m gross
             lgd=0.45,
             beel=0.0,
             seniority="senior",

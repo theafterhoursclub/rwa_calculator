@@ -77,6 +77,7 @@ def create_provisions() -> pl.DataFrame:
         *_stage3_provisions(),
         *_general_provisions(),
         *_crm_test_provisions(),
+        *_provision_scenario_provisions(),
     ]
 
     return pl.DataFrame([p.to_dict() for p in provisions], schema=PROVISION_SCHEMA)
@@ -336,6 +337,88 @@ def _crm_test_provisions() -> list[Provision]:
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
             beneficiary_reference="LOAN_HIER_001_B",
+        ),
+    ]
+
+
+def _provision_scenario_provisions() -> list[Provision]:
+    """
+    Provisions specifically for CRR-G Provisions & Impairments scenario testing.
+
+    CRR-G1: SA with specific provision
+        - £50k SCRA against £1m exposure
+        - EAD reduced to £950k
+
+    CRR-G2: IRB EL shortfall
+        - £20k SCRA + £10k GCRA = £30k total
+        - EL = £45k -> Shortfall = £15k
+
+    CRR-G3: IRB EL excess
+        - £35k SCRA + £15k GCRA = £50k total
+        - EL = £11.25k -> Excess = £38.75k
+    """
+    return [
+        # =============================================================================
+        # CRR-G1: SA with Specific Provision
+        # £50k specific provision against £1m gross exposure
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G1_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=50_000.0,  # £50k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G1",
+        ),
+        # =============================================================================
+        # CRR-G2: IRB EL Shortfall
+        # £20k SCRA + £10k GCRA = £30k total (less than EL of £45k)
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G2_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=20_000.0,  # £20k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G2",
+        ),
+        Provision(
+            provision_reference="PROV_CRR_G2_GEN",
+            provision_type="GCRA",
+            ifrs9_stage=1,
+            currency="GBP",
+            amount=10_000.0,  # £10k general provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G2",
+        ),
+        # =============================================================================
+        # CRR-G3: IRB EL Excess
+        # £35k SCRA + £15k GCRA = £50k total (more than EL of £11.25k)
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G3_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=35_000.0,  # £35k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G3",
+        ),
+        Provision(
+            provision_reference="PROV_CRR_G3_GEN",
+            provision_type="GCRA",
+            ifrs9_stage=1,
+            currency="GBP",
+            amount=15_000.0,  # £15k general provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G3",
         ),
     ]
 

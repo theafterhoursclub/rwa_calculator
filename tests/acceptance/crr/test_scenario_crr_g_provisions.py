@@ -38,7 +38,6 @@ class TestCRRGroupG_Provisions:
     and compares the output against pre-calculated expected values.
     """
 
-    @pytest.mark.skip(reason="Fixture LOAN_PROV_G1 not available")
     def test_crr_g1_sa_with_specific_provision(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -66,7 +65,6 @@ class TestCRRGroupG_Provisions:
             scenario_id="CRR-G1",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_PROV_G2 not available")
     def test_crr_g2_irb_el_shortfall(
         self,
         irb_pipeline_results_df: pl.DataFrame,
@@ -94,7 +92,6 @@ class TestCRRGroupG_Provisions:
             scenario_id="CRR-G2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_PROV_G3 not available")
     def test_crr_g3_irb_el_excess(
         self,
         irb_pipeline_results_df: pl.DataFrame,
