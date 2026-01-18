@@ -1,0 +1,179 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.4"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "aba0c1e8c538bbeb46010a057d7943e1",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "9d4016c6606ee2b6cb76a165e328bfcf",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"rwa-expected-outputs-generator\">RWA Expected Outputs Generator</h1>\n<span class=\"paragraph\">This workbook calculates and exports expected RWA values for all 40+ acceptance test scenarios.</span>\n<span class=\"paragraph\"><strong>Scenario Groups:</strong>\n| Group | Description | Scenarios | Count |\n|-------|-------------|-----------|-------|\n| A | Standardised Approach | A1-A10 | 10 |\n| B | Foundation IRB | B1-B6 | 6 |\n| C | Advanced IRB | C1-C3 | 3 |\n| D | Credit Risk Mitigation | D1-D6 | 6 |\n| E | Specialised Lending | E1-E4 | 4 |\n| F | Output Floor | F1-F3 | 3 |\n| G | Provisions | G1-G3 | 3 |\n| H | Complex/Combined | H1-H4 | 4 |\n| <strong>Total</strong> | | | <strong>39</strong> |</span>\n<span class=\"paragraph\"><strong>Outputs:</strong></span>\n<ul>\n<li><code>tests/expected_outputs/expected_rwa.parquet</code> - Polars DataFrame format</li>\n<li><code>tests/expected_outputs/expected_rwa.json</code> - JSON format for pytest fixtures</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "09947c678ab37419f8e6f21390fab5cc",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "Scenarios path: C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\workbooks\\rwa_expected_outputs\\scenarios\nOutput path: C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\tests\\expected_outputs\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "dcdab5c544cc04866efb528adb011497",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"loading-scenario-groups\">Loading Scenario Groups</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "bcfbfe9b68c4a2c6c1d2798e7ed4d59a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "886c0fbe1e985f2158d70c2b6badd73e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "Total scenarios: 39\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "Xref",
+      "code_hash": "a9777eb7f90b4440ae410724fca63b74",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<marimo-ui-element object-id='Xref-0' random-id='18a3fadb-0778-8a6c-dff1-a8196f8219bb'><marimo-table data-initial-value='[]' data-label='null' data-data='&quot;[{&#92;&quot;_marimo_row_id&#92;&quot;:0,&#92;&quot;ID&#92;&quot;:&#92;&quot;A1&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;UK Sovereign - 0% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:1000000,&#92;&quot;RW&#92;&quot;:&#92;&quot;0.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:0,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.7&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:1,&#92;&quot;ID&#92;&quot;:&#92;&quot;A2&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Unrated corporate - 100% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:1000000,&#92;&quot;RW&#92;&quot;:&#92;&quot;100.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:1000000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.26&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:2,&#92;&quot;ID&#92;&quot;:&#92;&quot;A3&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Rated corporate CQS 2 - 50% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:1000000,&#92;&quot;RW&#92;&quot;:&#92;&quot;50.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:500000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.25&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:3,&#92;&quot;ID&#92;&quot;:&#92;&quot;A4&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;UK Institution CQS 2 - 30% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:1000000,&#92;&quot;RW&#92;&quot;:&#92;&quot;30.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:300000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.16&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:4,&#92;&quot;ID&#92;&quot;:&#92;&quot;A5&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Residential mortgage 60% LTV - 20% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:500000,&#92;&quot;RW&#92;&quot;:&#92;&quot;20.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:100000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.71&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:5,&#92;&quot;ID&#92;&quot;:&#92;&quot;A6&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Residential mortgage 85% LTV - 35% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:850000,&#92;&quot;RW&#92;&quot;:&#92;&quot;35.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:297500,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.71&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:6,&#92;&quot;ID&#92;&quot;:&#92;&quot;A7&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Commercial RE 60% LTV - 60% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:600000,&#92;&quot;RW&#92;&quot;:&#92;&quot;60.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:360000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.83&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:7,&#92;&quot;ID&#92;&quot;:&#92;&quot;A8&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Off-balance sheet - 40% CCF&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:400000,&#92;&quot;RW&#92;&quot;:&#92;&quot;100.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:400000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.96&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:8,&#92;&quot;ID&#92;&quot;:&#92;&quot;A9&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;Retail exposure - 75% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:50000,&#92;&quot;RW&#92;&quot;:&#92;&quot;75.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:37500,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.66&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:9,&#92;&quot;ID&#92;&quot;:&#92;&quot;A10&#92;&quot;,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Description&#92;&quot;:&#92;&quot;SME retail - 75% RW&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;EAD&#92;&quot;:500000,&#92;&quot;RW&#92;&quot;:&#92;&quot;75.0%&#92;&quot;,&#92;&quot;RWA&#92;&quot;:375000,&#92;&quot;Ref&#92;&quot;:&#92;&quot;CRE20.66&#92;&quot;}]&quot;' data-total-rows='39' data-total-columns='8' data-max-columns='50' data-banner-text='&quot;&quot;' data-pagination='true' data-page-size='10' data-field-types='[[&quot;ID&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Group&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Description&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Approach&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;EAD&quot;,[&quot;integer&quot;,&quot;i64&quot;]],[&quot;RW&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;RWA&quot;,[&quot;integer&quot;,&quot;i64&quot;]],[&quot;Ref&quot;,[&quot;string&quot;,&quot;str&quot;]]]' data-selection='&quot;multi&quot;' data-show-filters='true' data-show-download='true' data-show-column-summaries='true' data-show-data-types='true' data-show-page-size-selector='true' data-show-column-explorer='true' data-show-chart-builder='true' data-row-headers='[]' data-has-stable-row-id='true' data-lazy='false' data-preload='false'></marimo-table></marimo-ui-element>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "0ce31b2845e490757706543ffc690c52",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"export-outputs\">Export Outputs</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "2a985379f6841490df230db4a6c69aed",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "Exported parquet: C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\tests\\expected_outputs\\expected_rwa.parquet\nExported JSON: C:\\Users\\philm\\PycharmProjects\\rwa_calculator\\tests\\expected_outputs\\expected_rwa.json\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "a2400bfa2a4f409dceb2e9772bad7cb5",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<marimo-ui-element object-id='RGSE-0' random-id='fe7250df-e206-f2fc-c20d-72cef65c116d'><marimo-table data-initial-value='[]' data-label='null' data-data='&quot;[{&#92;&quot;_marimo_row_id&#92;&quot;:0,&#92;&quot;Group&#92;&quot;:&#92;&quot;A&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:10,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:1,&#92;&quot;Group&#92;&quot;:&#92;&quot;B&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:6,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:2,&#92;&quot;Group&#92;&quot;:&#92;&quot;C&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:3,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:3,&#92;&quot;Group&#92;&quot;:&#92;&quot;D&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:6,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:4,&#92;&quot;Group&#92;&quot;:&#92;&quot;E&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:4,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:5,&#92;&quot;Group&#92;&quot;:&#92;&quot;F&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:3,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:6,&#92;&quot;Group&#92;&quot;:&#92;&quot;G&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:3,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:7,&#92;&quot;Group&#92;&quot;:&#92;&quot;H&#92;&quot;,&#92;&quot;Scenarios&#92;&quot;:4,&#92;&quot;Total EAD&#92;&quot;:&#92;&quot;&#92;&#92;u00a396,427,789&#92;&quot;,&#92;&quot;Total RWA&#92;&quot;:&#92;&quot;&#92;&#92;u00a3268,392,901&#92;&quot;}]&quot;' data-total-rows='8' data-total-columns='4' data-max-columns='50' data-banner-text='&quot;&quot;' data-pagination='false' data-page-size='10' data-field-types='[[&quot;Group&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Scenarios&quot;,[&quot;integer&quot;,&quot;i64&quot;]],[&quot;Total EAD&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Total RWA&quot;,[&quot;string&quot;,&quot;str&quot;]]]' data-selection='&quot;multi&quot;' data-show-filters='true' data-show-download='true' data-show-column-summaries='false' data-show-data-types='true' data-show-page-size-selector='true' data-show-column-explorer='true' data-show-chart-builder='true' data-row-headers='[]' data-has-stable-row-id='true' data-lazy='false' data-preload='false'></marimo-table></marimo-ui-element>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "04b328fa4e44632410d3614f47968edd",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stdout",
+          "text": "\n==================================================\nGENERATION COMPLETE\n==================================================\nTotal scenarios: 39\nTotal EAD: \u00a396,427,789\nTotal RWA: \u00a3268,392,901\nAverage RW: 278.3%\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    }
+  ]
+}

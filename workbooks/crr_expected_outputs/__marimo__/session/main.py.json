@@ -1,0 +1,164 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.4"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "dee739586e23c6eee3906ddc77626ae6",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "94390c37a0a0599afd1163d232743500",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"crr-expected-outputs-workbook\">CRR Expected Outputs Workbook</h1>\n<span class=\"paragraph\">This workbook generates expected RWA values under the <strong>CRR (Capital Requirements Regulation)</strong>\nframework, which is the current UK implementation of Basel 3.0.</span>\n<span class=\"paragraph\"><strong>Effective:</strong> Until 31 December 2026 (Basel 3.1 takes effect 1 January 2027)</span>\n<h2 id=\"regulatory-framework-summary\">Regulatory Framework Summary</h2>\n<table>\n<thead>\n<tr>\n<th>Feature</th>\n<th>CRR (Current)</th>\n<th>Basel 3.1 (Future)</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>SME Supporting Factor</td>\n<td>0.7619 (Art. 501)</td>\n<td>Not available</td>\n</tr>\n<tr>\n<td>Infrastructure Factor</td>\n<td>0.75 (Art. 501a)</td>\n<td>Not available</td>\n</tr>\n<tr>\n<td>Output Floor</td>\n<td>None</td>\n<td>72.5%</td>\n</tr>\n<tr>\n<td>Residential Mortgage</td>\n<td>35%/75% at 80% LTV</td>\n<td>LTV bands (20%-70%)</td>\n</tr>\n<tr>\n<td>PD Floor</td>\n<td>0.03% (single)</td>\n<td>0.03%/0.05%/0.10%</td>\n</tr>\n<tr>\n<td>A-IRB LGD Floor</td>\n<td>None</td>\n<td>Varies by exposure</td>\n</tr>\n</tbody>\n</table>\n<h2 id=\"scenario-groups\">Scenario Groups</h2>\n<ul>\n<li><strong>CRR-A</strong>: Standardised Approach (SA)</li>\n<li><strong>CRR-B</strong>: Foundation IRB (F-IRB)</li>\n<li><strong>CRR-C</strong>: Advanced IRB (A-IRB)</li>\n<li><strong>CRR-D</strong>: Credit Risk Mitigation (CRM)</li>\n<li><strong>CRR-E</strong>: Specialised Lending (Slotting)</li>\n<li><strong>CRR-F</strong>: Supporting Factors (SME/Infrastructure)</li>\n<li><strong>CRR-G</strong>: Provisions Treatment</li>\n<li><strong>CRR-H</strong>: Complex Scenarios</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "0e4f069f37460f7ea2cdf48597b9088c",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "1e4ce8aef0a8b5b641d1af4b709f0d60",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"group-crr-a-standardised-approach-results\">Group CRR-A: Standardised Approach Results</h2>\n<span class=\"paragraph\">The SA scenarios cover basic risk weight lookups including:</span>\n<ul>\n<li>Sovereign exposures (0% for CQS 1)</li>\n<li>Institution exposures (UK deviation: 30% for CQS 2)</li>\n<li>Corporate exposures (rated and unrated)</li>\n<li>Retail exposures (75%)</li>\n<li>Residential mortgages (35%/75% split at 80% LTV)</li>\n<li>Commercial real estate (50%/100%)</li>\n<li>Off-balance sheet items (CCF application)</li>\n<li>SME supporting factor (0.7619)</li>\n</ul>\n<span class=\"paragraph\"><strong>Key CRR difference:</strong> Residential mortgages use simple 35%/75% split at 80% LTV,\nnot the granular LTV bands in Basel 3.1.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "fbdbfe7c73c72c4b43c2e2684110fa1f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "cab28af1ecbc8ba7039ce3bacf2e1fde",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"group-crr-b-foundation-irb-results\">Group CRR-B: Foundation IRB Results</h2>\n<span class=\"paragraph\">The F-IRB scenarios cover IRB calculations with supervisory LGD:</span>\n<ul>\n<li>Corporate exposures (low and high PD)</li>\n<li>Subordinated exposures (75% LGD)</li>\n<li>Financial collateral (reduced LGD)</li>\n<li>SME with correlation adjustment and supporting factor</li>\n<li>PD floor binding cases (0.03%)</li>\n<li>Retail IRB (no maturity adjustment)</li>\n<li>Long maturity (5 year cap)</li>\n</ul>\n<span class=\"paragraph\"><strong>Key CRR differences:</strong></span>\n<ul>\n<li>Single 0.03% PD floor (vs Basel 3.1 differentiated floors)</li>\n<li>SME supporting factor (0.7619) available</li>\n<li>No A-IRB LGD floors</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "c6e13d37440972720053ab240dc9f1ec",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "05a8b020ceae70e3675b51bd6f06c8f3",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"expected-output-format\">Expected Output Format</h2>\n<span class=\"paragraph\">The expected outputs are structured for use in acceptance testing:</span>\n<div class=\"language-json codehilite\"><pre><span></span><code><span class=\"p\">{</span>\n<span class=\"w\">    </span><span class=\"nt\">&quot;framework&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;CRR&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">    </span><span class=\"nt\">&quot;version&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;1.0&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">    </span><span class=\"nt\">&quot;generated_at&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;2024-XX-XX&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">    </span><span class=\"nt\">&quot;scenarios&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"p\">[</span>\n<span class=\"w\">        </span><span class=\"p\">{</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;scenario_id&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;CRR-A1&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;scenario_group&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;CRR-A&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;description&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;UK Sovereign exposure - 0% RW&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;approach&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;SA&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;exposure_class&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;SOVEREIGN&quot;</span><span class=\"p\">,</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;inputs&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"p\">{</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;ead&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mi\">1000000</span><span class=\"p\">,</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;cqs&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mi\">1</span>\n<span class=\"w\">            </span><span class=\"p\">},</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;outputs&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"p\">{</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;risk_weight&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mf\">0.00</span><span class=\"p\">,</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;rwa_before_sf&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mi\">0</span><span class=\"p\">,</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;supporting_factor&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mf\">1.0</span><span class=\"p\">,</span>\n<span class=\"w\">                </span><span class=\"nt\">&quot;rwa_after_sf&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"mi\">0</span>\n<span class=\"w\">            </span><span class=\"p\">},</span>\n<span class=\"w\">            </span><span class=\"nt\">&quot;regulatory_reference&quot;</span><span class=\"p\">:</span><span class=\"w\"> </span><span class=\"s2\">&quot;CRR Art. 114&quot;</span>\n<span class=\"w\">        </span><span class=\"p\">}</span>\n<span class=\"w\">    </span><span class=\"p\">]</span>\n<span class=\"p\">}</span>\n</code></pre></div></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "25f13d0258effae0d4ed1cb474ba6f9a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "5199f0075356d348ccdd479dc8029154",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"framework-metadata\">Framework Metadata</h3>\n<ul>\n<li><strong>Framework:</strong> CRR</li>\n<li><strong>Version:</strong> 1.0</li>\n<li><strong>Effective Until:</strong> 2026-12-31</li>\n<li><strong>Generated:</strong> 2026-01-17</li>\n</ul>\n<h3 id=\"key-crr-vs-basel-31-differences\">Key CRR vs Basel 3.1 Differences</h3>\n<ul>\n<li>SME supporting factor (0.7619) available under CRR</li>\n<li>Infrastructure supporting factor (0.75) available under CRR</li>\n<li>No output floor under CRR</li>\n<li>Residential mortgage: 35%/75% split at 80% LTV (vs granular LTV bands)</li>\n<li>Single PD floor 0.03% for all classes (vs differentiated floors)</li>\n<li>No A-IRB LGD floors under CRR</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "d54e46b1656acd657b326e39c1e3681f",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/html": "<marimo-ui-element object-id='Kclp-0' random-id='774ba816-95fb-9bb8-57e3-a7f9e00d7c47'><marimo-table data-initial-value='[]' data-label='null' data-data='&quot;[{&#92;&quot;_marimo_row_id&#92;&quot;:0,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A1&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A1&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;SOVEREIGN&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:1,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A2&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A2&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;CORPORATE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:2,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A3&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A3&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;CORPORATE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:3,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A4&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A4&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;INSTITUTION&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:4,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A5&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A5&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;RETAIL_MORTGAGE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:5,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A6&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A6&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;RETAIL_MORTGAGE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:6,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A7&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A7&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;CRE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:7,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A8&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A8&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;CORPORATE&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:8,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A9&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A9&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;RETAIL&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;No&#92;&quot;},{&#92;&quot;_marimo_row_id&#92;&quot;:9,&#92;&quot;Group&#92;&quot;:&#92;&quot;CRR-A1&#92;&quot;,&#92;&quot;Scenario&#92;&quot;:&#92;&quot;CRR-A10&#92;&quot;,&#92;&quot;Exposure Class&#92;&quot;:&#92;&quot;CORPORATE_SME&#92;&quot;,&#92;&quot;Approach&#92;&quot;:&#92;&quot;SA&#92;&quot;,&#92;&quot;SF Applied&#92;&quot;:&#92;&quot;Yes&#92;&quot;}]&quot;' data-total-rows='20' data-total-columns='5' data-max-columns='50' data-banner-text='&quot;&quot;' data-pagination='true' data-page-size='10' data-field-types='[[&quot;Group&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Scenario&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Exposure Class&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;Approach&quot;,[&quot;string&quot;,&quot;str&quot;]],[&quot;SF Applied&quot;,[&quot;string&quot;,&quot;str&quot;]]]' data-selection='&quot;multi&quot;' data-show-filters='true' data-show-download='true' data-show-column-summaries='true' data-show-data-types='true' data-show-page-size-selector='true' data-show-column-explorer='true' data-show-chart-builder='true' data-row-headers='[]' data-has-stable-row-id='true' data-lazy='false' data-preload='false'></marimo-table></marimo-ui-element>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "3349e7606bb2b2cd94109d9d63835ff3",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr />\n<h2 id=\"usage-instructions\">Usage Instructions</h2>\n<h3 id=\"running-the-workbook\">Running the Workbook</h3>\n<div class=\"language-bash codehilite\"><pre><span></span><code><span class=\"c1\"># Interactive mode</span>\nuv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>edit<span class=\"w\"> </span>workbooks/crr_expected_outputs/main.py\n\n<span class=\"c1\"># Run and export</span>\nuv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>run<span class=\"w\"> </span>workbooks/crr_expected_outputs/main.py\n</code></pre></div>\n<h3 id=\"individual-scenario-groups\">Individual Scenario Groups</h3>\n<div class=\"language-bash codehilite\"><pre><span></span><code><span class=\"c1\"># SA scenarios</span>\nuv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>edit<span class=\"w\"> </span>workbooks/crr_expected_outputs/scenarios/group_crr_a_sa.py\n\n<span class=\"c1\"># F-IRB scenarios</span>\nuv<span class=\"w\"> </span>run<span class=\"w\"> </span>marimo<span class=\"w\"> </span>edit<span class=\"w\"> </span>workbooks/crr_expected_outputs/scenarios/group_crr_b_firb.py\n</code></pre></div>\n<h3 id=\"using-expected-outputs-in-tests\">Using Expected Outputs in Tests</h3>\n<div class=\"language-python codehilite\"><pre><span></span><code><span class=\"kn\">from</span><span class=\"w\"> </span><span class=\"nn\">workbooks.crr_expected_outputs.data</span><span class=\"w\"> </span><span class=\"kn\">import</span> <span class=\"n\">load_expected_outputs</span>\n\n<span class=\"n\">expected</span> <span class=\"o\">=</span> <span class=\"n\">load_expected_outputs</span><span class=\"p\">()</span>\n<span class=\"n\">scenario_a1</span> <span class=\"o\">=</span> <span class=\"n\">expected</span><span class=\"o\">.</span><span class=\"n\">get_scenario</span><span class=\"p\">(</span><span class=\"s2\">&quot;CRR-A1&quot;</span><span class=\"p\">)</span>\n\n<span class=\"k\">assert</span> <span class=\"n\">calculated_rwa</span> <span class=\"o\">==</span> <span class=\"n\">scenario_a1</span><span class=\"p\">[</span><span class=\"s2\">&quot;outputs&quot;</span><span class=\"p\">][</span><span class=\"s2\">&quot;rwa_after_sf&quot;</span><span class=\"p\">]</span>\n</code></pre></div></span>"
+          }
+        }
+      ],
+      "console": []
+    }
+  ]
+}
