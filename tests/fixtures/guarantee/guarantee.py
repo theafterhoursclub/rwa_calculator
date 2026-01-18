@@ -93,6 +93,7 @@ def _sovereign_guarantees() -> list[Guarantee]:
     """
     return [
         # UK Government guarantee on corporate loan
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A12 test
         Guarantee(
             guarantee_reference="GUAR_SOV_001",
             guarantee_type="sovereign_guarantee",
@@ -102,7 +103,7 @@ def _sovereign_guarantees() -> list[Guarantee]:
             amount_covered=5_000_000.0,
             percentage_covered=1.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_001",
+            beneficiary_reference="LOAN_GUAR_TEST_SOV_001",  # Dedicated test loan
         ),
         # UK Export Finance guarantee (UKEF)
         Guarantee(
@@ -135,10 +136,13 @@ def _institution_guarantees() -> list[Guarantee]:
     """
     Bank/institution guarantees - substitution to bank RW.
 
-    Scenario D4: Bank guarantee on corporate exposure.
+    NOTE: These guarantees use dedicated test loans (LOAN_GUAR_TEST_*)
+    to avoid affecting other scenario tests (e.g., CRR-A).
+    Actual D4 scenario uses GUAR_CRM_D4 with LOAN_CRM_D4.
     """
     return [
-        # D4: Barclays guarantee on corporate loan (CQS 1 bank = 20% RW)
+        # Barclays guarantee on corporate loan (CQS 1 bank = 20% RW)
+        # Uses dedicated test loan to avoid affecting CRR-A tests
         Guarantee(
             guarantee_reference="GUAR_BANK_001",
             guarantee_type="bank_guarantee",
@@ -148,9 +152,10 @@ def _institution_guarantees() -> list[Guarantee]:
             amount_covered=600_000.0,
             percentage_covered=0.60,  # 60% of £1m exposure
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_003",
+            beneficiary_reference="LOAN_GUAR_TEST_001",  # Dedicated test loan
         ),
         # HSBC guarantee on SME loan
+        # Uses dedicated test loan to avoid affecting CRR-A tests
         Guarantee(
             guarantee_reference="GUAR_BANK_002",
             guarantee_type="bank_guarantee",
@@ -160,7 +165,7 @@ def _institution_guarantees() -> list[Guarantee]:
             amount_covered=1_000_000.0,
             percentage_covered=0.50,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_SME_001",
+            beneficiary_reference="LOAN_GUAR_TEST_002",  # Dedicated test loan
         ),
         # Metro Bank guarantee (CQS 2 = 30% RW UK deviation)
         Guarantee(
@@ -232,7 +237,7 @@ def _corporate_guarantees() -> list[Guarantee]:
             beneficiary_type="loan",
             beneficiary_reference="LOAN_HIER_SUB_001_A",
         ),
-        # Large corporate guarantee on SME
+        # Large corporate guarantee on SME (uses dedicated test loan)
         Guarantee(
             guarantee_reference="GUAR_CORP_003",
             guarantee_type="corporate_guarantee",
@@ -242,7 +247,7 @@ def _corporate_guarantees() -> list[Guarantee]:
             amount_covered=400_000.0,
             percentage_covered=0.80,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_RTL_SME_001",
+            beneficiary_reference="LOAN_GUAR_TEST_RTL_001",  # Dedicated test loan
         ),
     ]
 
@@ -251,9 +256,28 @@ def _crm_test_guarantees() -> list[Guarantee]:
     """
     Guarantees specifically for CRM scenario testing.
 
+    D4: Bank guarantee substitution - 60% covered by CQS 2 UK bank (30% RW)
     H4: Full CRM chain - exposure with collateral + guarantee + provision
     """
     return [
+        # =============================================================================
+        # D4: Bank guarantee substitution scenario
+        # £1m loan to unrated corporate (100% RW)
+        # 60% guaranteed by Metro Bank (CQS 2 UK bank = 30% RW UK deviation)
+        # Blended RW = 0.6 * 30% + 0.4 * 100% = 18% + 40% = 58%
+        # RWA = £1m * 58% = £580k
+        # =============================================================================
+        Guarantee(
+            guarantee_reference="GUAR_CRM_D4",
+            guarantee_type="bank_guarantee",
+            guarantor="INST_UK_003",  # Metro Bank - CQS 2 (30% RW UK deviation)
+            currency="GBP",
+            maturity_date=date(2030, 1, 1),  # Maturity >= loan maturity
+            amount_covered=600_000.0,  # 60% of £1m
+            percentage_covered=0.60,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D4",
+        ),
         # =============================================================================
         # H4: Full CRM chain scenario
         # This guarantee is part of a fully mitigated exposure:

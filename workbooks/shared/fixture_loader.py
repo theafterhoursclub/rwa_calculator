@@ -49,6 +49,7 @@ class FixtureData:
             self.institutions,
             self.corporates,
             self.retail,
+            self.specialised_lending,
         ])
 
     def get_counterparty(self, reference: str) -> dict | None:

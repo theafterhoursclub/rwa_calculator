@@ -79,6 +79,7 @@ def create_ratings() -> pl.DataFrame:
         *_corporate_external_ratings(),
         *_corporate_internal_ratings(),
         *_firb_scenario_internal_ratings(),
+        *_airb_scenario_internal_ratings(),
         *_retail_internal_ratings(),
     ]
 
@@ -289,6 +290,47 @@ def _firb_scenario_internal_ratings() -> list[Rating]:
         Rating(
             "RTG_INT_FIRB_B7", "CORP_LRG_001", "internal", "internal",
             "2C", 2, 0.0080, firb_rating_date, False
+        ),
+    ]
+
+
+def _airb_scenario_internal_ratings() -> list[Rating]:
+    """
+    Internal ratings with specific PD values for CRR A-IRB scenario testing.
+
+    These ratings support the A-IRB scenarios where banks provide their own
+    estimates for PD, LGD, and EAD. The LGD values come from the loan data;
+    these ratings provide the PD estimates.
+
+    Note: A-IRB uses the same PD floor as F-IRB (0.03% for corporates, 0.05% retail)
+
+    Scenarios:
+        CRR-C1: Corporate A-IRB - PD 1.00%
+        CRR-C2: Retail A-IRB - PD 0.30%
+        CRR-C3: Specialised Lending A-IRB - PD 1.50%
+    """
+    # Use same date as FIRB ratings for consistency
+    airb_rating_date = date(2026, 1, 2)
+
+    return [
+        # CRR-C1: Corporate A-IRB - PD 1.00%
+        # Tests A-IRB corporate with bank's own LGD (35% vs F-IRB 45%)
+        Rating(
+            "RTG_INT_AIRB_C1", "CORP_AIRB_001", "internal", "internal",
+            "3A", 3, 0.0100, airb_rating_date, False
+        ),
+        # CRR-C2: Retail A-IRB - PD 0.30%
+        # Tests A-IRB retail with bank's own LGD (15%)
+        # Retail MUST use A-IRB (F-IRB not available)
+        Rating(
+            "RTG_INT_AIRB_C2", "RTL_AIRB_001", "internal", "internal",
+            "R1B", 1, 0.0030, airb_rating_date, False
+        ),
+        # CRR-C3: Specialised Lending A-IRB - PD 1.50%
+        # Tests A-IRB for project finance with bank's own LGD (25%)
+        Rating(
+            "RTG_INT_AIRB_C3", "SL_PF_001", "internal", "internal",
+            "3B", 3, 0.0150, airb_rating_date, False
         ),
     ]
 

@@ -119,11 +119,28 @@ class CRMProcessor:
         # Step 2: Initialize EAD columns
         exposures = self._initialize_ead(exposures)
 
-        # Note: Collateral, guarantees, and provisions would be applied here
-        # but require the actual collateral/guarantee data from the bundle
-        # For now, we pass through with placeholder columns
+        # Step 3: Apply collateral (if available)
+        if data.collateral is not None:
+            exposures = self.apply_collateral(exposures, data.collateral, config)
 
-        # Step 3: Add CRM audit trail
+        # Step 4: Apply guarantees (if available)
+        if data.guarantees is not None and data.counterparty_lookup is not None:
+            exposures = self.apply_guarantees(
+                exposures,
+                data.guarantees,
+                data.counterparty_lookup.counterparties,
+                config,
+                data.counterparty_lookup.rating_inheritance,
+            )
+
+        # Step 5: Apply provisions (if available)
+        if data.provisions is not None:
+            exposures = self.apply_provisions(exposures, data.provisions, config)
+
+        # Step 6: Calculate final EAD after all CRM adjustments
+        exposures = self._finalize_ead(exposures)
+
+        # Step 7: Add CRM audit trail
         exposures = self._add_crm_audit(exposures)
 
         # Split by approach for output
@@ -132,11 +149,15 @@ class CRMProcessor:
             (pl.col("approach") == ApproachType.FIRB.value) |
             (pl.col("approach") == ApproachType.AIRB.value)
         )
+        slotting_exposures = exposures.filter(
+            pl.col("approach") == ApproachType.SLOTTING.value
+        )
 
         return CRMAdjustedBundle(
             exposures=exposures,
             sa_exposures=sa_exposures,
             irb_exposures=irb_exposures,
+            slotting_exposures=slotting_exposures,
             crm_audit=self._build_crm_audit(exposures),
             collateral_allocation=None,  # Would be populated from collateral processing
             crm_errors=errors,
@@ -199,6 +220,29 @@ class CRMProcessor:
             pl.col("lgd").fill_null(0.45).alias("lgd_post_crm"),
         ])
 
+    def _finalize_ead(
+        self,
+        exposures: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Finalize EAD after all CRM adjustments.
+
+        Sets ead_final based on the CRM waterfall:
+        - ead_after_collateral (after collateral reduction)
+        - minus provision deduction
+
+        Also updates ead_after_guarantee for audit trail.
+        """
+        # Use ead_after_collateral if it exists, otherwise ead_gross
+        return exposures.with_columns([
+            # Set final EAD after provisions
+            (
+                pl.col("ead_after_collateral") - pl.col("provision_deducted")
+            ).clip(lower_bound=0).alias("ead_final"),
+            # Copy to ead_after_guarantee for audit
+            pl.col("ead_after_collateral").alias("ead_after_guarantee"),
+        ])
+
     def apply_collateral(
         self,
         exposures: pl.LazyFrame,
@@ -226,11 +270,32 @@ class CRMProcessor:
             adjusted_collateral, exposures
         )
 
+        # Filter to only eligible financial collateral for EAD reduction
+        # Real estate collateral affects risk weight (via LTV) but does NOT reduce EAD
+        # Check if is_eligible_financial_collateral column exists
+        collateral_schema = adjusted_collateral.collect_schema()
+        if "is_eligible_financial_collateral" in collateral_schema:
+            eligible_collateral = adjusted_collateral.filter(
+                pl.col("is_eligible_financial_collateral") == True  # noqa: E712
+            )
+        else:
+            # If column doesn't exist, exclude real estate by type
+            eligible_collateral = adjusted_collateral.filter(
+                ~pl.col("collateral_type").str.to_lowercase().is_in([
+                    "real_estate", "property", "rre", "cre",
+                    "residential_property", "commercial_property"
+                ])
+            )
+
         # Aggregate collateral by beneficiary
-        collateral_by_exposure = adjusted_collateral.group_by(
+        # Use maturity-adjusted value if available, otherwise use haircut value
+        collateral_by_exposure = eligible_collateral.group_by(
             "beneficiary_reference"
         ).agg([
-            pl.col("value_after_haircut").sum().alias("total_collateral_adjusted"),
+            pl.coalesce(
+                pl.col("value_after_maturity_adj"),
+                pl.col("value_after_haircut")
+            ).sum().alias("total_collateral_adjusted"),
             pl.col("market_value").sum().alias("total_collateral_market"),
             pl.len().alias("collateral_count"),
         ])
@@ -269,6 +334,7 @@ class CRMProcessor:
         guarantees: pl.LazyFrame,
         counterparty_lookup: pl.LazyFrame,
         config: CalculationConfig,
+        rating_inheritance: pl.LazyFrame | None = None,
     ) -> pl.LazyFrame:
         """
         Apply guarantee substitution.
@@ -280,6 +346,7 @@ class CRMProcessor:
             guarantees: Guarantee data
             counterparty_lookup: For guarantor risk weights
             config: Calculation configuration
+            rating_inheritance: For guarantor CQS lookup
 
         Returns:
             Exposures with guarantee effects applied
@@ -323,6 +390,39 @@ class CRMProcessor:
             ).alias("unguaranteed_portion"),
         ])
 
+        # Look up guarantor's entity type and CQS for risk weight substitution
+        # Join with counterparty to get guarantor's entity type
+        exposures = exposures.join(
+            counterparty_lookup.select([
+                pl.col("counterparty_reference"),
+                pl.col("entity_type").alias("guarantor_entity_type"),
+            ]),
+            left_on="guarantor_reference",
+            right_on="counterparty_reference",
+            how="left",
+        )
+
+        # Look up guarantor's CQS from ratings
+        if rating_inheritance is not None:
+            exposures = exposures.join(
+                rating_inheritance.select([
+                    pl.col("counterparty_reference"),
+                    pl.col("cqs").alias("guarantor_cqs"),
+                ]),
+                left_on="guarantor_reference",
+                right_on="counterparty_reference",
+                how="left",
+            )
+        else:
+            exposures = exposures.with_columns([
+                pl.lit(None).cast(pl.Int8).alias("guarantor_cqs"),
+            ])
+
+        # Fill nulls for exposures without guarantees
+        exposures = exposures.with_columns([
+            pl.col("guarantor_entity_type").fill_null("").alias("guarantor_entity_type"),
+        ])
+
         return exposures
 
     def apply_provisions(
@@ -345,35 +445,33 @@ class CRMProcessor:
         Returns:
             Exposures with provision effects applied
         """
-        # Check if provisions frame has data
-        # Aggregate provisions by exposure
+        # Aggregate provisions by beneficiary (exposure)
         provisions_by_exposure = provisions.group_by(
-            "exposure_reference"
+            "beneficiary_reference"
         ).agg([
-            pl.col("provision_amount").sum().alias("total_provision"),
+            pl.col("amount").sum().alias("total_provision"),
             pl.col("provision_type").first().alias("primary_provision_type"),
         ])
 
         # Join provisions to exposures
         exposures = exposures.join(
             provisions_by_exposure,
-            on="exposure_reference",
+            left_on="exposure_reference",
+            right_on="beneficiary_reference",
             how="left",
         )
 
-        # Fill nulls
+        # Fill nulls and update provision columns
         exposures = exposures.with_columns([
             pl.col("total_provision").fill_null(0.0).alias("provision_allocated"),
         ])
 
-        # Apply provision deduction for SA
+        # Calculate provision deduction (for SA, deduct from EAD)
         exposures = exposures.with_columns([
             pl.when(pl.col("approach") == ApproachType.SA.value)
-            .then(
-                (pl.col("ead_after_guarantee") - pl.col("provision_allocated")).clip(lower_bound=0)
-            )
-            .otherwise(pl.col("ead_after_guarantee"))
-            .alias("ead_final"),
+            .then(pl.col("provision_allocated"))
+            .otherwise(pl.lit(0.0))
+            .alias("provision_deducted"),
         ])
 
         return exposures

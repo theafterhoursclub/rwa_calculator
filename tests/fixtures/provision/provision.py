@@ -90,6 +90,7 @@ def _stage1_provisions() -> list[Provision]:
     """
     return [
         # Corporate performing loan - minimal provision
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A12 test
         Provision(
             provision_reference="PROV_S1_CORP_001",
             provision_type="SCRA",
@@ -98,7 +99,7 @@ def _stage1_provisions() -> list[Provision]:
             amount=25_000.0,  # 0.1% of £25m
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_001",
+            beneficiary_reference="LOAN_PROV_TEST_CORP_002",  # Dedicated test loan
         ),
         # Institution loan - very low provision
         Provision(
@@ -155,6 +156,7 @@ def _stage2_provisions() -> list[Provision]:
     """
     return [
         # Watch-list corporate - significant increase in credit risk
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A2 test
         Provision(
             provision_reference="PROV_S2_CORP_001",
             provision_type="SCRA",
@@ -163,9 +165,10 @@ def _stage2_provisions() -> list[Provision]:
             amount=50_000.0,  # 5% of £1m unrated corporate
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UR_001",
+            beneficiary_reference="LOAN_PROV_TEST_CORP_001",  # Dedicated test loan
         ),
         # Watch-list SME retail
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A11 test
         Provision(
             provision_reference="PROV_S2_SME_001",
             provision_type="SCRA",
@@ -174,7 +177,7 @@ def _stage2_provisions() -> list[Provision]:
             amount=25_000.0,  # 5% of £500k
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_RTL_SME_001",
+            beneficiary_reference="LOAN_PROV_TEST_SME_001",  # Dedicated test loan
         ),
         # Watch-list hierarchy loan
         Provision(

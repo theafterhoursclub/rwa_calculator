@@ -41,7 +41,6 @@ class TestCRRGroupE_SlottingApproach:
     - Basel 3.1: Strong=50%, Good=70%, Satisfactory=100%, Weak=250%
     """
 
-    @pytest.mark.skip(reason="Fixture LOAN_SL_PF_001 not available")
     def test_crr_e1_project_finance_strong(
         self,
         slotting_results_df: pl.DataFrame,
@@ -74,7 +73,6 @@ class TestCRRGroupE_SlottingApproach:
             scenario_id="CRR-E1",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SL_PF_002 not available")
     def test_crr_e2_project_finance_good(
         self,
         slotting_results_df: pl.DataFrame,
@@ -100,7 +98,6 @@ class TestCRRGroupE_SlottingApproach:
             scenario_id="CRR-E2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SL_IPRE_001 not available")
     def test_crr_e3_ipre_weak(
         self,
         slotting_results_df: pl.DataFrame,
@@ -126,7 +123,6 @@ class TestCRRGroupE_SlottingApproach:
             scenario_id="CRR-E3",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SL_HVCRE_001 not available")
     def test_crr_e4_hvcre_strong(
         self,
         slotting_results_df: pl.DataFrame,

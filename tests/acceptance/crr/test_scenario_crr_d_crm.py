@@ -41,7 +41,6 @@ class TestCRRGroupD_CreditRiskMitigation:
     and compares the output against pre-calculated expected values.
     """
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D1 not available")
     def test_crr_d1_cash_collateral_zero_haircut(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -69,7 +68,6 @@ class TestCRRGroupD_CreditRiskMitigation:
             scenario_id="CRR-D1",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D2 not available")
     def test_crr_d2_govt_bond_collateral(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -97,7 +95,6 @@ class TestCRRGroupD_CreditRiskMitigation:
             scenario_id="CRR-D2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D3 not available")
     def test_crr_d3_equity_collateral_main_index(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -125,7 +122,6 @@ class TestCRRGroupD_CreditRiskMitigation:
             scenario_id="CRR-D3",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D4 not available")
     def test_crr_d4_bank_guarantee_substitution(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -153,7 +149,6 @@ class TestCRRGroupD_CreditRiskMitigation:
             scenario_id="CRR-D4",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D5 not available")
     def test_crr_d5_maturity_mismatch(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -184,7 +179,6 @@ class TestCRRGroupD_CreditRiskMitigation:
             scenario_id="CRR-D5",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CRM_D6 not available")
     def test_crr_d6_currency_mismatch(
         self,
         pipeline_results_df: pl.DataFrame,

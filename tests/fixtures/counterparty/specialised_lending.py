@@ -47,11 +47,11 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
         pl.DataFrame: Specialised lending counterparties matching COUNTERPARTY_SCHEMA
     """
     specialised_lending = [
-        # Project Finance - Strong (Scenario E1)
+        # Project Finance - Strong (Scenario E1, also CRR-C3 A-IRB)
         {
             "counterparty_reference": "SL_PF_001",
             "counterparty_name": "Thames Infrastructure Project SPV",
-            "entity_type": "corporate",
+            "entity_type": "specialised_lending",  # Enables slotting or A-IRB approach
             "country_code": "GB",
             "annual_revenue": None,
             "total_assets": 500_000_000.0,
@@ -289,6 +289,82 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "total_assets": 30_000_000.0,
             "default_status": True,
             "sector_code": "42.99",
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # =============================================================================
+        # CRR-E Slotting Test Scenarios
+        # These counterparties have IDs matching expected outputs for CRR-E tests
+        # =============================================================================
+        # CRR-E1: Project Finance - Strong (70% RW under CRR)
+        {
+            "counterparty_reference": "SL_PF_STRONG",
+            "counterparty_name": "Strong Project Finance SPV - CRR-E1",
+            "entity_type": "specialised_lending",
+            "country_code": "GB",
+            "annual_revenue": None,
+            "total_assets": 500_000_000.0,
+            "default_status": False,
+            "sector_code": "42.11",
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-E2: Project Finance - Good (70% RW under CRR, same as Strong)
+        {
+            "counterparty_reference": "SL_PF_GOOD",
+            "counterparty_name": "Good Project Finance SPV - CRR-E2",
+            "entity_type": "specialised_lending",
+            "country_code": "GB",
+            "annual_revenue": None,
+            "total_assets": 400_000_000.0,
+            "default_status": False,
+            "sector_code": "35.11",
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-E3: IPRE - Weak (250% RW - punitive)
+        {
+            "counterparty_reference": "SL_IPRE_WEAK",
+            "counterparty_name": "Weak IPRE SPV - CRR-E3",
+            "entity_type": "specialised_lending",
+            "country_code": "GB",
+            "annual_revenue": 10_000_000.0,
+            "total_assets": 100_000_000.0,
+            "default_status": False,
+            "sector_code": "68.20",
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # CRR-E4: HVCRE - Strong (70% RW under CRR, same as non-HVCRE)
+        {
+            "counterparty_reference": "SL_HVCRE_STRONG",
+            "counterparty_name": "Strong HVCRE SPV - CRR-E4",
+            "entity_type": "specialised_lending",
+            "country_code": "GB",
+            "annual_revenue": None,
+            "total_assets": 80_000_000.0,
+            "default_status": False,
+            "sector_code": "41.10",
             "is_financial_institution": False,
             "is_regulated": False,
             "is_pse": False,

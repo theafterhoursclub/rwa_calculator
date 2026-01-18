@@ -245,6 +245,29 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
         },
+        # =============================================================================
+        # A-IRB TEST: Retail with bank's own estimates (CRR-C2)
+        # Tests A-IRB for retail where bank provides own PD, LGD estimates
+        # LGD 15% - significantly below SA assumptions, demonstrating A-IRB benefit
+        # Note: Retail MUST use A-IRB (F-IRB not available for retail exposures)
+        # =============================================================================
+        {
+            "counterparty_reference": "RTL_AIRB_001",
+            "counterparty_name": "A-IRB Retail Customer",
+            "entity_type": "individual",
+            "country_code": "GB",
+            "annual_revenue": 65_000.0,
+            "total_assets": None,
+            "default_status": False,
+            "sector_code": None,
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
         # Defaulted retail individual
         {
             "counterparty_reference": "RTL_DF_001",
@@ -502,6 +525,27 @@ def create_retail_counterparties() -> pl.DataFrame:
             "total_assets": 600_000.0,
             "default_status": False,
             "sector_code": "62.01",
+            "is_financial_institution": False,
+            "is_regulated": False,
+            "is_pse": False,
+            "is_mdb": False,
+            "is_international_org": False,
+            "is_central_counterparty": False,
+            "is_regional_govt_local_auth": False,
+        },
+        # =============================================================================
+        # CRR-F4: Retail SME with SME Supporting Factor
+        # Small business eligible for retail treatment with SME factor
+        # =============================================================================
+        {
+            "counterparty_reference": "RTL_SME_SMALL",
+            "counterparty_name": "Small Retail SME Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 5_000_000.0,  # £5m turnover - below £44m SME threshold
+            "total_assets": 3_000_000.0,
+            "default_status": False,
+            "sector_code": "47.11",  # Retail trade
             "is_financial_institution": False,
             "is_regulated": False,
             "is_pse": False,

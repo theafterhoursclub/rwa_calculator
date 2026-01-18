@@ -294,6 +294,7 @@ class SlottingCalculator:
         """Calculate RWA = EAD × RW."""
         return exposures.with_columns([
             (pl.col("ead_final") * pl.col("risk_weight")).alias("rwa"),
+            (pl.col("ead_final") * pl.col("risk_weight")).alias("rwa_final"),
         ])
 
     def _build_audit(

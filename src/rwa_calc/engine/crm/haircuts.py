@@ -163,44 +163,69 @@ class HaircutCalculator:
             .when(pl.col("collateral_type").str.to_lowercase() == "gold")
             .then(pl.lit(0.15))
             # Government bonds - by CQS and maturity
+            # Match explicit govt bond types or generic "bond" with sovereign issuer
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs") == 1) &
                 (pl.col("maturity_band") == "0_1y")
             ).then(pl.lit(0.005))
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs") == 1) &
                 (pl.col("maturity_band") == "1_5y")
             ).then(pl.lit(0.02))
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs") == 1)
             ).then(pl.lit(0.04))
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs").is_in([2, 3])) &
                 (pl.col("maturity_band") == "0_1y")
             ).then(pl.lit(0.01))
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs").is_in([2, 3])) &
                 (pl.col("maturity_band") == "1_5y")
             ).then(pl.lit(0.03))
             .when(
-                (pl.col("collateral_type").str.to_lowercase().is_in([
-                    "govt_bond", "sovereign_bond", "government_bond", "gilt"
-                ])) &
+                (
+                    pl.col("collateral_type").str.to_lowercase().is_in([
+                        "govt_bond", "sovereign_bond", "government_bond", "gilt"
+                    ]) |
+                    ((pl.col("collateral_type").str.to_lowercase() == "bond") &
+                     (pl.col("issuer_type").str.to_lowercase() == "sovereign"))
+                ) &
                 (pl.col("issuer_cqs").is_in([2, 3]))
             ).then(pl.lit(0.06))
             # Corporate bonds CQS 1-2

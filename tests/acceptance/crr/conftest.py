@@ -393,6 +393,37 @@ def crr_irb_calculation_config():
 
 
 @pytest.fixture(scope="session")
+def crr_slotting_calculation_config():
+    """
+    Create CRR CalculationConfig with slotting permissions for specialised lending.
+
+    For slotting tests, we permit SLOTTING but not A-IRB for SPECIALISED_LENDING
+    to ensure exposures use the slotting approach instead of A-IRB.
+    """
+    from rwa_calc.contracts.config import CalculationConfig, IRBPermissions
+    from rwa_calc.domain.enums import ExposureClass, ApproachType
+
+    return CalculationConfig.crr(
+        reporting_date=date(2025, 12, 31),
+        irb_permissions=IRBPermissions(
+            permissions={
+                # Full IRB for normal exposure classes
+                ExposureClass.SOVEREIGN: {ApproachType.SA, ApproachType.FIRB, ApproachType.AIRB},
+                ExposureClass.INSTITUTION: {ApproachType.SA, ApproachType.FIRB, ApproachType.AIRB},
+                ExposureClass.CORPORATE: {ApproachType.SA, ApproachType.FIRB, ApproachType.AIRB},
+                ExposureClass.CORPORATE_SME: {ApproachType.SA, ApproachType.FIRB, ApproachType.AIRB},
+                ExposureClass.RETAIL_MORTGAGE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_QRRE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_OTHER: {ApproachType.SA, ApproachType.AIRB},
+                # Slotting for specialised lending (NOT A-IRB)
+                ExposureClass.SPECIALISED_LENDING: {ApproachType.SA, ApproachType.SLOTTING},
+                ExposureClass.EQUITY: {ApproachType.SA},
+            }
+        ),
+    )
+
+
+@pytest.fixture(scope="session")
 def raw_data_bundle(load_test_fixtures):
     """
     Convert test fixtures to RawDataBundle for pipeline processing.
@@ -466,11 +497,36 @@ def irb_results_df(pipeline_results) -> pl.DataFrame:
 
 
 @pytest.fixture(scope="session")
-def slotting_results_df(pipeline_results) -> pl.DataFrame:
-    """Get Slotting results as a collected DataFrame."""
-    if pipeline_results.slotting_results is None:
+def slotting_pipeline_results(raw_data_bundle, crr_slotting_calculation_config):
+    """
+    Run all fixtures through the pipeline with slotting permissions.
+
+    Used for slotting scenario tests (CRR-E).
+    This config permits SLOTTING but NOT A-IRB for SPECIALISED_LENDING,
+    ensuring exposures are routed to the slotting approach.
+
+    Returns:
+        AggregatedResultBundle with slotting calculation results
+    """
+    from rwa_calc.engine.pipeline import PipelineOrchestrator
+
+    pipeline = PipelineOrchestrator()
+    result = pipeline.run_with_data(raw_data_bundle, crr_slotting_calculation_config)
+
+    return result
+
+
+@pytest.fixture(scope="session")
+def slotting_results_df(slotting_pipeline_results) -> pl.DataFrame:
+    """
+    Get Slotting results as a collected DataFrame.
+
+    Uses slotting_pipeline_results which permits SLOTTING but not A-IRB
+    for SPECIALISED_LENDING exposures.
+    """
+    if slotting_pipeline_results.slotting_results is None:
         return pl.DataFrame()
-    return pipeline_results.slotting_results.collect()
+    return slotting_pipeline_results.slotting_results.collect()
 
 
 @pytest.fixture(scope="session")

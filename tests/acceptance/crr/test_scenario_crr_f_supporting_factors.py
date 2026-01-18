@@ -51,7 +51,6 @@ class TestCRRGroupF_TieredSMEFactor:
     Where threshold = EUR 2.5m
     """
 
-    @pytest.mark.skip(reason="Fixture LOAN_SME_TIER1 not available")
     def test_crr_f1_sme_tier1_only_small_exposure(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -82,7 +81,6 @@ class TestCRRGroupF_TieredSMEFactor:
             scenario_id="CRR-F1",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SME_TIER_BLEND not available")
     def test_crr_f2_sme_blended_medium_exposure(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -108,7 +106,6 @@ class TestCRRGroupF_TieredSMEFactor:
             scenario_id="CRR-F2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SME_TIER2_DOM not available")
     def test_crr_f3_sme_tier2_dominant_large_exposure(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -134,7 +131,6 @@ class TestCRRGroupF_TieredSMEFactor:
             scenario_id="CRR-F3",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_RTL_SME_TIER1 not available")
     def test_crr_f4_sme_retail_with_tiered_factor(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -160,7 +156,6 @@ class TestCRRGroupF_TieredSMEFactor:
             scenario_id="CRR-F4",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_INFRA_001 not available")
     def test_crr_f5_infrastructure_factor_not_tiered(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -186,7 +181,6 @@ class TestCRRGroupF_TieredSMEFactor:
             "Infrastructure factor should be 0.75"
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_CORP_LARGE not available")
     def test_crr_f6_large_corporate_no_factor(
         self,
         pipeline_results_df: pl.DataFrame,
@@ -210,7 +204,6 @@ class TestCRRGroupF_TieredSMEFactor:
             "Large corporate should have no supporting factor (1.0)"
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SME_BOUNDARY not available")
     def test_crr_f7_at_exposure_threshold_boundary(
         self,
         pipeline_results_df: pl.DataFrame,

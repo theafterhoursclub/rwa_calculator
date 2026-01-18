@@ -45,10 +45,9 @@ class TestCRRGroupC_AdvancedIRB:
     and compares the output against pre-calculated expected values.
     """
 
-    @pytest.mark.skip(reason="Fixture LOAN_CORP_AIRB_001 not available")
     def test_crr_c1_corporate_airb_own_lgd(
         self,
-        irb_pipeline_results_df: pl.DataFrame,
+        irb_only_results_df: pl.DataFrame,
         expected_outputs_dict: dict[str, dict[str, Any]],
     ) -> None:
         """
@@ -62,23 +61,22 @@ class TestCRRGroupC_AdvancedIRB:
         expected = expected_outputs_dict["CRR-C1"]
         exposure_ref = SCENARIO_EXPOSURE_MAP["CRR-C1"]
 
-        result = get_result_for_exposure(irb_pipeline_results_df, exposure_ref)
+        result = get_result_for_exposure(irb_only_results_df, exposure_ref)
 
         if result is None:
             pytest.skip(f"Fixture data not available for {exposure_ref}")
 
         assert_rwa_within_tolerance(
-            result["rwa_final"],
+            result["rwa"],
             expected["rwa_after_sf"],
             scenario_id="CRR-C1",
         )
         # Verify own LGD estimate is used
         assert result["lgd"] == pytest.approx(0.35, rel=0.01)
 
-    @pytest.mark.skip(reason="Fixture LOAN_RTL_AIRB_001 not available")
     def test_crr_c2_retail_airb_own_estimates(
         self,
-        irb_pipeline_results_df: pl.DataFrame,
+        irb_only_results_df: pl.DataFrame,
         expected_outputs_dict: dict[str, dict[str, Any]],
     ) -> None:
         """
@@ -92,21 +90,20 @@ class TestCRRGroupC_AdvancedIRB:
         expected = expected_outputs_dict["CRR-C2"]
         exposure_ref = SCENARIO_EXPOSURE_MAP["CRR-C2"]
 
-        result = get_result_for_exposure(irb_pipeline_results_df, exposure_ref)
+        result = get_result_for_exposure(irb_only_results_df, exposure_ref)
 
         if result is None:
             pytest.skip(f"Fixture data not available for {exposure_ref}")
 
         assert_rwa_within_tolerance(
-            result["rwa_final"],
+            result["rwa"],
             expected["rwa_after_sf"],
             scenario_id="CRR-C2",
         )
 
-    @pytest.mark.skip(reason="Fixture LOAN_SL_AIRB_001 not available")
     def test_crr_c3_specialised_lending_airb(
         self,
-        irb_pipeline_results_df: pl.DataFrame,
+        irb_only_results_df: pl.DataFrame,
         expected_outputs_dict: dict[str, dict[str, Any]],
     ) -> None:
         """
@@ -120,13 +117,13 @@ class TestCRRGroupC_AdvancedIRB:
         expected = expected_outputs_dict["CRR-C3"]
         exposure_ref = SCENARIO_EXPOSURE_MAP["CRR-C3"]
 
-        result = get_result_for_exposure(irb_pipeline_results_df, exposure_ref)
+        result = get_result_for_exposure(irb_only_results_df, exposure_ref)
 
         if result is None:
             pytest.skip(f"Fixture data not available for {exposure_ref}")
 
         assert_rwa_within_tolerance(
-            result["rwa_final"],
+            result["rwa"],
             expected["rwa_after_sf"],
             scenario_id="CRR-C3",
         )

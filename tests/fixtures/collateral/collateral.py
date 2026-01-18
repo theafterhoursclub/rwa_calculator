@@ -108,6 +108,7 @@ def create_collateral() -> pl.DataFrame:
         *_commercial_real_estate(),
         *_receivables_collateral(),
         *_crm_test_collateral(),
+        *_crr_d_scenario_collateral(),
     ]
 
     return pl.DataFrame([c.to_dict() for c in collateral], schema=COLLATERAL_SCHEMA)
@@ -121,6 +122,7 @@ def _cash_collateral() -> list[Collateral]:
     """
     return [
         # D1: Cash collateral for corporate loan - £500k cash
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A12 test
         Collateral(
             collateral_reference="COLL_CASH_001",
             collateral_type="cash",
@@ -129,7 +131,7 @@ def _cash_collateral() -> list[Collateral]:
             market_value=500_000.0,
             nominal_value=500_000.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_001",
+            beneficiary_reference="LOAN_COLL_TEST_CORP_003",  # Dedicated test loan
             issuer_cqs=None,
             issuer_type=None,
             residual_maturity_years=None,
@@ -143,7 +145,7 @@ def _cash_collateral() -> list[Collateral]:
             is_adc=None,
             is_presold=None,
         ),
-        # Cash collateral for SME loan
+        # Cash collateral for SME loan (uses dedicated test loan)
         Collateral(
             collateral_reference="COLL_CASH_002",
             collateral_type="cash",
@@ -152,7 +154,7 @@ def _cash_collateral() -> list[Collateral]:
             market_value=200_000.0,
             nominal_value=200_000.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_SME_001",
+            beneficiary_reference="LOAN_COLL_TEST_SME_001",  # Dedicated test loan
             issuer_cqs=None,
             issuer_type=None,
             residual_maturity_years=None,
@@ -177,7 +179,7 @@ def _government_bond_collateral() -> list[Collateral]:
     Haircuts (CRE22.52): <=1yr: 0.5%, 1-3yr: 2%, 3-5yr: 4%, 5-10yr: 4%, >10yr: 12%
     """
     return [
-        # D2: UK Gilts 5-year - 4% haircut
+        # UK Gilts 5-year - 4% haircut (uses dedicated test loan)
         Collateral(
             collateral_reference="COLL_GILT_001",
             collateral_type="bond",
@@ -186,7 +188,7 @@ def _government_bond_collateral() -> list[Collateral]:
             market_value=600_000.0,
             nominal_value=600_000.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_003",
+            beneficiary_reference="LOAN_COLL_TEST_CORP_001",  # Dedicated test loan
             issuer_cqs=1,
             issuer_type="sovereign",
             residual_maturity_years=5.0,
@@ -256,7 +258,7 @@ def _equity_collateral() -> list[Collateral]:
     Scenario D3: Listed equity collateral.
     """
     return [
-        # D3: Listed equity (FTSE 100) - 25% haircut
+        # Listed equity (FTSE 100) - 25% haircut (uses dedicated test loan)
         Collateral(
             collateral_reference="COLL_EQ_001",
             collateral_type="equity",
@@ -265,7 +267,7 @@ def _equity_collateral() -> list[Collateral]:
             market_value=400_000.0,
             nominal_value=400_000.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UR_001",
+            beneficiary_reference="LOAN_COLL_TEST_CORP_002",  # Dedicated test loan
             issuer_cqs=None,
             issuer_type="corporate",
             residual_maturity_years=None,
@@ -518,7 +520,7 @@ def _receivables_collateral() -> list[Collateral]:
             is_adc=None,
             is_presold=None,
         ),
-        # Invoice receivables for SME retail
+        # Invoice receivables for SME retail (uses dedicated test loan)
         Collateral(
             collateral_reference="COLL_REC_002",
             collateral_type="receivables",
@@ -527,7 +529,7 @@ def _receivables_collateral() -> list[Collateral]:
             market_value=100_000.0,
             nominal_value=120_000.0,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_RTL_SME_001",
+            beneficiary_reference="LOAN_COLL_TEST_RTL_001",  # Dedicated test loan
             issuer_cqs=None,
             issuer_type=None,
             residual_maturity_years=0.16,
@@ -693,6 +695,161 @@ def _crm_test_collateral() -> list[Collateral]:
             residual_maturity_years=None,
             is_eligible_financial_collateral=False,
             is_eligible_irb_collateral=False,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+    ]
+
+
+def _crr_d_scenario_collateral() -> list[Collateral]:
+    """
+    Collateral for CRR-D CRM acceptance test scenarios.
+
+    D1: Cash collateral (0% haircut) - £500k against £1m exposure
+    D2: Government bond (4% haircut for CQS 1, >5y) - £600k against £1m exposure
+    D3: Equity main index (15% haircut) - £400k against £1m exposure
+    D5: Maturity mismatch (2yr collateral vs 5yr exposure) - £500k
+    D6: Currency mismatch (EUR vs GBP) - €500k against £1m GBP exposure
+    """
+    return [
+        # =============================================================================
+        # D1: Cash collateral - 0% haircut
+        # £500k cash against £1m exposure
+        # EAD = £1m - £500k = £500k
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_D1",
+            collateral_type="cash",
+            currency="GBP",
+            maturity_date=None,
+            market_value=500_000.0,
+            nominal_value=500_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D1",
+            issuer_cqs=None,
+            issuer_type=None,
+            residual_maturity_years=None,
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+        # =============================================================================
+        # D2: Government bond collateral - 4% haircut (CQS 1, >5y maturity)
+        # £600k gilt against £1m exposure
+        # Effective collateral = £600k * (1 - 0.04) = £576k
+        # EAD = £1m - £576k = £424k
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_D2",
+            collateral_type="bond",
+            currency="GBP",
+            maturity_date=date(2032, 1, 1),  # >5y residual maturity
+            market_value=600_000.0,
+            nominal_value=600_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D2",
+            issuer_cqs=1,  # CQS 1 sovereign
+            issuer_type="sovereign",
+            residual_maturity_years=6.0,  # >5y for 4% haircut
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+        # =============================================================================
+        # D3: Equity collateral (main index) - 15% haircut
+        # £400k FTSE 100 equity against £1m exposure
+        # Effective collateral = £400k * (1 - 0.15) = £340k
+        # EAD = £1m - £340k = £660k
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_D3",
+            collateral_type="equity",
+            currency="GBP",
+            maturity_date=None,
+            market_value=400_000.0,
+            nominal_value=400_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D3",
+            issuer_cqs=None,
+            issuer_type="corporate",  # Listed equity
+            residual_maturity_years=None,
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+        # =============================================================================
+        # D5: Maturity mismatch - 2yr collateral vs 5yr exposure
+        # £500k cash with 2yr maturity against 5yr loan
+        # Adjustment = (t-0.25)/(T-0.25) = (2-0.25)/(5-0.25) = 1.75/4.75 = 0.3684
+        # Effective collateral = £500k * 0.3684 = £184,210.53
+        # EAD = £1m - £184,210.53 = £815,789.47
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_D5",
+            collateral_type="bond",
+            currency="GBP",
+            maturity_date=date(2028, 1, 1),  # 2yr maturity (vs 5yr exposure)
+            market_value=500_000.0,
+            nominal_value=500_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D5",
+            issuer_cqs=1,
+            issuer_type="sovereign",
+            residual_maturity_years=2.0,  # 2yr for maturity mismatch
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
+            valuation_date=VALUE_DATE,
+            valuation_type="market",
+            property_type=None,
+            property_ltv=None,
+            is_income_producing=None,
+            is_adc=None,
+            is_presold=None,
+        ),
+        # =============================================================================
+        # D6: Currency mismatch - EUR collateral vs GBP exposure
+        # €500k cash (market value in GBP = £500k) against £1m GBP exposure
+        # FX haircut = 8%
+        # Effective collateral = £500k * (1 - 0.08) = £460k
+        # EAD = £1m - £460k = £540k
+        # =============================================================================
+        Collateral(
+            collateral_reference="COLL_CRM_D6",
+            collateral_type="cash",
+            currency="EUR",  # Different from loan currency (GBP)
+            maturity_date=None,
+            market_value=500_000.0,  # GBP equivalent for simplicity
+            nominal_value=500_000.0,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_D6",
+            issuer_cqs=None,
+            issuer_type=None,
+            residual_maturity_years=None,
+            is_eligible_financial_collateral=True,
+            is_eligible_irb_collateral=True,
             valuation_date=VALUE_DATE,
             valuation_type="market",
             property_type=None,

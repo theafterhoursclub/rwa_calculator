@@ -132,6 +132,10 @@ class ClassifiedExposuresBundle:
         irb_exposures: Exposures to be processed via IRB (F-IRB or A-IRB)
         slotting_exposures: Specialised lending for slotting approach
         equity_exposures: Equity exposures (SA only under Basel 3.1)
+        collateral: Collateral data for CRM processing (passed through)
+        guarantees: Guarantee data for CRM processing (passed through)
+        provisions: Provision data for CRM processing (passed through)
+        counterparty_lookup: Counterparty data for guarantor risk weights
         classification_audit: Audit trail of classification decisions
         classification_errors: Any errors during classification
     """
@@ -141,6 +145,10 @@ class ClassifiedExposuresBundle:
     irb_exposures: pl.LazyFrame
     slotting_exposures: pl.LazyFrame | None = None
     equity_exposures: pl.LazyFrame | None = None
+    collateral: pl.LazyFrame | None = None
+    guarantees: pl.LazyFrame | None = None
+    provisions: pl.LazyFrame | None = None
+    counterparty_lookup: CounterpartyLookup | None = None
     classification_audit: pl.LazyFrame | None = None
     classification_errors: list = field(default_factory=list)
 

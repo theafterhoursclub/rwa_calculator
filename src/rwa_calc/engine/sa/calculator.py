@@ -132,13 +132,16 @@ class SACalculator:
         # Step 1: Look up risk weights
         exposures = self._apply_risk_weights(exposures, config)
 
-        # Step 2: Calculate pre-factor RWA
+        # Step 2: Apply guarantee substitution (blended risk weight)
+        exposures = self._apply_guarantee_substitution(exposures, config)
+
+        # Step 3: Calculate pre-factor RWA
         exposures = self._calculate_rwa(exposures)
 
-        # Step 3: Apply supporting factors (CRR only)
+        # Step 4: Apply supporting factors (CRR only)
         exposures = self._apply_supporting_factors(exposures, config)
 
-        # Step 4: Build audit trail
+        # Step 5: Build audit trail
         audit = self._build_audit(exposures)
 
         return SAResultBundle(
@@ -280,6 +283,103 @@ class SACalculator:
         exposures = exposures.drop([
             col for col in ["_lookup_class", "_lookup_cqs", "risk_weight_rw"]
             if col in exposures.collect_schema().names()
+        ])
+
+        return exposures
+
+    def _apply_guarantee_substitution(
+        self,
+        exposures: pl.LazyFrame,
+        config: CalculationConfig,
+    ) -> pl.LazyFrame:
+        """
+        Apply guarantee substitution for unfunded credit protection.
+
+        For guaranteed portions, the risk weight is substituted with the
+        guarantor's risk weight. The final RWA is calculated using blended
+        risk weight based on guaranteed vs unguaranteed portions.
+
+        CRR Art. 213-217: Unfunded credit protection
+
+        Args:
+            exposures: Exposures with risk_weight and guarantee columns
+            config: Calculation configuration
+
+        Returns:
+            Exposures with guarantee substitution applied
+        """
+        schema = exposures.collect_schema()
+        cols = schema.names()
+
+        # Check if guarantee columns exist
+        if "guaranteed_portion" not in cols or "guarantor_entity_type" not in cols:
+            # No guarantee data, return as-is
+            return exposures
+
+        # Calculate guarantor's risk weight based on entity type and CQS
+        # Use UK deviation for institutions (30% for CQS 2 instead of 50%)
+        use_uk_deviation = config.base_currency == "GBP"
+
+        # Guarantor risk weights by entity type and CQS
+        # Sovereign: 0%, 20%, 50%, 100%, 100%, 150%
+        # Institution (UK): 20%, 30%, 50%, 100%, 100%, 150%
+        # Corporate: 20%, 50%, 100%, 100%, 150%, 150%
+        exposures = exposures.with_columns([
+            pl.when(pl.col("guaranteed_portion") <= 0)
+            .then(pl.lit(None).cast(pl.Float64))
+            # Sovereign guarantors
+            .when(pl.col("guarantor_entity_type").str.contains("(?i)sovereign"))
+            .then(
+                pl.when(pl.col("guarantor_cqs") == 1).then(pl.lit(0.0))
+                .when(pl.col("guarantor_cqs") == 2).then(pl.lit(0.20))
+                .when(pl.col("guarantor_cqs") == 3).then(pl.lit(0.50))
+                .when(pl.col("guarantor_cqs").is_in([4, 5])).then(pl.lit(1.0))
+                .when(pl.col("guarantor_cqs") == 6).then(pl.lit(1.50))
+                .otherwise(pl.lit(1.0))  # Unrated
+            )
+            # Institution guarantors (UK deviation: CQS 2 = 30%)
+            .when(pl.col("guarantor_entity_type").str.contains("(?i)institution"))
+            .then(
+                pl.when(pl.col("guarantor_cqs") == 1).then(pl.lit(0.20))
+                .when(pl.col("guarantor_cqs") == 2).then(pl.lit(0.30) if use_uk_deviation else pl.lit(0.50))
+                .when(pl.col("guarantor_cqs") == 3).then(pl.lit(0.50))
+                .when(pl.col("guarantor_cqs").is_in([4, 5])).then(pl.lit(1.0))
+                .when(pl.col("guarantor_cqs") == 6).then(pl.lit(1.50))
+                .otherwise(pl.lit(0.40))  # Unrated
+            )
+            # Corporate guarantors
+            .when(pl.col("guarantor_entity_type").str.contains("(?i)corporate"))
+            .then(
+                pl.when(pl.col("guarantor_cqs") == 1).then(pl.lit(0.20))
+                .when(pl.col("guarantor_cqs") == 2).then(pl.lit(0.50))
+                .when(pl.col("guarantor_cqs").is_in([3, 4])).then(pl.lit(1.0))
+                .when(pl.col("guarantor_cqs").is_in([5, 6])).then(pl.lit(1.50))
+                .otherwise(pl.lit(1.0))  # Unrated
+            )
+            # Unknown entity type - no substitution
+            .otherwise(pl.lit(None).cast(pl.Float64))
+            .alias("guarantor_rw"),
+        ])
+
+        # Calculate blended risk weight using substitution approach
+        # RWA = (unguaranteed_portion * borrower_rw + guaranteed_portion * guarantor_rw) / ead_final
+        ead_col = "ead_final" if "ead_final" in cols else "ead"
+
+        exposures = exposures.with_columns([
+            # Blended risk weight when guarantee exists
+            pl.when(
+                (pl.col("guaranteed_portion") > 0) &
+                (pl.col("guarantor_rw").is_not_null())
+            ).then(
+                # weighted average of borrower and guarantor risk weights
+                (
+                    pl.col("unguaranteed_portion") * pl.col("risk_weight") +
+                    pl.col("guaranteed_portion") * pl.col("guarantor_rw")
+                ) / pl.col(ead_col)
+            )
+            # No guarantee or no guarantor RW - use original risk weight
+            .otherwise(pl.col("risk_weight"))
+            .alias("risk_weight"),
         ])
 
         return exposures

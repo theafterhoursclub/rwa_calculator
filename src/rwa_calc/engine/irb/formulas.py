@@ -540,10 +540,12 @@ def apply_irb_formulas(
         pl.when(is_retail).then(pl.lit(1.0)).otherwise(ma_expr).alias("maturity_adjustment")
     )
 
-    # Step 7: Scaling factor (CRR only, not for retail)
+    # Step 7: Scaling factor (CRR only - applies to ALL exposures including retail)
+    # Under CRR Art. 153(1), the 1.06 scaling factor applies to all IRB exposures
+    # Basel 3.1 removes this scaling factor entirely
     if apply_scaling:
         exposures = exposures.with_columns(
-            pl.when(is_retail).then(pl.lit(1.0)).otherwise(pl.lit(1.06)).alias("scaling_factor")
+            pl.lit(1.06).alias("scaling_factor")
         )
     else:
         exposures = exposures.with_columns(

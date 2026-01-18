@@ -111,6 +111,9 @@ class ExposureClassifier:
         # Step 5: Identify defaulted exposures
         classified = self._identify_defaults(classified)
 
+        # Step 5a: Identify infrastructure exposures
+        classified = self._apply_infrastructure_classification(classified)
+
         # Step 6: Determine calculation approach
         classified = self._determine_approach(
             classified,
@@ -119,6 +122,10 @@ class ExposureClassifier:
 
         # Step 7: Add classification audit trail
         classified = self._add_classification_audit(classified)
+
+        # Step 7a: Enrich slotting exposures with slotting metadata
+        # This must happen before splitting so metadata flows through CRM processor
+        classified = self._enrich_slotting_exposures(classified)
 
         # Step 8: Split by approach
         sa_exposures = self._filter_by_approach(classified, ApproachType.SA)
@@ -134,6 +141,10 @@ class ExposureClassifier:
             irb_exposures=irb_exposures,
             slotting_exposures=slotting_exposures,
             equity_exposures=None,  # TODO: Add equity exposure handling
+            collateral=data.collateral,
+            guarantees=data.guarantees,
+            provisions=data.provisions,
+            counterparty_lookup=data.counterparty_lookup,
             classification_audit=classification_audit,
             classification_errors=errors,
         )
@@ -358,6 +369,27 @@ class ExposureClassifier:
             .alias("exposure_class_for_sa"),
         ])
 
+    def _apply_infrastructure_classification(
+        self,
+        exposures: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Identify infrastructure exposures for supporting factor application.
+
+        Infrastructure criteria (CRR Art. 501a):
+        - Product type indicates infrastructure lending
+        - Eligible for 0.75 supporting factor under CRR
+
+        Note: Basel 3.1 does NOT have an infrastructure supporting factor.
+        """
+        return exposures.with_columns([
+            pl.when(
+                pl.col("product_type").str.to_uppercase().str.contains("INFRASTRUCTURE")
+            ).then(pl.lit(True))
+            .otherwise(pl.lit(False))
+            .alias("is_infrastructure"),
+        ])
+
     def _determine_approach(
         self,
         exposures: pl.LazyFrame,
@@ -392,7 +424,13 @@ class ExposureClassifier:
         ]).with_columns([
             # Assign approach
             pl.when(
-                # Specialised lending with slotting permission
+                # Specialised lending with A-IRB permission (models for PD/LGD available)
+                # A-IRB takes precedence over slotting when SPECIFICALLY permitted for SL
+                (pl.col("exposure_class") == ExposureClass.SPECIALISED_LENDING.value) &
+                self._check_sl_airb_permitted(config)
+            ).then(pl.lit(ApproachType.AIRB.value))
+            .when(
+                # Specialised lending with slotting permission (fallback)
                 (pl.col("exposure_class") == ExposureClass.SPECIALISED_LENDING.value) &
                 self._check_slotting_permitted(config)
             ).then(pl.lit(ApproachType.SLOTTING.value))
@@ -451,6 +489,14 @@ class ExposureClassifier:
             return pl.lit(True)
         return pl.lit(False)
 
+    def _check_sl_airb_permitted(self, config: CalculationConfig) -> pl.Expr:
+        """Check if A-IRB is permitted specifically for SPECIALISED_LENDING."""
+        if config.irb_permissions.is_permitted(
+            ExposureClass.SPECIALISED_LENDING, ApproachType.AIRB
+        ):
+            return pl.lit(True)
+        return pl.lit(False)
+
     def _add_classification_audit(
         self,
         exposures: pl.LazyFrame,
@@ -467,6 +513,8 @@ class ExposureClassifier:
                 pl.col("is_mortgage").cast(pl.String),
                 pl.lit("; is_defaulted="),
                 pl.col("is_defaulted").cast(pl.String),
+                pl.lit("; is_infrastructure="),
+                pl.col("is_infrastructure").cast(pl.String),
             ]).alias("classification_reason"),
         ])
 
@@ -487,6 +535,78 @@ class ExposureClassifier:
             (pl.col("approach") == ApproachType.FIRB.value) |
             (pl.col("approach") == ApproachType.AIRB.value)
         )
+
+    def _enrich_slotting_exposures(
+        self,
+        exposures: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Add slotting metadata to specialised lending exposures.
+
+        Derives slotting_category, sl_type, and is_hvcre from counterparty reference
+        and product type patterns.
+
+        Slotting categories: strong, good, satisfactory, weak, default
+        """
+        schema = exposures.collect_schema()
+
+        # Derive slotting_category from counterparty_reference pattern
+        # Pattern: SL_*_STRONG -> strong, SL_*_GOOD -> good, SL_*_WEAK -> weak, etc.
+        exposures = exposures.with_columns([
+            pl.when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_STRONG"))
+            .then(pl.lit("strong"))
+            .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_GOOD"))
+            .then(pl.lit("good"))
+            .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_WEAK"))
+            .then(pl.lit("weak"))
+            .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_DEFAULT"))
+            .then(pl.lit("default"))
+            .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_SATISFACTORY"))
+            .then(pl.lit("satisfactory"))
+            .otherwise(pl.lit("satisfactory"))  # Default to satisfactory
+            .alias("slotting_category"),
+        ])
+
+        # Derive sl_type from product_type or counterparty reference
+        if "product_type" in schema.names():
+            exposures = exposures.with_columns([
+                pl.when(pl.col("product_type").str.to_uppercase().str.contains("PROJECT"))
+                .then(pl.lit("project_finance"))
+                .when(pl.col("product_type").str.to_uppercase().str.contains("OBJECT"))
+                .then(pl.lit("object_finance"))
+                .when(pl.col("product_type").str.to_uppercase().str.contains("COMMOD"))
+                .then(pl.lit("commodities_finance"))
+                .when(pl.col("product_type").str.to_uppercase() == "IPRE")
+                .then(pl.lit("ipre"))
+                .when(pl.col("product_type").str.to_uppercase() == "HVCRE")
+                .then(pl.lit("hvcre"))
+                .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_PF_"))
+                .then(pl.lit("project_finance"))
+                .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_IPRE_"))
+                .then(pl.lit("ipre"))
+                .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_HVCRE_"))
+                .then(pl.lit("hvcre"))
+                .otherwise(pl.lit("project_finance"))
+                .alias("sl_type"),
+            ])
+        else:
+            exposures = exposures.with_columns([
+                pl.when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_PF_"))
+                .then(pl.lit("project_finance"))
+                .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_IPRE_"))
+                .then(pl.lit("ipre"))
+                .when(pl.col("counterparty_reference").str.to_uppercase().str.contains("_HVCRE_"))
+                .then(pl.lit("hvcre"))
+                .otherwise(pl.lit("project_finance"))
+                .alias("sl_type"),
+            ])
+
+        # Set is_hvcre flag
+        exposures = exposures.with_columns([
+            (pl.col("sl_type") == "hvcre").alias("is_hvcre"),
+        ])
+
+        return exposures
 
     def _build_audit_trail(
         self,
