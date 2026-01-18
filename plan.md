@@ -920,56 +920,174 @@ class OutputFloorOutput:
 
 With acceptance tests and contracts defined, implement components in dependency order.
 
+**Architecture Notes:**
+- All engines implement protocols defined in `src/rwa_calc/contracts/protocols.py`
+- Data flows through bundles defined in `src/rwa_calc/contracts/bundles.py`
+- Configuration from `src/rwa_calc/contracts/config.py` (use `.crr()` factory)
+- Validation using `src/rwa_calc/contracts/validation.py`
+- Calculation logic can be adapted from `workbooks/` modules
+
 ### 3.1 CRR Implementation (Priority)
 
 Implement CRR first to enable testing against current regulatory framework.
 
-| Step | Component | Description | Status |
-|------|-----------|-------------|--------|
-| 3.1.1 | Domain enums | CRR exposure classes, CCF categories | Not Started |
-| 3.1.2 | CRR risk weight tables | Art. 112-134 lookup tables | Not Started |
-| 3.1.3 | CRR CCF tables | Art. 111 conversion factors | Not Started |
-| 3.1.4 | CRR CRM haircuts | Art. 224 supervisory haircuts | Not Started |
-| 3.1.5 | File/test loader | Common for both frameworks | Not Started |
-| 3.1.6 | Hierarchy builders | Common for both frameworks | Not Started |
-| 3.1.7 | CRR classifier | Art. 112 classification logic | Not Started |
-| 3.1.8 | CRR CRM processor | Art. 207-236 CRM logic | Not Started |
-| 3.1.9 | CRR SA calculator | Art. 114-134 SA logic | Not Started |
-| 3.1.10 | CRR SME factor | Art. 501 supporting factor | Not Started |
-| 3.1.11 | CRR F-IRB calculator | Art. 153 F-IRB logic | Not Started |
-| 3.1.12 | CRR A-IRB calculator | Art. 143-154 A-IRB logic | Not Started |
-| 3.1.13 | CRR slotting | Art. 153(5) slotting approach | Not Started |
-| 3.1.14 | CRR orchestrator | Ties CRR components together | Not Started |
+#### 3.1.A Foundation Layer (Already Complete in Phase 2)
+
+| Step | Component | Location | Status |
+|------|-----------|----------|--------|
+| 3.1.A1 | Domain enums | `src/rwa_calc/domain/enums.py` | Complete |
+| 3.1.A2 | Protocols | `src/rwa_calc/contracts/protocols.py` | Complete |
+| 3.1.A3 | Bundles | `src/rwa_calc/contracts/bundles.py` | Complete |
+| 3.1.A4 | Config | `src/rwa_calc/contracts/config.py` | Complete |
+| 3.1.A5 | Validation | `src/rwa_calc/contracts/validation.py` | Complete |
+| 3.1.A6 | Schemas | `src/rwa_calc/data/schemas.py` | Complete |
+
+#### 3.1.B Data Layer
+
+| Step | Component | Location | Description | Status |
+|------|-----------|----------|-------------|--------|
+| 3.1.B1 | Risk weight tables | `src/rwa_calc/data/tables/crr_risk_weights.py` | Art. 112-134 lookup tables as Polars DataFrames | Complete |
+| 3.1.B2 | CCF tables | `src/rwa_calc/data/tables/crr_ccf.py` | Art. 111 conversion factors | Complete |
+| 3.1.B3 | CRM haircuts | `src/rwa_calc/data/tables/crr_haircuts.py` | Art. 224 supervisory haircuts | Complete |
+| 3.1.B4 | Slotting tables | `src/rwa_calc/data/tables/crr_slotting.py` | Art. 153(5) slotting risk weights | Complete |
+| 3.1.B5 | F-IRB LGDs | `src/rwa_calc/data/tables/crr_firb_lgd.py` | Supervisory LGD by collateral type | Complete |
+
+#### 3.1.C Engine Layer - Pipeline Stages
+
+Implement in dependency order (each stage produces output consumed by next):
+
+| Step | Component | Protocol | Location | Description | Status |
+|------|-----------|----------|----------|-------------|--------|
+| 3.1.C1 | Data Loader | `LoaderProtocol` | `src/rwa_calc/engine/loader.py` | Load from Parquet/CSV, returns `RawDataBundle` | Complete |
+| 3.1.C2 | Hierarchy Resolver | `HierarchyResolverProtocol` | `src/rwa_calc/engine/hierarchy.py` | Resolve org/facility hierarchies, rating inheritance | Complete |
+| 3.1.C3 | Exposure Classifier | `ClassifierProtocol` | `src/rwa_calc/engine/classifier.py` | Classify exposures, assign approach (SA/IRB) | Not Started |
+| 3.1.C4 | CRM Processor | `CRMProcessorProtocol` | `src/rwa_calc/engine/crm/processor.py` | Apply collateral, guarantees, provisions, CCFs | Not Started |
+| 3.1.C5 | SA Calculator | `SACalculatorProtocol` | `src/rwa_calc/engine/sa/calculator.py` | SA risk weights, supporting factors | Not Started |
+| 3.1.C6 | IRB Calculator | `IRBCalculatorProtocol` | `src/rwa_calc/engine/irb/calculator.py` | F-IRB/A-IRB K formula, 1.06 scaling | Not Started |
+| 3.1.C7 | Slotting Calculator | `SlottingCalculatorProtocol` | `src/rwa_calc/engine/slotting/calculator.py` | Specialised lending slotting approach | Not Started |
+| 3.1.C8 | Output Aggregator | `OutputAggregatorProtocol` | `src/rwa_calc/engine/aggregator.py` | Combine results, apply supporting factors | Not Started |
+| 3.1.C9 | Pipeline Orchestrator | `PipelineProtocol` | `src/rwa_calc/engine/pipeline.py` | Wire stages together, run full calculation | Not Started |
+
+#### 3.1.D Supporting Modules
+
+| Step | Component | Location | Description | Status |
+|------|-----------|----------|-------------|--------|
+| 3.1.D1 | IRB Formulas | `src/rwa_calc/engine/irb/formulas.py` | Core K calculation, maturity adjustment | Not Started |
+| 3.1.D2 | Correlation | `src/rwa_calc/engine/irb/correlation.py` | Asset correlation by exposure class | Not Started |
+| 3.1.D3 | CRM Haircuts | `src/rwa_calc/engine/crm/haircuts.py` | Apply supervisory haircuts to collateral | Not Started |
+| 3.1.D4 | CCF Calculator | `src/rwa_calc/engine/crm/ccf.py` | Calculate EAD from undrawn | Not Started |
+| 3.1.D5 | Supporting Factors | `src/rwa_calc/engine/sa/supporting_factors.py` | SME/infrastructure factor calculation | Not Started |
+
+#### 3.1.E Unit Tests (TDD)
+
+| Step | Component | Location | Description | Status |
+|------|-----------|----------|-------------|--------|
+| 3.1.E1 | Data table tests | `tests/unit/crr/test_crr_tables.py` | Test lookup tables | Complete (77 tests) |
+| 3.1.E2 | Loader tests | `tests/unit/test_loader.py` | Test data loading | Complete (35 tests) |
+| 3.1.E3 | Hierarchy tests | `tests/unit/test_hierarchy.py` | Test hierarchy resolution | Complete (21 tests) |
+| 3.1.E4 | Classifier tests | `tests/unit/test_classifier.py` | Test classification logic | Not Started |
+| 3.1.E5 | CRM tests | `tests/unit/crr/test_crr_crm.py` | Test CRM processor | Not Started |
+| 3.1.E6 | SA tests | `tests/unit/crr/test_crr_sa.py` | Test SA calculator | Not Started |
+| 3.1.E7 | IRB tests | `tests/unit/crr/test_crr_irb.py` | Test IRB calculator | Not Started |
+| 3.1.E8 | Slotting tests | `tests/unit/crr/test_crr_slotting.py` | Test slotting calculator | Not Started |
+| 3.1.E9 | Pipeline tests | `tests/unit/test_pipeline.py` | Test full pipeline | Not Started |
+
+#### Implementation Notes for 3.1.C
+
+**3.1.C1 Data Loader:**
+- Implement `LoaderProtocol` from `contracts/protocols.py`
+- Load from fixture parquet files: loans, counterparties, collateral, guarantees, provisions, ratings, mappings
+- Return `RawDataBundle` with all LazyFrames
+- Validate schemas using `validation.py`
+
+**3.1.C2 Hierarchy Resolver:**
+- Implement `HierarchyResolverProtocol`
+- Resolve counterparty org hierarchy (parent-child relationships)
+- Inherit ratings from parents where child is unrated
+- Resolve facility-to-exposure mappings
+- Calculate lending group total exposure for retail threshold
+- Return `ResolvedHierarchyBundle`
+
+**3.1.C3 Exposure Classifier:**
+- Implement `ClassifierProtocol`
+- Map counterparty type to exposure class using `ExposureClass` enum
+- Determine approach (SA, F-IRB, A-IRB, slotting) based on config permissions
+- Check SME criteria (turnover < £44m for UK / €50m for EU)
+- Check retail criteria (< £880k aggregate)
+- Return `ClassifiedExposuresBundle` with separate SA/IRB/slotting frames
+
+**3.1.C4 CRM Processor:**
+- Implement `CRMProcessorProtocol`
+- Apply CCFs to undrawn commitments
+- Calculate adjusted collateral value (with haircuts)
+- Handle maturity mismatch and currency mismatch
+- Apply guarantee substitution
+- Deduct provisions from EAD
+- Return `CRMAdjustedBundle`
+
+**3.1.C5 SA Calculator:**
+- Implement `SACalculatorProtocol`
+- Lookup risk weights by exposure class and CQS
+- Handle UK deviations (30% for institutions CQS2)
+- Apply LTV-based weights for real estate
+- Apply SME supporting factor (tiered: 0.7619/0.85)
+- Apply infrastructure factor (0.75)
+- Return `SAResultBundle`
+
+**3.1.C6 IRB Calculator:**
+- Implement `IRBCalculatorProtocol`
+- Apply PD floor (0.03% for CRR)
+- Use supervisory LGD for F-IRB (45%/75%)
+- Calculate correlation using `correlation.py`
+- Apply maturity adjustment
+- Calculate K using IRB formula
+- Apply 1.06 scaling factor (CRR-specific)
+- Return `IRBResultBundle`
+
+**3.1.C7 Slotting Calculator:**
+- Implement `SlottingCalculatorProtocol`
+- Map slotting category to risk weight
+- Handle HVCRE/non-HVCRE distinction
+- Return `SlottingResultBundle`
+
+**3.1.C8 Output Aggregator:**
+- Implement `OutputAggregatorProtocol`
+- Combine SA + IRB + Slotting results
+- Calculate totals by exposure class
+- Generate audit trail
+- Return `AggregatedResultBundle`
+
+**3.1.C9 Pipeline Orchestrator:**
+- Implement `PipelineProtocol`
+- Wire all stages together
+- Handle errors from each stage
+- Collect validation warnings
+- Return final `AggregatedResultBundle`
 
 ### 3.2 Basel 3.1 Extension
 
-After CRR is complete, extend for Basel 3.1.
+After CRR is complete, extend for Basel 3.1. The protocol-based architecture allows most components to be reused with different configuration.
 
 | Step | Component | Description | Status |
 |------|-----------|-------------|--------|
-| 3.2.1 | B3.1 domain enums | New exposure classes | Not Started |
-| 3.2.2 | B3.1 risk weight tables | CRE20 revised tables | Not Started |
-| 3.2.3 | B3.1 LTV bands | Granular RE treatment | Not Started |
-| 3.2.4 | B3.1 CCF tables | Revised CCFs | Not Started |
-| 3.2.5 | B3.1 CRM haircuts | CRE22 revised haircuts | Not Started |
-| 3.2.6 | B3.1 classifier | CRE20 classification | Not Started |
-| 3.2.7 | B3.1 SA calculator | CRE20 SA logic | Not Started |
-| 3.2.8 | B3.1 PD floors | Differentiated floors | Not Started |
-| 3.2.9 | B3.1 LGD floors | A-IRB LGD floors | Not Started |
-| 3.2.10 | B3.1 IRB scope | Restricted scope | Not Started |
-| 3.2.11 | B3.1 IRB calculator | Updated formulas | Not Started |
-| 3.2.12 | B3.1 slotting | CRE33 revised weights | Not Started |
-| 3.2.13 | Output floor | CRE99 floor logic | Not Started |
-| 3.2.14 | B3.1 orchestrator | Ties B3.1 components | Not Started |
+| 3.2.1 | B3.1 risk weight tables | CRE20 revised tables with LTV bands | Not Started |
+| 3.2.2 | B3.1 CCF tables | Revised CCFs (40% for commitments) | Not Started |
+| 3.2.3 | B3.1 CRM haircuts | CRE22 revised haircuts | Not Started |
+| 3.2.4 | B3.1 classifier updates | Restricted IRB scope, equity exclusions | Not Started |
+| 3.2.5 | B3.1 PD floors | Differentiated floors (0.03%/0.05%/0.10%) | Not Started |
+| 3.2.6 | B3.1 LGD floors | A-IRB LGD floors (0%-25%) | Not Started |
+| 3.2.7 | B3.1 slotting | CRE33 revised weights (50%/70%/100%) | Not Started |
+| 3.2.8 | Output floor calculator | 72.5% floor with transitional schedule | Not Started |
+| 3.2.9 | B3.1 pipeline config | Use `CalculationConfig.basel_3_1()` | Not Started |
 
 ### 3.3 Reporting & Workbooks
 
 | Step | Component | Description | Status |
 |------|-----------|-------------|--------|
-| 3.3.1 | CRR workbook | Marimo notebook for CRR | Not Started |
+| 3.3.1 | CRR workbook | Marimo notebook for CRR calculations | Not Started |
 | 3.3.2 | B3.1 workbook | Marimo notebook for Basel 3.1 | Not Started |
-| 3.3.3 | Comparison workbook | CRR vs B3.1 impact | Not Started |
-| 3.3.4 | COREP generator | Regulatory reporting | Not Started |
+| 3.3.3 | Comparison workbook | CRR vs B3.1 impact analysis | Not Started |
+| 3.3.4 | COREP generator | Regulatory reporting templates | Not Started |
 | 3.3.5 | PRA CAP+ generator | UK reporting | Not Started |
 
 ---
@@ -1265,16 +1383,55 @@ workbooks/
 - [x] **Phase 2**: Add `py.typed` marker for PEP 561 compliance
 
 ### In Progress
-- [ ] None - Phase 2 complete, ready for Phase 3
+- [ ] **Phase 3.1.C**: Engine Layer - Pipeline stages
 
-### Up Next (CRR Priority)
-1. **Phase 3.1**: Implement CRR production components in `src/rwa_calc/`
-3. **Phase 3.1**: Remove `pytest.skip` markers from acceptance tests as components are implemented
-4. **Phase 3.1**: Complete CRR Marimo workbook orchestration
+### Completed (Phase 3.1.B - Data Layer)
+- [x] Create `src/rwa_calc/data/tables/` directory structure
+- [x] Implement CRR risk weight tables (`crr_risk_weights.py`)
+- [x] Implement CRR CCF tables (`crr_ccf.py`)
+- [x] Implement CRR CRM haircuts (`crr_haircuts.py`)
+- [x] Implement CRR slotting tables (`crr_slotting.py`)
+- [x] Implement F-IRB supervisory LGDs (`crr_firb_lgd.py`)
+- [x] Create unit tests for data tables (77 tests passing)
+
+### Up Next (CRR Priority - Ordered by Dependency)
+
+**Phase 3.1.C - Engine Layer (in dependency order):**
+1. [x] Implement Data Loader (`engine/loader.py`) - `LoaderProtocol` - Complete (35 tests)
+2. [x] Implement Hierarchy Resolver (`engine/hierarchy.py`) - `HierarchyResolverProtocol` - Complete (21 tests)
+3. [ ] Implement Exposure Classifier (`engine/classifier.py`) - `ClassifierProtocol`
+4. [ ] Implement CRM Processor (`engine/crm/processor.py`) - `CRMProcessorProtocol`
+5. [ ] Implement SA Calculator (`engine/sa/calculator.py`) - `SACalculatorProtocol`
+6. [ ] Implement IRB Calculator (`engine/irb/calculator.py`) - `IRBCalculatorProtocol`
+7. [ ] Implement Slotting Calculator (`engine/slotting/calculator.py`) - `SlottingCalculatorProtocol`
+8. [ ] Implement Output Aggregator (`engine/aggregator.py`) - `OutputAggregatorProtocol`
+9. [ ] Implement Pipeline Orchestrator (`engine/pipeline.py`) - `PipelineProtocol`
+
+**Phase 3.1.D - Supporting Modules:**
+1. [ ] IRB Formulas (`engine/irb/formulas.py`)
+2. [ ] Correlation (`engine/irb/correlation.py`)
+3. [ ] CRM Haircuts (`engine/crm/haircuts.py`)
+4. [ ] CCF Calculator (`engine/crm/ccf.py`)
+5. [ ] Supporting Factors (`engine/sa/supporting_factors.py`)
+
+**Phase 3.1.E - Unit Tests (TDD alongside implementation):**
+1. [x] Data table tests (77 tests)
+2. [x] Loader tests (35 tests)
+3. [x] Hierarchy tests (21 tests)
+4. [ ] Classifier tests
+5. [ ] CRM tests
+6. [ ] SA tests
+7. [ ] IRB tests
+8. [ ] Slotting tests
+9. [ ] Pipeline tests
+
+**Phase 3.1.F - Acceptance Test Activation:**
+1. [ ] Remove `pytest.skip` markers as components are implemented
+2. [ ] All 45 CRR acceptance tests passing
 
 ### Later (Basel 3.1)
 1. **Phase 1.2B**: Create Basel 3.1 acceptance test shells
-2. **Phase 3.2**: Extend for Basel 3.1 (with differentiated PD/LGD floors, no 1.06 factor)
+2. **Phase 3.2**: Extend for Basel 3.1 (differentiated PD/LGD floors, no 1.06 factor, output floor)
 3. **Phase 3.2**: Basel 3.1 Marimo workbook
 4. **Phase 3.3**: Framework comparison workbook
 

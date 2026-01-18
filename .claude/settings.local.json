@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:service.betterregulation.com)"
+      "WebFetch(domain:service.betterregulation.com)",
+      "Bash(uv run pytest:*)"
     ]
   }
 }
