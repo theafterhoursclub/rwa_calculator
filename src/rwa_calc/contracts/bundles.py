@@ -72,20 +72,20 @@ class CounterpartyLookup:
     """
     Resolved counterparty hierarchy information.
 
-    Provides quick access to counterparty attributes including
-    inherited values from parent entities.
+    All lookups are LazyFrames for maximum performance.
+    Use joins to look up values instead of dict access.
 
     Attributes:
         counterparties: Counterparty data with resolved hierarchy
-        parent_lookup: Mapping child -> immediate parent reference
-        ultimate_parent_lookup: Mapping child -> ultimate parent reference
-        rating_lookup: Counterparty -> rating information (possibly inherited)
+        parent_mappings: LazyFrame with child_counterparty_reference -> parent_counterparty_reference
+        ultimate_parent_mappings: LazyFrame with counterparty_reference -> ultimate_parent_reference, hierarchy_depth
+        rating_inheritance: LazyFrame with counterparty_reference -> rating info with inheritance metadata
     """
 
     counterparties: pl.LazyFrame
-    parent_lookup: dict[str, str] = field(default_factory=dict)
-    ultimate_parent_lookup: dict[str, str] = field(default_factory=dict)
-    rating_lookup: dict[str, dict] = field(default_factory=dict)
+    parent_mappings: pl.LazyFrame
+    ultimate_parent_mappings: pl.LazyFrame
+    rating_inheritance: pl.LazyFrame
 
 
 @dataclass(frozen=True)
@@ -132,6 +132,10 @@ class ClassifiedExposuresBundle:
         irb_exposures: Exposures to be processed via IRB (F-IRB or A-IRB)
         slotting_exposures: Specialised lending for slotting approach
         equity_exposures: Equity exposures (SA only under Basel 3.1)
+        collateral: Collateral data for CRM processing (passed through)
+        guarantees: Guarantee data for CRM processing (passed through)
+        provisions: Provision data for CRM processing (passed through)
+        counterparty_lookup: Counterparty data for guarantor risk weights
         classification_audit: Audit trail of classification decisions
         classification_errors: Any errors during classification
     """
@@ -141,6 +145,10 @@ class ClassifiedExposuresBundle:
     irb_exposures: pl.LazyFrame
     slotting_exposures: pl.LazyFrame | None = None
     equity_exposures: pl.LazyFrame | None = None
+    collateral: pl.LazyFrame | None = None
+    guarantees: pl.LazyFrame | None = None
+    provisions: pl.LazyFrame | None = None
+    counterparty_lookup: CounterpartyLookup | None = None
     classification_audit: pl.LazyFrame | None = None
     classification_errors: list = field(default_factory=list)
 
@@ -161,6 +169,7 @@ class CRMAdjustedBundle:
         exposures: Exposures with CRM-adjusted EAD and LGD
         sa_exposures: SA exposures after CRM
         irb_exposures: IRB exposures after CRM
+        slotting_exposures: Specialised lending exposures for slotting approach
         crm_audit: Detailed audit trail of CRM application
         collateral_allocation: How collateral was allocated to exposures
         crm_errors: Any errors during CRM processing
@@ -169,6 +178,7 @@ class CRMAdjustedBundle:
     exposures: pl.LazyFrame
     sa_exposures: pl.LazyFrame
     irb_exposures: pl.LazyFrame
+    slotting_exposures: pl.LazyFrame | None = None
     crm_audit: pl.LazyFrame | None = None
     collateral_allocation: pl.LazyFrame | None = None
     crm_errors: list = field(default_factory=list)
@@ -213,6 +223,24 @@ class IRBResultBundle:
 
 
 @dataclass(frozen=True)
+class SlottingResultBundle:
+    """
+    Output from the Slotting calculator component.
+
+    Contains slotting approach RWA calculations for specialised lending.
+
+    Attributes:
+        results: Slotting calculation results with risk weights and RWA
+        calculation_audit: Detailed calculation breakdown
+        errors: Any errors during slotting calculation
+    """
+
+    results: pl.LazyFrame
+    calculation_audit: pl.LazyFrame | None = None
+    errors: list = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class AggregatedResultBundle:
     """
     Final aggregated output from the output aggregator.
@@ -224,6 +252,7 @@ class AggregatedResultBundle:
         results: Final RWA results with all adjustments
         sa_results: Original SA results (for floor comparison)
         irb_results: Original IRB results (before floor)
+        slotting_results: Original slotting results
         floor_impact: Output floor impact analysis
         supporting_factor_impact: Supporting factor impact (CRR only)
         summary_by_class: RWA summarised by exposure class
@@ -234,6 +263,7 @@ class AggregatedResultBundle:
     results: pl.LazyFrame
     sa_results: pl.LazyFrame | None = None
     irb_results: pl.LazyFrame | None = None
+    slotting_results: pl.LazyFrame | None = None
     floor_impact: pl.LazyFrame | None = None
     supporting_factor_impact: pl.LazyFrame | None = None
     summary_by_class: pl.LazyFrame | None = None
@@ -275,10 +305,25 @@ def create_empty_counterparty_lookup() -> CounterpartyLookup:
     import polars as pl
 
     return CounterpartyLookup(
-        counterparties=pl.LazyFrame(),
-        parent_lookup={},
-        ultimate_parent_lookup={},
-        rating_lookup={},
+        counterparties=pl.LazyFrame(schema={"counterparty_reference": pl.String}),
+        parent_mappings=pl.LazyFrame(schema={
+            "child_counterparty_reference": pl.String,
+            "parent_counterparty_reference": pl.String,
+        }),
+        ultimate_parent_mappings=pl.LazyFrame(schema={
+            "counterparty_reference": pl.String,
+            "ultimate_parent_reference": pl.String,
+            "hierarchy_depth": pl.Int32,
+        }),
+        rating_inheritance=pl.LazyFrame(schema={
+            "counterparty_reference": pl.String,
+            "cqs": pl.Int8,
+            "pd": pl.Float64,
+            "rating_value": pl.String,
+            "inherited": pl.Boolean,
+            "source_counterparty": pl.String,
+            "inheritance_reason": pl.String,
+        }),
     )
 
 

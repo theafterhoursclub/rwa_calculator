@@ -85,6 +85,7 @@ def create_facilities() -> pl.DataFrame:
         *_institution_facilities(),
         *_retail_facilities(),
         *_hierarchy_test_facilities(),
+        *_complex_scenario_facilities(),
     ]
 
     return pl.DataFrame([f.to_dict() for f in facilities], schema=FACILITY_SCHEMA)
@@ -424,6 +425,40 @@ def _hierarchy_test_facilities() -> list[Facility]:
             maturity_date=date(2028, 6, 30),
             currency="GBP",
             limit=400_000.0,
+            committed=True,
+            lgd=0.45,
+            beel=0.0,
+            is_revolving=True,
+            seniority="senior",
+            commitment_type="committed_other",
+        ),
+    ]
+
+
+def _complex_scenario_facilities() -> list[Facility]:
+    """
+    Facilities for CRR-H complex scenario testing.
+
+    CRR-H1: Facility with multiple loans
+        - £5m limit, £4m drawn (3 loans), £1m undrawn (50% CCF)
+        - Total EAD = £4.5m
+    """
+    return [
+        # =============================================================================
+        # CRR-H1: Facility with Multiple Loans
+        # Tests aggregation of loans at facility level
+        # Limit: £5m, Drawn: £4m, Undrawn: £1m (50% CCF = £0.5m EAD)
+        # Total EAD: £4.5m
+        # =============================================================================
+        Facility(
+            facility_reference="FAC_MULTI_001",
+            product_type="RCF",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_FAC_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            limit=5_000_000.0,  # £5m limit
             committed=True,
             lgd=0.45,
             beel=0.0,

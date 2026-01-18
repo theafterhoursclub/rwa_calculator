@@ -71,25 +71,51 @@ class TestCounterpartyLookup:
     """Tests for CounterpartyLookup dataclass."""
 
     def test_create_with_lookups(self):
-        """Should create lookup with hierarchy mappings."""
+        """Should create lookup with hierarchy mappings as LazyFrames."""
         lookup = CounterpartyLookup(
-            counterparties=pl.LazyFrame({"ref": ["A", "B", "C"]}),
-            parent_lookup={"B": "A", "C": "A"},
-            ultimate_parent_lookup={"B": "A", "C": "A", "A": "A"},
-            rating_lookup={"A": {"cqs": 1, "pd": 0.001}},
+            counterparties=pl.LazyFrame({"counterparty_reference": ["A", "B", "C"]}),
+            parent_mappings=pl.LazyFrame({
+                "child_counterparty_reference": ["B", "C"],
+                "parent_counterparty_reference": ["A", "A"],
+            }),
+            ultimate_parent_mappings=pl.LazyFrame({
+                "counterparty_reference": ["A", "B", "C"],
+                "ultimate_parent_reference": ["A", "A", "A"],
+                "hierarchy_depth": [0, 1, 1],
+            }),
+            rating_inheritance=pl.LazyFrame({
+                "counterparty_reference": ["A"],
+                "cqs": [1],
+                "pd": [0.001],
+                "rating_value": ["A2"],
+                "inherited": [False],
+                "source_counterparty": ["A"],
+                "inheritance_reason": ["own_rating"],
+            }),
         )
 
-        assert lookup.parent_lookup["B"] == "A"
-        assert lookup.ultimate_parent_lookup["C"] == "A"
-        assert lookup.rating_lookup["A"]["cqs"] == 1
+        # Verify parent mappings
+        parents = lookup.parent_mappings.collect()
+        b_parent = parents.filter(pl.col("child_counterparty_reference") == "B")["parent_counterparty_reference"][0]
+        assert b_parent == "A"
+
+        # Verify ultimate parent mappings
+        ult = lookup.ultimate_parent_mappings.collect()
+        c_ult = ult.filter(pl.col("counterparty_reference") == "C")["ultimate_parent_reference"][0]
+        assert c_ult == "A"
+
+        # Verify rating inheritance
+        ratings = lookup.rating_inheritance.collect()
+        a_cqs = ratings.filter(pl.col("counterparty_reference") == "A")["cqs"][0]
+        assert a_cqs == 1
 
     def test_empty_lookups_default(self):
-        """Lookups should default to empty dicts."""
+        """Lookups should default to empty LazyFrames."""
         lookup = create_empty_counterparty_lookup()
 
-        assert lookup.parent_lookup == {}
-        assert lookup.ultimate_parent_lookup == {}
-        assert lookup.rating_lookup == {}
+        assert lookup.parent_mappings.collect().height == 0
+        assert lookup.ultimate_parent_mappings.collect().height == 0
+        assert lookup.rating_inheritance.collect().height == 0
 
 
 class TestResolvedHierarchyBundle:

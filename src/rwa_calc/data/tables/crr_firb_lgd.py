@@ -1,0 +1,260 @@
+"""
+CRR F-IRB Supervisory LGD values (CRR Art. 161).
+
+Provides supervisory LGD lookup tables for Foundation IRB approach
+as Polars DataFrames for efficient joins in the RWA calculation pipeline.
+
+Reference:
+    CRR Art. 161: LGD for Foundation IRB approach
+"""
+
+from decimal import Decimal
+
+import polars as pl
+
+from rwa_calc.domain.enums import CollateralType, Seniority
+
+
+# =============================================================================
+# F-IRB SUPERVISORY LGD VALUES (CRR Art. 161)
+# =============================================================================
+
+# Supervisory LGD values by seniority and collateral type
+FIRB_SUPERVISORY_LGD: dict[str, Decimal] = {
+    # Unsecured exposures
+    "unsecured_senior": Decimal("0.45"),      # 45% for senior unsecured
+    "subordinated": Decimal("0.75"),          # 75% for subordinated
+
+    # Fully secured by eligible financial collateral
+    "financial_collateral": Decimal("0.00"),  # 0% (after haircuts)
+
+    # Secured by receivables
+    "receivables": Decimal("0.35"),           # 35%
+
+    # Secured by real estate
+    "residential_re": Decimal("0.35"),        # 35% for residential RE
+    "commercial_re": Decimal("0.35"),         # 35% for commercial RE
+
+    # Secured by other physical collateral
+    "other_physical": Decimal("0.40"),        # 40% for other physical
+}
+
+# PD floor under CRR (single floor for all classes)
+CRR_PD_FLOOR: Decimal = Decimal("0.0003")  # 0.03%
+
+# Maturity parameters
+CRR_MATURITY_FLOOR: Decimal = Decimal("1.0")   # 1 year minimum
+CRR_MATURITY_CAP: Decimal = Decimal("5.0")     # 5 year maximum
+
+
+def _create_firb_lgd_df() -> pl.DataFrame:
+    """Create F-IRB supervisory LGD lookup DataFrame."""
+    rows = [
+        # Unsecured exposures
+        {"collateral_type": "unsecured", "seniority": "senior",
+         "lgd": 0.45, "description": "Unsecured senior claims"},
+        {"collateral_type": "unsecured", "seniority": "subordinated",
+         "lgd": 0.75, "description": "Subordinated claims"},
+
+        # Financial collateral (eligible)
+        {"collateral_type": "financial_collateral", "seniority": "senior",
+         "lgd": 0.00, "description": "Eligible financial collateral (after haircuts)"},
+        {"collateral_type": "cash", "seniority": "senior",
+         "lgd": 0.00, "description": "Cash collateral"},
+
+        # Receivables
+        {"collateral_type": "receivables", "seniority": "senior",
+         "lgd": 0.35, "description": "Secured by receivables"},
+
+        # Real estate
+        {"collateral_type": "residential_re", "seniority": "senior",
+         "lgd": 0.35, "description": "Secured by residential real estate"},
+        {"collateral_type": "commercial_re", "seniority": "senior",
+         "lgd": 0.35, "description": "Secured by commercial real estate"},
+        {"collateral_type": "real_estate", "seniority": "senior",
+         "lgd": 0.35, "description": "Secured by real estate (general)"},
+
+        # Other physical collateral
+        {"collateral_type": "other_physical", "seniority": "senior",
+         "lgd": 0.40, "description": "Other eligible physical collateral"},
+    ]
+
+    return pl.DataFrame(rows).with_columns([
+        pl.col("lgd").cast(pl.Float64),
+    ])
+
+
+def get_firb_lgd_table() -> pl.DataFrame:
+    """
+    Get F-IRB supervisory LGD lookup table.
+
+    Returns:
+        DataFrame with columns: collateral_type, seniority, lgd, description
+    """
+    return _create_firb_lgd_df()
+
+
+def lookup_firb_lgd(
+    collateral_type: str | None = None,
+    is_subordinated: bool = False,
+) -> Decimal:
+    """
+    Look up F-IRB supervisory LGD.
+
+    This is a convenience function for single lookups. For bulk processing,
+    use the DataFrame tables with joins.
+
+    Args:
+        collateral_type: Type of collateral securing the exposure (None = unsecured)
+        is_subordinated: Whether the exposure is subordinated
+
+    Returns:
+        Supervisory LGD as Decimal
+    """
+    # Subordinated always gets 75% regardless of collateral
+    if is_subordinated:
+        return FIRB_SUPERVISORY_LGD["subordinated"]
+
+    # No collateral - senior unsecured
+    if collateral_type is None:
+        return FIRB_SUPERVISORY_LGD["unsecured_senior"]
+
+    coll_lower = collateral_type.lower()
+
+    # Financial collateral
+    if coll_lower in ("financial_collateral", "cash", "deposit", "gold"):
+        return FIRB_SUPERVISORY_LGD["financial_collateral"]
+
+    # Receivables
+    if coll_lower in ("receivables", "trade_receivables"):
+        return FIRB_SUPERVISORY_LGD["receivables"]
+
+    # Real estate
+    if coll_lower in ("residential_re", "rre", "residential"):
+        return FIRB_SUPERVISORY_LGD["residential_re"]
+
+    if coll_lower in ("commercial_re", "cre", "commercial"):
+        return FIRB_SUPERVISORY_LGD["commercial_re"]
+
+    if coll_lower in ("real_estate", "property"):
+        return FIRB_SUPERVISORY_LGD["residential_re"]  # Default to residential
+
+    # Other physical collateral
+    if coll_lower in ("other_physical", "equipment", "inventory"):
+        return FIRB_SUPERVISORY_LGD["other_physical"]
+
+    # Unknown - treat as unsecured
+    return FIRB_SUPERVISORY_LGD["unsecured_senior"]
+
+
+def calculate_effective_lgd_secured(
+    base_lgd_unsecured: Decimal,
+    collateral_value_adjusted: Decimal,
+    ead: Decimal,
+    collateral_type: str,
+    collateral_lgd: Decimal | None = None,
+) -> tuple[Decimal, str]:
+    """
+    Calculate effective LGD for partially secured exposure.
+
+    For F-IRB, when collateral covers part of the exposure:
+    - Secured portion: use collateral-specific LGD
+    - Unsecured portion: use 45% (senior) or 75% (subordinated)
+
+    Args:
+        base_lgd_unsecured: LGD for unsecured portion (45% or 75%)
+        collateral_value_adjusted: Adjusted collateral value (after haircuts)
+        ead: Exposure at default
+        collateral_type: Type of collateral
+        collateral_lgd: Override LGD for secured portion (optional)
+
+    Returns:
+        Tuple of (effective_lgd, description)
+    """
+    if ead <= 0:
+        return base_lgd_unsecured, "Zero EAD"
+
+    # Determine LGD for secured portion
+    if collateral_lgd is not None:
+        lgd_secured = collateral_lgd
+    else:
+        lgd_secured = lookup_firb_lgd(collateral_type, is_subordinated=False)
+
+    # Calculate portions
+    secured_portion = min(collateral_value_adjusted, ead)
+    unsecured_portion = max(ead - collateral_value_adjusted, Decimal("0"))
+
+    # Weighted average LGD
+    if secured_portion + unsecured_portion > 0:
+        effective_lgd = (
+            lgd_secured * secured_portion + base_lgd_unsecured * unsecured_portion
+        ) / ead
+    else:
+        effective_lgd = base_lgd_unsecured
+
+    secured_pct = (secured_portion / ead * 100) if ead > 0 else Decimal("0")
+    description = (
+        f"Eff LGD: {effective_lgd:.1%} "
+        f"(secured {secured_pct:.0f}% @ {lgd_secured:.0%}, "
+        f"unsecured @ {base_lgd_unsecured:.0%})"
+    )
+
+    return effective_lgd, description
+
+
+# =============================================================================
+# IRB PARAMETER FLOORS AND CAPS
+# =============================================================================
+
+def get_irb_parameters_df() -> pl.DataFrame:
+    """
+    Get IRB parameter floors and caps as DataFrame.
+
+    Returns:
+        DataFrame with regulatory parameter bounds
+    """
+    return pl.DataFrame({
+        "parameter": ["pd_floor", "maturity_floor", "maturity_cap"],
+        "value": [0.0003, 1.0, 5.0],
+        "unit": ["decimal", "years", "years"],
+        "description": [
+            "Minimum PD (0.03%)",
+            "Minimum effective maturity",
+            "Maximum effective maturity",
+        ],
+        "regulatory_reference": [
+            "CRR Art. 163",
+            "CRR Art. 162",
+            "CRR Art. 162",
+        ],
+    }).with_columns([
+        pl.col("value").cast(pl.Float64),
+    ])
+
+
+def apply_pd_floor(pd: Decimal | float) -> Decimal:
+    """
+    Apply PD floor.
+
+    Args:
+        pd: Probability of default
+
+    Returns:
+        Floored PD (minimum 0.03%)
+    """
+    pd_decimal = Decimal(str(pd)) if not isinstance(pd, Decimal) else pd
+    return max(pd_decimal, CRR_PD_FLOOR)
+
+
+def apply_maturity_bounds(maturity: Decimal | float) -> Decimal:
+    """
+    Apply maturity floor and cap.
+
+    Args:
+        maturity: Effective maturity in years
+
+    Returns:
+        Bounded maturity (1-5 years)
+    """
+    mat_decimal = Decimal(str(maturity)) if not isinstance(maturity, Decimal) else maturity
+    return max(CRR_MATURITY_FLOOR, min(CRR_MATURITY_CAP, mat_decimal))

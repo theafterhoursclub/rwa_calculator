@@ -80,9 +80,16 @@ def create_loans() -> pl.DataFrame:
         *_institution_loans(),
         *_corporate_standalone_loans(),
         *_corporate_facility_loans(),
+        *_firb_scenario_loans(),
+        *_airb_scenario_loans(),
         *_retail_loans(),
         *_hierarchy_test_loans(),
         *_defaulted_loans(),
+        *_crm_scenario_loans(),
+        *_slotting_scenario_loans(),
+        *_supporting_factor_scenario_loans(),
+        *_provision_scenario_loans(),
+        *_complex_scenario_loans(),
     ]
 
     return pl.DataFrame([ln.to_dict() for ln in loans], schema=LOAN_SCHEMA)
@@ -325,6 +332,113 @@ def _corporate_facility_loans() -> list[Loan]:
     ]
 
 
+def _firb_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR F-IRB scenario testing (Group CRR-B).
+
+    These loans are used in conjunction with FIRB internal ratings
+    to test specific F-IRB calculation features.
+
+    Scenarios:
+        CRR-B2: High PD corporate (CORP_UK_005)
+        CRR-B3: Subordinated loan (CORP_UK_004)
+        CRR-B4: Collateralised loan (CORP_SME_002)
+        CRR-B6: Standalone loan for PD floor test (CORP_UK_002)
+        CRR-B7: Long maturity loan (CORP_LRG_001)
+    """
+    return [
+        # =============================================================================
+        # CRR-B2: High PD corporate loan
+        # £5m term loan to CORP_UK_005 with 5% PD
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_CORP_UK_005",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UK_005",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3 year maturity
+            currency="GBP",
+            drawn_amount=5_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-B3: Subordinated loan
+        # £2m subordinated loan to CORP_UK_004 with 75% LGD
+        # Tests CRR Art. 161 subordinated claim treatment
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SUB_001",
+            product_type="SUBORDINATED_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UK_004",
+            value_date=VALUE_DATE,
+            maturity_date=date(2030, 1, 1),  # 4 year maturity
+            currency="GBP",
+            drawn_amount=2_000_000.0,
+            lgd=0.75,  # Subordinated LGD per CRR Art. 161
+            beel=0.0,
+            seniority="subordinated",
+        ),
+        # =============================================================================
+        # CRR-B4: Collateralised loan
+        # £5m loan to CORP_SME_002 with 50% cash collateral coverage
+        # Tests blended LGD calculation (50% secured at 0%, 50% unsecured at 45%)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_COLL_001",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_002",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),  # 2.5 year maturity
+            currency="GBP",
+            drawn_amount=5_000_000.0,
+            lgd=0.225,  # Blended: 50% × 0% + 50% × 45%
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-B6: Standalone loan for PD floor binding test
+        # £1m loan to CORP_UK_002 (rated CQS 1) to test 0.03% floor
+        # Internal rating has PD 0.01% which is floored to 0.03%
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_CORP_UK_002",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UK_002",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 1, 1),  # 2 year maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-B7: Long maturity loan
+        # £8m loan to CORP_LRG_001 with 7 year contractual maturity
+        # Tests CRR Art. 162 maturity cap of 5 years
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_LONG_MAT_001",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_LRG_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2033, 1, 1),  # 7 year maturity (capped at 5)
+            currency="GBP",
+            drawn_amount=8_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
 def _retail_loans() -> list[Loan]:
     """
     Loans to retail counterparties.
@@ -522,6 +636,80 @@ def _hierarchy_test_loans() -> list[Loan]:
     ]
 
 
+def _airb_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR A-IRB scenario testing (Group CRR-C).
+
+    These loans test Advanced IRB where the bank provides its own estimates
+    for PD, LGD, and EAD. Key differences from F-IRB:
+    - Bank's own LGD estimates (not supervisory 45%)
+    - CRR has NO LGD floors (unlike Basel 3.1 which has 25% unsecured floor)
+    - More capital-efficient for banks with strong risk management
+
+    Scenarios:
+        CRR-C1: Corporate A-IRB with internal LGD 35% (vs 45% F-IRB)
+        CRR-C2: Retail A-IRB with internal LGD 15% (retail MUST use A-IRB)
+        CRR-C3: Specialised Lending A-IRB with internal LGD 25%
+    """
+    return [
+        # =============================================================================
+        # CRR-C1: Corporate A-IRB with bank's own LGD estimate
+        # £5m corporate loan, PD 1%, LGD 35% (bank's internal estimate)
+        # Lower RWA than F-IRB due to LGD below supervisory 45%
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_CORP_AIRB_001",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_AIRB_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),  # 2.5 year maturity
+            currency="GBP",
+            drawn_amount=5_000_000.0,
+            lgd=0.35,  # Bank's own LGD estimate (below F-IRB 45%)
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-C2: Retail A-IRB with bank's own estimates
+        # £100k retail loan, PD 0.3%, LGD 15% (secured/low loss history)
+        # Retail exposures MUST use A-IRB (F-IRB not available)
+        # No maturity adjustment for retail
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_RTL_AIRB_001",
+            product_type="PERSONAL_LOAN",
+            book_code="RETAIL_UNSECURED",
+            counterparty_reference="RTL_AIRB_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # No maturity adjustment for retail
+            currency="GBP",
+            drawn_amount=100_000.0,
+            lgd=0.15,  # Bank's own LGD estimate (low loss history)
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-C3: Specialised Lending A-IRB (Project Finance)
+        # £10m project finance, PD 1.5%, LGD 25% (strong collateral position)
+        # Alternative to slotting approach when A-IRB permission granted
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SL_AIRB_001",
+            product_type="PROJECT_FINANCE",
+            book_code="SPECIALISED_LENDING",
+            counterparty_reference="SL_PF_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2030, 1, 1),  # 4 year maturity
+            currency="GBP",
+            drawn_amount=10_000_000.0,
+            lgd=0.25,  # Bank's own LGD estimate (strong collateral)
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
 def _defaulted_loans() -> list[Loan]:
     """
     Loans to defaulted counterparties.
@@ -551,6 +739,534 @@ def _defaulted_loans() -> list[Loan]:
             maturity_date=date(2027, 6, 30),
             currency="GBP",
             drawn_amount=25_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _crm_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-D Credit Risk Mitigation scenario testing.
+
+    All loans are £1m to unrated corporate (100% RW under SA) to test CRM effects.
+
+    CRR-D1: Cash collateral - 0% haircut
+    CRR-D2: Government bond collateral - 4% haircut (CQS 1, >5y)
+    CRR-D3: Equity collateral (main index) - 15% haircut
+    CRR-D4: Bank guarantee - substitution approach (60% covered by CQS 2 bank)
+    CRR-D5: Maturity mismatch - 2yr collateral against 5yr exposure
+    CRR-D6: Currency mismatch - EUR collateral against GBP exposure
+    """
+    return [
+        # D1: Cash collateral scenario - £1m loan, £500k cash collateral
+        Loan(
+            loan_reference="LOAN_CRM_D1",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3yr maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,  # Not used for SA
+            beel=0.0,
+            seniority="senior",
+        ),
+        # D2: Government bond collateral scenario - £1m loan, £600k gilt (4% haircut)
+        Loan(
+            loan_reference="LOAN_CRM_D2",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3yr maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # D3: Equity collateral scenario - £1m loan, £400k main index equity (15% haircut)
+        Loan(
+            loan_reference="LOAN_CRM_D3",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3yr maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # D4: Bank guarantee scenario - £1m loan, 60% guaranteed by CQS 2 UK bank
+        Loan(
+            loan_reference="LOAN_CRM_D4",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW base
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3yr maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # D5: Maturity mismatch scenario - £1m 5yr loan, £500k 2yr collateral
+        Loan(
+            loan_reference="LOAN_CRM_D5",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),  # 5yr maturity for mismatch test
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # D6: Currency mismatch scenario - £1m GBP loan, €500k EUR cash collateral
+        Loan(
+            loan_reference="LOAN_CRM_D6",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_UR_001",  # Unrated corporate - 100% RW
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),  # 3yr maturity
+            currency="GBP",
+            drawn_amount=1_000_000.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _slotting_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-E Slotting scenario testing.
+
+    Tests supervisory slotting approach for specialised lending.
+    All counterparties have entity_type="specialised_lending" to enable slotting.
+
+    CRR Slotting Risk Weights:
+        Strong: 70% (CRR has Strong = Good = 70%)
+        Good: 70%
+        Satisfactory: 115%
+        Weak: 250%
+        Default: 0% (100% deduction from capital)
+
+    Note: CRR has same weights for HVCRE and non-HVCRE.
+    Basel 3.1 has differentiated weights for HVCRE.
+
+    Scenarios:
+        CRR-E1: Project Finance - Strong (70% RW)
+        CRR-E2: Project Finance - Good (70% RW)
+        CRR-E3: IPRE - Weak (250% RW)
+        CRR-E4: HVCRE - Strong (70% RW under CRR)
+    """
+    return [
+        # =============================================================================
+        # CRR-E1: Project Finance - Strong
+        # £10m project finance, Strong slotting category = 70% RW
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SL_PF_001",
+            product_type="PROJECT_FINANCE",
+            book_code="SPECIALISED_LENDING",
+            counterparty_reference="SL_PF_STRONG",
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),  # 5yr maturity
+            currency="GBP",
+            drawn_amount=10_000_000.0,
+            lgd=0.45,  # Not used for slotting
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-E2: Project Finance - Good
+        # £10m project finance, Good slotting category = 70% RW (same as Strong under CRR)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SL_PF_002",
+            product_type="PROJECT_FINANCE",
+            book_code="SPECIALISED_LENDING",
+            counterparty_reference="SL_PF_GOOD",
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),  # 5yr maturity
+            currency="GBP",
+            drawn_amount=10_000_000.0,
+            lgd=0.45,  # Not used for slotting
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-E3: IPRE - Weak
+        # £5m income-producing real estate, Weak slotting category = 250% RW (punitive)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SL_IPRE_001",
+            product_type="IPRE",
+            book_code="SPECIALISED_LENDING",
+            counterparty_reference="SL_IPRE_WEAK",
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),  # 5yr maturity
+            currency="GBP",
+            drawn_amount=5_000_000.0,
+            lgd=0.45,  # Not used for slotting
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-E4: HVCRE - Strong
+        # £5m high-volatility CRE, Strong slotting category = 70% RW
+        # Note: CRR uses same weights as non-HVCRE; Basel 3.1 has higher HVCRE weights
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SL_HVCRE_001",
+            product_type="HVCRE",
+            book_code="SPECIALISED_LENDING",
+            counterparty_reference="SL_HVCRE_STRONG",
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),  # 5yr maturity
+            currency="GBP",
+            drawn_amount=5_000_000.0,
+            lgd=0.45,  # Not used for slotting
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _supporting_factor_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-F Supporting Factor scenario testing.
+
+    Tests CRR tiered SME supporting factor and infrastructure factor.
+
+    SME Supporting Factor (CRR2 Art. 501) - TIERED:
+        - Exposures up to EUR 2.5m (~£2.2m): factor of 0.7619 (23.81% reduction)
+        - Exposures above EUR 2.5m: factor of 0.85 (15% reduction)
+        - Formula: [min(E, threshold) * 0.7619 + max(E - threshold, 0) * 0.85] / E
+
+    Infrastructure Factor (CRR Art. 501a):
+        - Flat 0.75 factor (not tiered)
+
+    Scenarios:
+        CRR-F1: Small SME (£2m) - Tier 1 only - factor 0.7619
+        CRR-F2: Medium SME (£4m) - Blended factor ~0.80
+        CRR-F3: Large SME (£10m) - Tier 2 dominant - factor ~0.83
+        CRR-F4: Retail SME (£500k) - Tier 1 factor with 75% RW
+        CRR-F5: Infrastructure (£50m) - Flat 0.75 factor
+        CRR-F6: Large Corporate (£20m) - No factor (turnover > £44m)
+        CRR-F7: At threshold (£2.2m) - Tier 1 only - factor 0.7619
+    """
+    return [
+        # =============================================================================
+        # CRR-F1: SME Tier 1 Only - Small Exposure
+        # £2m exposure (< £2.2m threshold) = pure Tier 1 factor (0.7619)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SME_TIER1",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_SMALL",
+            value_date=VALUE_DATE,
+            maturity_date=date(2031, 1, 1),
+            currency="GBP",
+            drawn_amount=2_000_000.0,  # £2m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F2: SME Blended Factor - Medium Exposure
+        # £4m exposure = blended factor (£2.2m @ 0.7619 + £1.8m @ 0.85)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SME_TIER_BLEND",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_MEDIUM",
+            value_date=VALUE_DATE,
+            maturity_date=date(2030, 6, 30),
+            currency="GBP",
+            drawn_amount=4_000_000.0,  # £4m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F3: SME Tier 2 Dominant - Large Exposure
+        # £10m exposure = Tier 2 dominant (£2.2m @ 0.7619 + £7.8m @ 0.85)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SME_TIER2_DOM",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_LARGE",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=10_000_000.0,  # £10m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F4: Retail SME with Tier 1 Factor
+        # £500k retail exposure + SME factor (0.7619)
+        # Combined effect: 75% RW × 0.7619 = 57.14% effective RW
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_RTL_SME_TIER1",
+            product_type="BUSINESS_LOAN",
+            book_code="RETAIL_LENDING",
+            counterparty_reference="RTL_SME_SMALL",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 1, 1),
+            currency="GBP",
+            drawn_amount=500_000.0,  # £500k
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F5: Infrastructure Supporting Factor
+        # £50m infrastructure exposure = flat 0.75 factor (not tiered)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_INFRA_001",
+            product_type="INFRASTRUCTURE_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_INFRA_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2040, 1, 1),  # Long-term infrastructure
+            currency="GBP",
+            drawn_amount=50_000_000.0,  # £50m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F6: Large Corporate - No SME Factor
+        # £20m exposure but turnover > £44m threshold = no factor (1.0)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_CORP_LARGE",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_LARGE_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2030, 1, 1),
+            currency="GBP",
+            drawn_amount=20_000_000.0,  # £20m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-F7: At Exposure Threshold Boundary
+        # £2.2m exposure (exactly at threshold) = Tier 1 only (0.7619)
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SME_BOUNDARY",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_BOUNDARY",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 6, 30),
+            currency="GBP",
+            drawn_amount=2_200_000.0,  # £2.2m exactly
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _provision_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-G Provisions & Impairments scenario testing.
+
+    Tests provision treatment for SA and EL shortfall/excess for IRB.
+
+    SA Treatment (CRR Art. 110):
+        - Specific provisions reduce EAD directly
+        - RWA calculated on net exposure
+
+    IRB Treatment (CRR Art. 158-159):
+        - Expected Loss = PD × LGD × EAD
+        - EL Shortfall (provisions < EL): 50% CET1 + 50% T2 deduction
+        - EL Excess (provisions > EL): T2 credit capped at 0.6% IRB RWA
+
+    Scenarios:
+        CRR-G1: SA with specific provision - £1m gross, £50k provision
+        CRR-G2: IRB EL shortfall - £5m, PD 2%, provisions £30k < EL £45k
+        CRR-G3: IRB EL excess - £5m, PD 0.5%, provisions £50k > EL £11.25k
+    """
+    return [
+        # =============================================================================
+        # CRR-G1: SA with Specific Provision
+        # £1m gross exposure, £50k specific provision
+        # EAD_net = £950k, RWA = £950k × 100% = £950k
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G1",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G1",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 1, 1),
+            currency="GBP",
+            drawn_amount=1_000_000.0,  # £1m gross
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-G2: IRB EL Shortfall
+        # £5m gross, PD 2%, LGD 45%
+        # EL = 2% × 45% × £5m = £45,000
+        # Provisions = £30,000 (specific £20k + general £10k)
+        # Shortfall = £45,000 - £30,000 = £15,000
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G2",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G2",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),
+            currency="GBP",
+            drawn_amount=5_000_000.0,  # £5m gross
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-G3: IRB EL Excess
+        # £5m gross, PD 0.5%, LGD 45%
+        # EL = 0.5% × 45% × £5m = £11,250
+        # Provisions = £50,000 (specific £35k + general £15k)
+        # Excess = £50,000 - £11,250 = £38,750
+        # T2 credit capped at 0.6% × RWA
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_PROV_G3",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_PROV_G3",
+            value_date=VALUE_DATE,
+            maturity_date=date(2028, 6, 30),
+            currency="GBP",
+            drawn_amount=5_000_000.0,  # £5m gross
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+    ]
+
+
+def _complex_scenario_loans() -> list[Loan]:
+    """
+    Loans for CRR-H Complex/Combined scenario testing.
+
+    Tests complex scenarios that combine multiple features:
+    - Facility with multiple loans (hierarchy)
+    - Counterparty group (rating inheritance)
+    - SME chain with supporting factor
+    - Full CRM chain (collateral + guarantee + provision)
+
+    Scenarios:
+        CRR-H1: Facility with multiple loans (FAC_MULTI_001)
+        CRR-H2: Counterparty group with rating inheritance (GRP_MULTI_001)
+        CRR-H3: SME chain with supporting factor (LOAN_SME_CHAIN)
+        CRR-H4: Full CRM chain (LOAN_CRM_FULL)
+    """
+    return [
+        # =============================================================================
+        # CRR-H1: Facility with Multiple Loans (Aggregated)
+        # Represents aggregated EAD from multiple sub-exposures:
+        # - £2m term loan + £1.5m trade finance + £0.5m overdraft = £4m drawn
+        # - £1m undrawn commitment (50% CCF = £0.5m EAD)
+        # Total EAD = £4.5m, unrated corporate = 100% RW
+        # Use facility reference as loan_reference for test compatibility
+        # =============================================================================
+        Loan(
+            loan_reference="FAC_MULTI_001",  # Use facility ref for test lookup
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_FAC_001",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=4_500_000.0,  # £4.5m aggregated EAD
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-H2: Counterparty Group with Rating Inheritance (Aggregated)
+        # Represents aggregated exposure across group:
+        # - Parent: £3m (CQS 2 = 50% RW)
+        # - Sub1: £1.5m (unrated, inherits CQS 2 = 50% RW)
+        # - Sub2: £0.5m (CQS 3 = 100% RW)
+        # Total EAD = £5m, blended RW = (3*50% + 1.5*50% + 0.5*100%)/5 = 55%
+        # Use group reference as loan_reference for test compatibility
+        # =============================================================================
+        Loan(
+            loan_reference="GRP_MULTI_001",  # Use group ref for test lookup
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_GRP_001",  # Use parent counterparty
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=5_000_000.0,  # £5m aggregated EAD
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-H3: SME Chain with Supporting Factor
+        # £2m loan to SME (turnover £25m) - base 100% RW × 0.7619 SF = 76.19% eff RW
+        # RWA = £2m × 100% × 0.7619 = £1,523,800
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_SME_CHAIN",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SME_CHAIN",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=2_000_000.0,  # £2m
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # CRR-H4: Full CRM Chain
+        # £2m gross exposure to unrated corporate (100% RW)
+        # CRM: £100k provision + £500k cash collateral + £400k bank guarantee
+        # Net EAD after CRM = £1.4m (after prov and cash)
+        # Guaranteed portion £400k at guarantor RW (30%), remainder £600k at 100%
+        # =============================================================================
+        Loan(
+            loan_reference="LOAN_CRM_FULL",
+            product_type="TERM_LOAN",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_CRM_FULL",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=2_000_000.0,  # £2m gross
             lgd=0.45,
             beel=0.0,
             seniority="senior",

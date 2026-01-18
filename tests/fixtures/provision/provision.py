@@ -77,6 +77,7 @@ def create_provisions() -> pl.DataFrame:
         *_stage3_provisions(),
         *_general_provisions(),
         *_crm_test_provisions(),
+        *_provision_scenario_provisions(),
     ]
 
     return pl.DataFrame([p.to_dict() for p in provisions], schema=PROVISION_SCHEMA)
@@ -90,6 +91,7 @@ def _stage1_provisions() -> list[Provision]:
     """
     return [
         # Corporate performing loan - minimal provision
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A12 test
         Provision(
             provision_reference="PROV_S1_CORP_001",
             provision_type="SCRA",
@@ -98,7 +100,7 @@ def _stage1_provisions() -> list[Provision]:
             amount=25_000.0,  # 0.1% of £25m
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UK_001",
+            beneficiary_reference="LOAN_PROV_TEST_CORP_002",  # Dedicated test loan
         ),
         # Institution loan - very low provision
         Provision(
@@ -155,6 +157,7 @@ def _stage2_provisions() -> list[Provision]:
     """
     return [
         # Watch-list corporate - significant increase in credit risk
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A2 test
         Provision(
             provision_reference="PROV_S2_CORP_001",
             provision_type="SCRA",
@@ -163,9 +166,10 @@ def _stage2_provisions() -> list[Provision]:
             amount=50_000.0,  # 5% of £1m unrated corporate
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_CORP_UR_001",
+            beneficiary_reference="LOAN_PROV_TEST_CORP_001",  # Dedicated test loan
         ),
         # Watch-list SME retail
+        # NOTE: Uses dedicated test loan to avoid affecting CRR-A11 test
         Provision(
             provision_reference="PROV_S2_SME_001",
             provision_type="SCRA",
@@ -174,7 +178,7 @@ def _stage2_provisions() -> list[Provision]:
             amount=25_000.0,  # 5% of £500k
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
-            beneficiary_reference="LOAN_RTL_SME_001",
+            beneficiary_reference="LOAN_PROV_TEST_SME_001",  # Dedicated test loan
         ),
         # Watch-list hierarchy loan
         Provision(
@@ -333,6 +337,103 @@ def _crm_test_provisions() -> list[Provision]:
             as_of_date=VALUE_DATE,
             beneficiary_type="loan",
             beneficiary_reference="LOAN_HIER_001_B",
+        ),
+        # =============================================================================
+        # CRR-H4: Full CRM Chain Provision
+        # Part of combined CRM: provision + cash + guarantee
+        # £2m gross, £100k provision reduces EAD to £1.9m
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRM_FULL_001",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=100_000.0,  # £100k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_CRM_FULL",
+        ),
+    ]
+
+
+def _provision_scenario_provisions() -> list[Provision]:
+    """
+    Provisions specifically for CRR-G Provisions & Impairments scenario testing.
+
+    CRR-G1: SA with specific provision
+        - £50k SCRA against £1m exposure
+        - EAD reduced to £950k
+
+    CRR-G2: IRB EL shortfall
+        - £20k SCRA + £10k GCRA = £30k total
+        - EL = £45k -> Shortfall = £15k
+
+    CRR-G3: IRB EL excess
+        - £35k SCRA + £15k GCRA = £50k total
+        - EL = £11.25k -> Excess = £38.75k
+    """
+    return [
+        # =============================================================================
+        # CRR-G1: SA with Specific Provision
+        # £50k specific provision against £1m gross exposure
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G1_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=50_000.0,  # £50k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G1",
+        ),
+        # =============================================================================
+        # CRR-G2: IRB EL Shortfall
+        # £20k SCRA + £10k GCRA = £30k total (less than EL of £45k)
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G2_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=20_000.0,  # £20k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G2",
+        ),
+        Provision(
+            provision_reference="PROV_CRR_G2_GEN",
+            provision_type="GCRA",
+            ifrs9_stage=1,
+            currency="GBP",
+            amount=10_000.0,  # £10k general provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G2",
+        ),
+        # =============================================================================
+        # CRR-G3: IRB EL Excess
+        # £35k SCRA + £15k GCRA = £50k total (more than EL of £11.25k)
+        # =============================================================================
+        Provision(
+            provision_reference="PROV_CRR_G3_SPEC",
+            provision_type="SCRA",
+            ifrs9_stage=2,
+            currency="GBP",
+            amount=35_000.0,  # £35k specific provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G3",
+        ),
+        Provision(
+            provision_reference="PROV_CRR_G3_GEN",
+            provision_type="GCRA",
+            ifrs9_stage=1,
+            currency="GBP",
+            amount=15_000.0,  # £15k general provision
+            as_of_date=VALUE_DATE,
+            beneficiary_type="loan",
+            beneficiary_reference="LOAN_PROV_G3",
         ),
     ]
 
