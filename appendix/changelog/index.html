@@ -2002,6 +2002,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2073,6 +2077,62 @@
     
   
     Testing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/workbooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workbooks & UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmark Tests
   
 
     
@@ -2362,6 +2422,45 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#irb-namespace-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IRB Namespace Extension
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#planned" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2390,7 +2489,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2720,6 +2819,45 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Added">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#irb-namespace-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IRB Namespace Extension
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#planned" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2748,7 +2886,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3096,6 +3234,22 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h4 id="irb-namespace-extension">IRB Namespace Extension<a class="headerlink" href="#irb-namespace-extension" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong><code>IRBLazyFrame</code> namespace</strong>: Polars LazyFrame namespace (<code>.irb</code>) for fluent, chainable IRB calculations</li>
+<li><strong><code>IRBExpr</code> namespace</strong>: Polars expression namespace for column-level IRB operations</li>
+<li>Namespace methods for each calculation step: <code>classify_approach</code>, <code>apply_firb_lgd</code>, <code>prepare_columns</code>, <code>apply_pd_floor</code>, <code>apply_lgd_floor</code>, <code>calculate_correlation</code>, <code>calculate_k</code>, <code>calculate_maturity_adjustment</code>, <code>calculate_rwa</code>, <code>calculate_expected_loss</code></li>
+<li><code>apply_all_formulas</code> convenience method for complete IRB calculation pipeline</li>
+<li><code>select_expected_loss</code> and <code>build_audit</code> for output generation</li>
+<li>Expression methods: <code>floor_pd</code>, <code>floor_lgd</code>, <code>clip_maturity</code></li>
+<li>33 unit tests for namespace functionality</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>IRBCalculator refactored</strong> to use namespace-based fluent API instead of private methods</li>
+<li>Improved code readability with chainable method calls</li>
+</ul>
 <h3 id="planned">Planned<a class="headerlink" href="#planned" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Basel 3.1 full implementation</li>
@@ -3105,7 +3259,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Revised SA real estate risk weights</li>
 </ul>
 <h2 id="010-2024-xx-xx">[0.1.0] - 2024-XX-XX<a class="headerlink" href="#010-2024-xx-xx" title="Permanent link">&para;</a></h2>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <h4 id="core-framework">Core Framework<a class="headerlink" href="#core-framework" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Dual-framework support (CRR and Basel 3.1 configuration)</li>
