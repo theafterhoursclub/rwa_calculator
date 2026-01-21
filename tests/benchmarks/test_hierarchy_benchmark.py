@@ -18,6 +18,7 @@ Usage:
 """
 
 from datetime import date
+from typing import Literal
 
 import pytest
 import polars as pl
@@ -29,6 +30,9 @@ from rwa_calc.engine.hierarchy import HierarchyResolver
 
 # Default reporting date for benchmarks
 BENCHMARK_REPORTING_DATE = date(2026, 1, 1)
+
+# Default engine for benchmarks - streaming for memory efficiency
+BENCHMARK_ENGINE: Literal["cpu", "gpu", "streaming"] = "streaming"
 
 
 # =============================================================================
@@ -244,7 +248,7 @@ class TestHierarchyBenchmark100K:
 
         # Verify hierarchy has depth >= 2
         # By checking that some counterparties have grandparents
-        enriched = result.counterparties.collect()
+        enriched = result.counterparties.collect(engine=BENCHMARK_ENGINE)
 
         # Count counterparties with hierarchy depth >= 2
         depth_counts = enriched.group_by("counterparty_hierarchy_depth").len()
@@ -288,7 +292,7 @@ class TestHierarchyBenchmark100K:
         result, _ = benchmark(unify)
 
         # Verify facility hierarchy
-        exposures = result.collect()
+        exposures = result.collect(engine=BENCHMARK_ENGINE)
 
         # Count exposures with facility hierarchy depth
         depth_counts = exposures.group_by("facility_hierarchy_depth").len()
@@ -444,7 +448,7 @@ class TestHierarchyMemoryBenchmark:
         with memory_tracker as tracker:
             result = resolver.resolve(raw_data, config)
             # Force materialization
-            _ = result.exposures.collect()
+            _ = result.exposures.collect(engine=BENCHMARK_ENGINE)
 
         print(f"\nPeak memory usage: {tracker.peak_mb:.2f} MB")
         assert tracker.peak_mb < 500, f"Memory usage {tracker.peak_mb:.2f} MB exceeds 500 MB limit"
@@ -482,7 +486,7 @@ class TestHierarchyMemoryBenchmark:
 
         with memory_tracker as tracker:
             result = resolver.resolve(raw_data, config)
-            _ = result.exposures.collect()
+            _ = result.exposures.collect(engine=BENCHMARK_ENGINE)
 
         print(f"\nPeak memory usage: {tracker.peak_mb:.2f} MB")
         assert tracker.peak_mb < 2000, f"Memory usage {tracker.peak_mb:.2f} MB exceeds 2000 MB limit"

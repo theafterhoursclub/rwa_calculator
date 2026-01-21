@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from rwa_calc.domain.enums import (
     ApproachType,
@@ -28,6 +28,9 @@ from rwa_calc.domain.enums import (
 
 if TYPE_CHECKING:
     pass
+
+# Type alias for Polars collection engine
+PolarsEngine = Literal["cpu", "gpu", "streaming"]
 
 
 @dataclass(frozen=True)
@@ -352,6 +355,8 @@ class CalculationConfig:
         irb_permissions: IRB approach permissions
         scaling_factor: 1.06 scaling factor for IRB (CRR Art. 153)
         correlation_multiplier: SME correlation adjustment multiplier
+        collect_engine: Polars engine for .collect() - 'streaming' (default)
+            processes in batches for lower memory usage, 'cpu' for in-memory
     """
 
     framework: RegulatoryFramework
@@ -365,6 +370,7 @@ class CalculationConfig:
     irb_permissions: IRBPermissions = field(default_factory=IRBPermissions.sa_only)
     scaling_factor: Decimal = Decimal("1.06")  # IRB K scaling (CRR Art. 153)
     eur_gbp_rate: Decimal = Decimal("0.88")  # FX rate for EUR threshold conversion
+    collect_engine: PolarsEngine = "streaming"  # Default to streaming for memory efficiency
 
     @property
     def is_crr(self) -> bool:
@@ -386,6 +392,7 @@ class CalculationConfig:
         reporting_date: date,
         irb_permissions: IRBPermissions | None = None,
         eur_gbp_rate: Decimal = Decimal("0.88"),
+        collect_engine: PolarsEngine = "streaming",
     ) -> CalculationConfig:
         """
         Create CRR (Basel 3.0) configuration.
@@ -402,6 +409,8 @@ class CalculationConfig:
             reporting_date: As-of date for calculation
             irb_permissions: IRB approach permissions (optional)
             eur_gbp_rate: EUR/GBP exchange rate for threshold conversion
+            collect_engine: Polars engine for .collect() - 'streaming' (default)
+                for memory efficiency, 'cpu' for in-memory processing
 
         Returns:
             Configured CalculationConfig for CRR
@@ -418,6 +427,7 @@ class CalculationConfig:
             irb_permissions=irb_permissions or IRBPermissions.sa_only(),
             scaling_factor=Decimal("1.06"),
             eur_gbp_rate=eur_gbp_rate,
+            collect_engine=collect_engine,
         )
 
     @classmethod
@@ -425,6 +435,7 @@ class CalculationConfig:
         cls,
         reporting_date: date,
         irb_permissions: IRBPermissions | None = None,
+        collect_engine: PolarsEngine = "streaming",
     ) -> CalculationConfig:
         """
         Create Basel 3.1 (PRA PS9/24) configuration.
@@ -439,6 +450,8 @@ class CalculationConfig:
         Args:
             reporting_date: As-of date for calculation
             irb_permissions: IRB approach permissions (optional)
+            collect_engine: Polars engine for .collect() - 'streaming' (default)
+                for memory efficiency, 'cpu' for in-memory processing
 
         Returns:
             Configured CalculationConfig for Basel 3.1
@@ -455,4 +468,5 @@ class CalculationConfig:
             irb_permissions=irb_permissions or IRBPermissions.sa_only(),
             scaling_factor=Decimal("1.06"),
             eur_gbp_rate=Decimal("0.88"),  # Not used for Basel 3.1 (GBP thresholds)
+            collect_engine=collect_engine,
         )

@@ -15,6 +15,7 @@ Usage:
 """
 
 from datetime import date
+from typing import Literal
 
 import pytest
 import polars as pl
@@ -27,6 +28,9 @@ from rwa_calc.engine.pipeline import PipelineOrchestrator
 
 # Default reporting date for benchmarks
 BENCHMARK_REPORTING_DATE = date(2026, 1, 1)
+
+# Default engine for benchmarks - streaming for memory efficiency
+BENCHMARK_ENGINE: Literal["cpu", "gpu", "streaming"] = "streaming"
 
 
 class InMemoryLoader:
@@ -123,7 +127,7 @@ class TestPipelineBenchmark10K:
             result = pipeline.run(config)
             # Force materialization
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -153,9 +157,9 @@ class TestPipelineBenchmark10K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -191,7 +195,7 @@ class TestPipelineBenchmark100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -200,7 +204,7 @@ class TestPipelineBenchmark100K:
         assert result.sa_results is not None
 
         # Verify scale
-        sa_df = result.sa_results.collect()
+        sa_df = result.sa_results.collect(engine=BENCHMARK_ENGINE)
         print(f"\nSA results count: {len(sa_df)}")
 
     def test_full_pipeline_crr_100k(
@@ -224,9 +228,9 @@ class TestPipelineBenchmark100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -250,7 +254,7 @@ class TestPipelineBenchmark100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                df = result.sa_results.collect()
+                df = result.sa_results.collect(engine=BENCHMARK_ENGINE)
                 return len(df)
             return 0
 
@@ -293,7 +297,7 @@ class TestPipelineBenchmark1M:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -330,7 +334,7 @@ class TestPipelineBenchmark10M:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -369,7 +373,7 @@ class TestComponentBenchmarks100K:
         def classify():
             result = classifier.classify(resolved, config)
             # Force materialization
-            _ = result.sa_exposures.collect()
+            _ = result.sa_exposures.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(classify)
@@ -404,7 +408,7 @@ class TestComponentBenchmarks100K:
 
         def calculate_sa():
             result = sa_calc.calculate(crm_adjusted.sa_adjusted, config)
-            _ = result.collect()
+            _ = result.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(calculate_sa)
@@ -468,7 +472,7 @@ class TestApproachBenchmarks100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -476,7 +480,7 @@ class TestApproachBenchmarks100K:
         assert result is not None
         assert result.sa_results is not None
         # All should be SA
-        sa_count = result.sa_results.collect().height
+        sa_count = result.sa_results.collect(engine=BENCHMARK_ENGINE).height
         print(f"\nSA exposures: {sa_count:,}")
 
     def test_full_irb_100k(
@@ -500,16 +504,16 @@ class TestApproachBenchmarks100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
 
         assert result is not None
-        sa_count = result.sa_results.collect().height if result.sa_results is not None else 0
-        irb_count = result.irb_results.collect().height if result.irb_results is not None else 0
+        sa_count = result.sa_results.collect(engine=BENCHMARK_ENGINE).height if result.sa_results is not None else 0
+        irb_count = result.irb_results.collect(engine=BENCHMARK_ENGINE).height if result.irb_results is not None else 0
         print(f"\nSA exposures: {sa_count:,}, IRB exposures: {irb_count:,}")
 
     def test_irb_with_slotting_100k(
@@ -533,19 +537,19 @@ class TestApproachBenchmarks100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             if result.slotting_results is not None:
-                _ = result.slotting_results.collect()
+                _ = result.slotting_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
 
         assert result is not None
-        sa_count = result.sa_results.collect().height if result.sa_results is not None else 0
-        irb_count = result.irb_results.collect().height if result.irb_results is not None else 0
-        slotting_count = result.slotting_results.collect().height if result.slotting_results is not None else 0
+        sa_count = result.sa_results.collect(engine=BENCHMARK_ENGINE).height if result.sa_results is not None else 0
+        irb_count = result.irb_results.collect(engine=BENCHMARK_ENGINE).height if result.irb_results is not None else 0
+        slotting_count = result.slotting_results.collect(engine=BENCHMARK_ENGINE).height if result.slotting_results is not None else 0
         print(f"\nSA: {sa_count:,}, IRB: {irb_count:,}, Slotting: {slotting_count:,}")
 
     def test_partial_irb_corporate_only_100k(
@@ -569,16 +573,16 @@ class TestApproachBenchmarks100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
 
         assert result is not None
-        sa_count = result.sa_results.collect().height if result.sa_results is not None else 0
-        irb_count = result.irb_results.collect().height if result.irb_results is not None else 0
+        sa_count = result.sa_results.collect(engine=BENCHMARK_ENGINE).height if result.sa_results is not None else 0
+        irb_count = result.irb_results.collect(engine=BENCHMARK_ENGINE).height if result.irb_results is not None else 0
         print(f"\nSA exposures: {sa_count:,}, IRB (corporate): {irb_count:,}")
 
     def test_basel_3_1_with_output_floor_100k(
@@ -602,9 +606,9 @@ class TestApproachBenchmarks100K:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -634,7 +638,7 @@ class TestApproachBenchmarks1M:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -657,9 +661,9 @@ class TestApproachBenchmarks1M:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -682,11 +686,11 @@ class TestApproachBenchmarks1M:
         def run_pipeline():
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
             if result.irb_results is not None:
-                _ = result.irb_results.collect()
+                _ = result.irb_results.collect(engine=BENCHMARK_ENGINE)
             if result.slotting_results is not None:
-                _ = result.slotting_results.collect()
+                _ = result.slotting_results.collect(engine=BENCHMARK_ENGINE)
             return result
 
         result = benchmark(run_pipeline)
@@ -720,7 +724,7 @@ class TestPipelineMemoryBenchmark:
         with memory_tracker as tracker:
             result = pipeline.run(config)
             if result.sa_results is not None:
-                _ = result.sa_results.collect()
+                _ = result.sa_results.collect(engine=BENCHMARK_ENGINE)
 
         print(f"\nPeak memory usage: {tracker.peak_mb:.2f} MB")
         assert tracker.peak_mb < 4000, f"Memory usage {tracker.peak_mb:.2f} MB exceeds 4000 MB limit"
