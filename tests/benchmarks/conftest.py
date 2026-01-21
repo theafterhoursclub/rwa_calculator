@@ -6,7 +6,25 @@ Provides pytest fixtures for benchmark testing at various scales:
 - 100K: Standard benchmark (~5s)
 - 1M: Large scale (~60s)
 - 10M: Production scale (~10min, slow marker)
+
+Dataset Caching:
+- Datasets are cached to parquet files in tests/benchmarks/data/
+- By default, cached datasets are loaded for fast benchmark runs
+- Use --benchmark-regenerate to force regeneration of all datasets
+- Use --benchmark-regenerate-scale=10k to regenerate a specific scale
+
+Usage:
+    # Normal run (uses cached data)
+    uv run pytest tests/benchmarks/ --benchmark-only
+
+    # Force regenerate all datasets
+    uv run pytest tests/benchmarks/ --benchmark-only --benchmark-regenerate
+
+    # Force regenerate specific scale
+    uv run pytest tests/benchmarks/ --benchmark-only --benchmark-regenerate-scale=100k
 """
+
+import logging
 
 import pytest
 import polars as pl
@@ -17,6 +35,51 @@ from .data_generators import (
     get_dataset_statistics,
     get_or_create_dataset,
 )
+
+# Configure logging for benchmark data generation
+logger = logging.getLogger("rwa_calc.benchmarks")
+
+
+# =============================================================================
+# PYTEST COMMAND-LINE OPTIONS
+# =============================================================================
+
+
+def pytest_addoption(parser):
+    """Add benchmark-specific command-line options."""
+    parser.addoption(
+        "--benchmark-regenerate",
+        action="store_true",
+        default=False,
+        help="Force regeneration of all cached benchmark datasets",
+    )
+    parser.addoption(
+        "--benchmark-regenerate-scale",
+        action="store",
+        default=None,
+        help="Force regeneration of a specific scale (10k, 100k, 1m, 10m)",
+    )
+
+
+@pytest.fixture(scope="session")
+def force_regenerate(request) -> bool:
+    """Get the global regenerate flag from command line."""
+    return request.config.getoption("--benchmark-regenerate")
+
+
+@pytest.fixture(scope="session")
+def regenerate_scale(request) -> str | None:
+    """Get the specific scale to regenerate from command line."""
+    return request.config.getoption("--benchmark-regenerate-scale")
+
+
+def should_regenerate(force_all: bool, scale: str | None, current_scale: str) -> bool:
+    """Determine if a specific scale should be regenerated."""
+    if force_all:
+        return True
+    if scale is not None and scale.lower() == current_scale.lower():
+        return True
+    return False
 
 
 # =============================================================================
@@ -74,13 +137,19 @@ def benchmark_config_10m() -> BenchmarkDataConfig:
 
 
 @pytest.fixture(scope="session")
-def dataset_10k(benchmark_config_10k: BenchmarkDataConfig) -> dict[str, pl.LazyFrame]:
+def dataset_10k(
+    benchmark_config_10k: BenchmarkDataConfig,
+    force_regenerate: bool,
+    regenerate_scale: str | None,
+) -> dict[str, pl.LazyFrame]:
     """Load or generate 10K scale benchmark dataset."""
+    regenerate = should_regenerate(force_regenerate, regenerate_scale, "10k")
     return get_or_create_dataset(
         scale="10k",
         n_counterparties=benchmark_config_10k.n_counterparties,
         hierarchy_depth=benchmark_config_10k.hierarchy_depth,
         seed=benchmark_config_10k.seed,
+        force_regenerate=regenerate,
     )
 
 
@@ -96,13 +165,19 @@ def dataset_10k_stats(dataset_10k: dict[str, pl.LazyFrame]) -> dict:
 
 
 @pytest.fixture(scope="session")
-def dataset_100k(benchmark_config_100k: BenchmarkDataConfig) -> dict[str, pl.LazyFrame]:
+def dataset_100k(
+    benchmark_config_100k: BenchmarkDataConfig,
+    force_regenerate: bool,
+    regenerate_scale: str | None,
+) -> dict[str, pl.LazyFrame]:
     """Load or generate 100K scale benchmark dataset."""
+    regenerate = should_regenerate(force_regenerate, regenerate_scale, "100k")
     return get_or_create_dataset(
         scale="100k",
         n_counterparties=benchmark_config_100k.n_counterparties,
         hierarchy_depth=benchmark_config_100k.hierarchy_depth,
         seed=benchmark_config_100k.seed,
+        force_regenerate=regenerate,
     )
 
 
@@ -118,13 +193,19 @@ def dataset_100k_stats(dataset_100k: dict[str, pl.LazyFrame]) -> dict:
 
 
 @pytest.fixture(scope="session")
-def dataset_1m(benchmark_config_1m: BenchmarkDataConfig) -> dict[str, pl.LazyFrame]:
+def dataset_1m(
+    benchmark_config_1m: BenchmarkDataConfig,
+    force_regenerate: bool,
+    regenerate_scale: str | None,
+) -> dict[str, pl.LazyFrame]:
     """Load or generate 1M scale benchmark dataset."""
+    regenerate = should_regenerate(force_regenerate, regenerate_scale, "1m")
     return get_or_create_dataset(
         scale="1m",
         n_counterparties=benchmark_config_1m.n_counterparties,
         hierarchy_depth=benchmark_config_1m.hierarchy_depth,
         seed=benchmark_config_1m.seed,
+        force_regenerate=regenerate,
     )
 
 
@@ -140,13 +221,19 @@ def dataset_1m_stats(dataset_1m: dict[str, pl.LazyFrame]) -> dict:
 
 
 @pytest.fixture(scope="session")
-def dataset_10m(benchmark_config_10m: BenchmarkDataConfig) -> dict[str, pl.LazyFrame]:
+def dataset_10m(
+    benchmark_config_10m: BenchmarkDataConfig,
+    force_regenerate: bool,
+    regenerate_scale: str | None,
+) -> dict[str, pl.LazyFrame]:
     """Load or generate 10M scale benchmark dataset."""
+    regenerate = should_regenerate(force_regenerate, regenerate_scale, "10m")
     return get_or_create_dataset(
         scale="10m",
         n_counterparties=benchmark_config_10m.n_counterparties,
         hierarchy_depth=benchmark_config_10m.hierarchy_depth,
         seed=benchmark_config_10m.seed,
+        force_regenerate=regenerate,
     )
 
 

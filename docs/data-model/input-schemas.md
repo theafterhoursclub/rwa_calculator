@@ -1,265 +1,664 @@
-# Input Schemas
+# Input Data Schemas
 
-This page documents the schemas for input data files.
+This page documents the authoritative schemas for all input data files required by the RWA calculator. These schemas are defined in `src/rwa_calc/data/schemas.py` and represent the single source of truth.
+
+## Quick Reference
+
+| Data Category | File(s) | Required | Purpose |
+|---------------|---------|----------|---------|
+| [Counterparty](#counterparty-schema) | `counterparty/*.parquet` | Yes | Borrower/obligor information |
+| [Facility](#facility-schema) | `exposures/facilities.parquet` | Yes | Committed credit limits |
+| [Loan](#loan-schema) | `exposures/loans.parquet` | Yes | Drawn exposures |
+| [Contingent](#contingent-schema) | `exposures/contingents.parquet` | No | Off-balance sheet items |
+| [Collateral](#collateral-schema) | `collateral/collateral.parquet` | No | Security/collateral |
+| [Guarantee](#guarantee-schema) | `guarantee/guarantee.parquet` | No | Credit protection |
+| [Provision](#provision-schema) | `provision/provision.parquet` | No | IFRS 9 provisions |
+| [Rating](#rating-schema) | `ratings/ratings.parquet` | No | Credit ratings |
+| [Specialised Lending](#specialised-lending-schema) | N/A | No | Slotting approach data |
+| [Equity Exposure](#equity-exposure-schema) | N/A | No | Equity holdings |
+
+**Mapping Files:**
+
+| Mapping | File | Purpose |
+|---------|------|---------|
+| [Facility Mapping](#facility-mapping-schema) | `exposures/facility_mapping.parquet` | Facility-to-loan hierarchy |
+| [Org Mapping](#org-mapping-schema) | `mapping/org_mapping.parquet` | Organisation hierarchy (rating inheritance) |
+| [Lending Mapping](#lending-mapping-schema) | `mapping/lending_mapping.parquet` | Lending groups (retail threshold aggregation) |
+
+---
 
 ## Counterparty Schema
 
-**File:** `counterparties.parquet`
+**Purpose:** Defines borrower/obligor information used for exposure classification, risk weight determination, and hierarchy resolution.
+
+**File:** `counterparty/{entity_type}.parquet` (e.g., `counterparty/corporate.parquet`)
 
 | Column | Type | Required | Description |
 |--------|------|----------|-------------|
-| `counterparty_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_name` | `Utf8` | Yes | Legal name |
-| `counterparty_type` | `Utf8` | Yes | SOVEREIGN/INSTITUTION/CORPORATE/INDIVIDUAL |
-| `country_code` | `Utf8` | Yes | ISO 3166-1 alpha-2 code |
-| `annual_turnover` | `Float64` | No | Annual turnover in EUR |
-| `total_assets` | `Float64` | No | Total assets in EUR |
-| `is_sme` | `Boolean` | No | Explicit SME flag |
-| `parent_counterparty_id` | `Utf8` | No | Parent for hierarchy |
-| `sector_code` | `Utf8` | No | Industry sector |
-| `is_financial_institution` | `Boolean` | No | Financial institution flag |
-| `is_public_sector` | `Boolean` | No | Public sector entity flag |
+| `counterparty_reference` | `String` | Yes | Unique identifier for the counterparty |
+| `counterparty_name` | `String` | Yes | Legal name of the counterparty |
+| `entity_type` | `String` | Yes | Type of entity (see valid values below) |
+| `country_code` | `String` | Yes | ISO 3166-1 alpha-2 country code |
+| `annual_revenue` | `Float64` | No | Annual revenue in EUR (for SME/large corporate classification) |
+| `total_assets` | `Float64` | No | Total assets in EUR (alternative to revenue for CRE30.6) |
+| `default_status` | `Boolean` | No | Whether counterparty is in default |
+| `sector_code` | `String` | No | Industry sector code (SIC-based) |
+| `is_financial_institution` | `Boolean` | No | Credit institution or investment firm (CRE20.16) |
+| `is_regulated` | `Boolean` | No | Prudentially regulated institution |
+| `is_pse` | `Boolean` | No | Public Sector Entity (CRR Art 116) |
+| `is_mdb` | `Boolean` | No | Multilateral Development Bank (CRR Art 117) |
+| `is_international_org` | `Boolean` | No | International Organisation (CRR Art 118) |
+| `is_central_counterparty` | `Boolean` | No | Central Counterparty (CRR Art 300-311) |
+| `is_regional_govt_local_auth` | `Boolean` | No | Regional Government/Local Authority (CRR Art 115) |
 
-**Valid `counterparty_type` values:**
-- `SOVEREIGN` - Governments, central banks
-- `INSTITUTION` - Banks, investment firms
-- `CORPORATE` - Non-financial companies
-- `INDIVIDUAL` - Natural persons
-- `PSE` - Public sector entities
-- `MDB` - Multilateral development banks
+**Valid `entity_type` values:**
 
-## Facility Schema
+| Value | Description | Typical Risk Weight |
+|-------|-------------|---------------------|
+| `corporate` | Non-financial companies | CQS-based or 100% unrated |
+| `individual` | Natural persons | Retail treatment if eligible |
+| `sovereign` | Governments, central banks | 0%-150% based on CQS |
+| `institution` | Banks, investment firms | 20%-150% based on CQS |
+| `pse` | Public sector entities | Varies by treatment |
+| `mdb` | Multilateral development banks | 0% if on eligible list |
 
-**File:** `facilities.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `facility_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | Yes | Link to counterparty |
-| `facility_type` | `Utf8` | Yes | RCF/TERM/MORTGAGE/OVERDRAFT/etc. |
-| `committed_amount` | `Float64` | Yes | Total commitment |
-| `drawn_amount` | `Float64` | Yes | Current utilization |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `start_date` | `Date` | Yes | Facility start date |
-| `maturity_date` | `Date` | Yes | Final maturity date |
-| `is_unconditionally_cancellable` | `Boolean` | Yes | For CCF determination |
-| `is_committed` | `Boolean` | Yes | Committed vs uncommitted |
-| `interest_rate` | `Float64` | No | Interest rate |
-| `is_secured` | `Boolean` | No | Secured facility flag |
-| `security_type` | `Utf8` | No | Type of security |
-
-**Valid `facility_type` values:**
-- `RCF` - Revolving credit facility
-- `TERM` - Term loan
-- `MORTGAGE` - Mortgage loan
-- `OVERDRAFT` - Overdraft facility
-- `CREDIT_CARD` - Credit card
-- `TRADE_FINANCE` - Trade finance facility
-- `GUARANTEE` - Guarantee facility
-- `PROJECT_FINANCE` - Project finance
-
-## Loan Schema
-
-**File:** `loans.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `loan_id` | `Utf8` | Yes | Unique identifier |
-| `facility_id` | `Utf8` | Yes | Link to facility |
-| `principal_amount` | `Float64` | Yes | Outstanding principal |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `origination_date` | `Date` | Yes | Loan origination date |
-| `maturity_date` | `Date` | Yes | Loan maturity date |
-| `is_defaulted` | `Boolean` | Yes | Default indicator |
-| `days_past_due` | `Int32` | Yes | Days past due count |
-| `interest_rate` | `Float64` | No | Interest rate |
-| `ltv` | `Float64` | No | Loan-to-value ratio |
-
-## Contingent Schema
-
-**File:** `contingents.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `contingent_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | Yes | Link to counterparty |
-| `contingent_type` | `Utf8` | Yes | Type of contingent |
-| `notional_amount` | `Float64` | Yes | Notional amount |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `maturity_date` | `Date` | Yes | Expiry date |
-
-**Valid `contingent_type` values:**
-- `DOCUMENTARY_CREDIT` - Trade documentary credit
-- `STANDBY_LC` - Standby letter of credit
-- `GUARANTEE_ISSUED` - Guarantee issued
-- `ACCEPTANCE` - Acceptance
-- `NIF` - Note issuance facility
-- `COMMITMENT` - Undrawn commitment
-
-## Collateral Schema
-
-**File:** `collateral.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `collateral_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | No* | Counterparty-level allocation |
-| `facility_id` | `Utf8` | No* | Facility-level allocation |
-| `loan_id` | `Utf8` | No* | Loan-level allocation |
-| `collateral_type` | `Utf8` | Yes | Type of collateral |
-| `value` | `Float64` | Yes | Current market value |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `valuation_date` | `Date` | Yes | Date of valuation |
-| `issuer_cqs` | `Int32` | No | CQS of issuer (for bonds) |
-| `residual_maturity_years` | `Float64` | No | Residual maturity |
-
-*At least one of `counterparty_id`, `facility_id`, or `loan_id` must be provided.
-
-**Valid `collateral_type` values:**
-- `CASH` - Cash collateral
-- `GOVERNMENT_BOND` - Government/sovereign bonds
-- `CORPORATE_BOND` - Corporate bonds
-- `COVERED_BOND` - Covered bonds
-- `EQUITY_MAIN_INDEX` - Main index equities
-- `EQUITY_OTHER` - Other listed equities
-- `RESIDENTIAL_REAL_ESTATE` - Residential property
-- `COMMERCIAL_REAL_ESTATE` - Commercial property
-- `RECEIVABLES` - Trade receivables
-- `OTHER_PHYSICAL` - Other physical collateral
-- `GOLD` - Gold collateral
-
-## Guarantee Schema
-
-**File:** `guarantees.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `guarantee_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | Yes | Protected counterparty |
-| `guarantor_id` | `Utf8` | Yes | Guarantor counterparty ID |
-| `guaranteed_amount` | `Float64` | Yes | Amount guaranteed |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `maturity_date` | `Date` | Yes | Guarantee expiry date |
-| `guarantor_type` | `Utf8` | Yes | Type of guarantor |
-| `guarantor_cqs` | `Int32` | No | CQS of guarantor |
-| `is_unconditional` | `Boolean` | Yes | Unconditional guarantee |
-| `is_irrevocable` | `Boolean` | Yes | Irrevocable guarantee |
-
-**Valid `guarantor_type` values:**
-- `SOVEREIGN` - Government guarantor
-- `INSTITUTION` - Bank guarantor
-- `CORPORATE` - Corporate guarantor
-- `PARENT` - Parent company guarantor
-
-## Provision Schema
-
-**File:** `provisions.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `provision_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | No* | Counterparty-level |
-| `facility_id` | `Utf8` | No* | Facility-level |
-| `loan_id` | `Utf8` | No* | Loan-level |
-| `provision_type` | `Utf8` | Yes | SCRA or GCRA |
-| `amount` | `Float64` | Yes | Provision amount |
-| `currency` | `Utf8` | Yes | ISO 4217 currency code |
-| `ifrs_stage` | `Utf8` | No | IFRS 9 stage |
-
-*At least one of `counterparty_id`, `facility_id`, or `loan_id` must be provided.
-
-**Valid `provision_type` values:**
-- `SCRA` - Specific Credit Risk Adjustment
-- `GCRA` - General Credit Risk Adjustment
-
-**Valid `ifrs_stage` values:**
-- `STAGE_1` - Performing, 12-month ECL
-- `STAGE_2` - Performing, lifetime ECL
-- `STAGE_3` - Non-performing, lifetime ECL
-
-## Rating Schema
-
-**File:** `ratings.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `rating_id` | `Utf8` | Yes | Unique identifier |
-| `counterparty_id` | `Utf8` | Yes | Link to counterparty |
-| `rating_agency` | `Utf8` | Yes | Rating agency |
-| `rating` | `Utf8` | Yes | Rating value |
-| `rating_date` | `Date` | Yes | Rating as-of date |
-| `rating_type` | `Utf8` | Yes | Long-term or short-term |
-| `pd` | `Float64` | No | Associated PD (internal) |
-| `lgd` | `Float64` | No | Associated LGD (A-IRB) |
-
-**Valid `rating_agency` values:**
-- `SP` - Standard & Poor's
-- `MOODYS` - Moody's
-- `FITCH` - Fitch Ratings
-- `INTERNAL` - Internal rating
-
-## Organization Mapping Schema
-
-**File:** `org_mapping.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `child_id` | `Utf8` | Yes | Child counterparty ID |
-| `parent_id` | `Utf8` | Yes | Parent counterparty ID |
-| `relationship_type` | `Utf8` | Yes | Type of relationship |
-| `ownership_percentage` | `Float64` | No | Ownership percentage |
-
-**Valid `relationship_type` values:**
-- `SUBSIDIARY` - Parent-subsidiary
-- `BRANCH` - Branch relationship
-- `ASSOCIATED` - Associated company
-
-## Lending Mapping Schema
-
-**File:** `lending_mapping.parquet`
-
-| Column | Type | Required | Description |
-|--------|------|----------|-------------|
-| `member_id` | `Utf8` | Yes | Member counterparty ID |
-| `group_id` | `Utf8` | Yes | Lending group ID |
-| `is_primary` | `Boolean` | Yes | Primary borrower flag |
-
-## Example Data
-
-### Counterparty Example
+**Example:**
 
 ```python
 import polars as pl
 
 counterparties = pl.DataFrame({
-    "counterparty_id": ["C001", "C002", "C003"],
-    "counterparty_name": ["Acme Corp", "UK Treasury", "John Smith"],
-    "counterparty_type": ["CORPORATE", "SOVEREIGN", "INDIVIDUAL"],
+    "counterparty_reference": ["CORP_001", "CORP_002", "SOV_001"],
+    "counterparty_name": ["Acme Corp Ltd", "Beta Industries PLC", "UK Treasury"],
+    "entity_type": ["corporate", "corporate", "sovereign"],
     "country_code": ["GB", "GB", "GB"],
-    "annual_turnover": [25_000_000.0, None, None],
-    "is_sme": [True, None, None],
+    "annual_revenue": [25_000_000.0, 500_000_000.0, None],
+    "total_assets": [30_000_000.0, 600_000_000.0, None],
+    "default_status": [False, False, False],
+    "sector_code": ["62.01", "28.11", None],
+    "is_financial_institution": [False, False, False],
+    "is_regulated": [False, False, True],
+    "is_pse": [False, False, False],
+    "is_mdb": [False, False, False],
+    "is_international_org": [False, False, False],
+    "is_central_counterparty": [False, False, False],
+    "is_regional_govt_local_auth": [False, False, False],
 })
 ```
 
-### Facility Example
+---
+
+## Facility Schema
+
+**Purpose:** Defines committed credit facilities (parent nodes in exposure hierarchy). Facilities represent credit limits; actual drawings are captured in the Loan schema.
+
+**File:** `exposures/facilities.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `facility_reference` | `String` | Yes | Unique identifier for the facility |
+| `product_type` | `String` | Yes | Product classification |
+| `book_code` | `String` | Yes | Portfolio/book classification |
+| `counterparty_reference` | `String` | Yes | Link to counterparty |
+| `value_date` | `Date` | Yes | Facility start date |
+| `maturity_date` | `Date` | Yes | Final maturity date |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `limit` | `Float64` | Yes | Committed facility limit |
+| `committed` | `Boolean` | Yes | Whether facility is committed |
+| `lgd` | `Float64` | No | Internal LGD estimate (A-IRB) |
+| `beel` | `Float64` | No | Best estimate expected loss |
+| `is_revolving` | `Boolean` | Yes | Revolving vs term facility |
+| `seniority` | `String` | Yes | `senior` or `subordinated` (affects F-IRB LGD) |
+| `commitment_type` | `String` | Yes | Commitment type (affects CCF) |
+
+**Valid `product_type` values:**
+
+| Value | Description |
+|-------|-------------|
+| `rcf` | Revolving credit facility |
+| `term_loan` | Term loan facility |
+| `mortgage` | Mortgage facility |
+| `overdraft` | Overdraft facility |
+| `credit_card` | Credit card facility |
+| `trade_finance` | Trade finance facility |
+| `guarantee` | Guarantee facility |
+| `project_finance` | Project finance |
+
+**Valid `seniority` values:**
+
+| Value | F-IRB LGD | Description |
+|-------|-----------|-------------|
+| `senior` | 45% | Senior unsecured claims |
+| `subordinated` | 75% | Subordinated claims |
+
+**Valid `commitment_type` values:**
+
+| Value | SA CCF | Description |
+|-------|--------|-------------|
+| `unconditionally_cancellable` | 0% (CRR) / 10% (Basel 3.1) | Can be cancelled without notice |
+| `committed_other` | 40% / 75% | Committed, not unconditionally cancellable |
+
+**Example:**
 
 ```python
+from datetime import date
+import polars as pl
+
 facilities = pl.DataFrame({
-    "facility_id": ["F001", "F002"],
-    "counterparty_id": ["C001", "C003"],
-    "facility_type": ["RCF", "MORTGAGE"],
-    "committed_amount": [5_000_000.0, 250_000.0],
-    "drawn_amount": [2_000_000.0, 250_000.0],
+    "facility_reference": ["FAC_001", "FAC_002"],
+    "product_type": ["rcf", "term_loan"],
+    "book_code": ["CORP_LENDING", "CORP_LENDING"],
+    "counterparty_reference": ["CORP_001", "CORP_002"],
+    "value_date": [date(2024, 1, 15), date(2023, 6, 1)],
+    "maturity_date": [date(2029, 1, 15), date(2028, 6, 1)],
     "currency": ["GBP", "GBP"],
-    "start_date": [date(2024, 1, 1), date(2023, 6, 1)],
-    "maturity_date": [date(2029, 1, 1), date(2053, 6, 1)],
-    "is_unconditionally_cancellable": [False, False],
-    "is_committed": [True, True],
+    "limit": [10_000_000.0, 5_000_000.0],
+    "committed": [True, True],
+    "lgd": [None, None],  # Supervisory LGD used for F-IRB
+    "beel": [None, None],
+    "is_revolving": [True, False],
+    "seniority": ["senior", "senior"],
+    "commitment_type": ["committed_other", "committed_other"],
 })
 ```
+
+---
+
+## Loan Schema
+
+**Purpose:** Defines drawn loan exposures (leaf nodes in exposure hierarchy). Loans represent actual credit usage under facilities.
+
+**File:** `exposures/loans.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `loan_reference` | `String` | Yes | Unique identifier for the loan |
+| `product_type` | `String` | Yes | Product classification |
+| `book_code` | `String` | Yes | Portfolio/book classification |
+| `counterparty_reference` | `String` | Yes | Link to counterparty |
+| `value_date` | `Date` | Yes | Loan origination date |
+| `maturity_date` | `Date` | Yes | Loan maturity date |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `drawn_amount` | `Float64` | Yes | Outstanding principal balance |
+| `lgd` | `Float64` | No | Internal LGD estimate (A-IRB) |
+| `beel` | `Float64` | No | Best estimate expected loss |
+| `seniority` | `String` | Yes | `senior` or `subordinated` |
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+loans = pl.DataFrame({
+    "loan_reference": ["LOAN_001", "LOAN_002", "LOAN_003"],
+    "product_type": ["rcf_drawing", "term_loan", "term_loan"],
+    "book_code": ["CORP_LENDING", "CORP_LENDING", "CORP_LENDING"],
+    "counterparty_reference": ["CORP_001", "CORP_001", "CORP_002"],
+    "value_date": [date(2024, 3, 1), date(2024, 4, 15), date(2023, 6, 1)],
+    "maturity_date": [date(2029, 1, 15), date(2029, 1, 15), date(2028, 6, 1)],
+    "currency": ["GBP", "GBP", "GBP"],
+    "drawn_amount": [2_000_000.0, 1_500_000.0, 5_000_000.0],
+    "lgd": [None, None, None],
+    "beel": [None, None, None],
+    "seniority": ["senior", "senior", "senior"],
+})
+```
+
+---
+
+## Contingent Schema
+
+**Purpose:** Defines off-balance sheet commitments that require Credit Conversion Factor (CCF) application.
+
+**File:** `exposures/contingents.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `contingent_reference` | `String` | Yes | Unique identifier |
+| `contract_type` | `String` | Yes | Type of contingent contract |
+| `product_type` | `String` | Yes | Product classification |
+| `book_code` | `String` | Yes | Portfolio/book classification |
+| `counterparty_reference` | `String` | Yes | Link to counterparty |
+| `value_date` | `Date` | Yes | Contract start date |
+| `maturity_date` | `Date` | Yes | Contract expiry date |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `nominal_amount` | `Float64` | Yes | Notional/nominal amount |
+| `lgd` | `Float64` | No | Internal LGD estimate (A-IRB) |
+| `beel` | `Float64` | No | Best estimate expected loss |
+| `ccf_category` | `String` | Yes | Category for CCF lookup |
+| `seniority` | `String` | Yes | `senior` or `subordinated` |
+
+**Valid `ccf_category` values:**
+
+| Category | SA CCF | Description |
+|----------|--------|-------------|
+| `full_risk` | 100% | Direct credit substitutes |
+| `medium_risk` | 50% | Transaction-related contingencies |
+| `medium_low_risk` | 20% | Short-term self-liquidating trade |
+| `low_risk` | 0%/10% | Unconditionally cancellable |
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+contingents = pl.DataFrame({
+    "contingent_reference": ["CONT_001", "CONT_002"],
+    "contract_type": ["standby_lc", "performance_guarantee"],
+    "product_type": ["trade_finance", "guarantee"],
+    "book_code": ["TRADE", "GUARANTEE"],
+    "counterparty_reference": ["CORP_001", "CORP_002"],
+    "value_date": [date(2024, 1, 1), date(2024, 2, 1)],
+    "maturity_date": [date(2025, 1, 1), date(2025, 2, 1)],
+    "currency": ["GBP", "GBP"],
+    "nominal_amount": [500_000.0, 1_000_000.0],
+    "lgd": [None, None],
+    "beel": [None, None],
+    "ccf_category": ["full_risk", "medium_risk"],
+    "seniority": ["senior", "senior"],
+})
+```
+
+---
+
+## Collateral Schema
+
+**Purpose:** Defines collateral/security items used for Credit Risk Mitigation (CRM). Collateral can be linked at counterparty, facility, or loan level.
+
+**File:** `collateral/collateral.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `collateral_reference` | `String` | Yes | Unique identifier |
+| `collateral_type` | `String` | Yes | Type of collateral (see valid values) |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `maturity_date` | `Date` | No | Collateral maturity (if applicable) |
+| `market_value` | `Float64` | Yes | Current market value |
+| `nominal_value` | `Float64` | No | Nominal/face value |
+| `beneficiary_type` | `String` | Yes | Level of allocation |
+| `beneficiary_reference` | `String` | Yes | Reference to counterparty/facility/loan |
+| `issuer_cqs` | `Int8` | No | CQS of issuer (for securities) |
+| `issuer_type` | `String` | No | Issuer type (for haircut lookup) |
+| `residual_maturity_years` | `Float64` | No | Residual maturity in years |
+| `is_eligible_financial_collateral` | `Boolean` | No | Meets SA eligibility (CRR Art 197) |
+| `is_eligible_irb_collateral` | `Boolean` | No | Meets IRB eligibility (CRR Art 199) |
+| `valuation_date` | `Date` | No | Date of last valuation |
+| `valuation_type` | `String` | No | `market`, `indexed`, `independent` |
+| `property_type` | `String` | No | `residential` or `commercial` (RE only) |
+| `property_ltv` | `Float64` | No | Loan-to-value ratio (RE only) |
+| `is_income_producing` | `Boolean` | No | Material income dependence (CRE) |
+| `is_adc` | `Boolean` | No | Acquisition/Development/Construction |
+| `is_presold` | `Boolean` | No | ADC pre-sold to qualifying buyer |
+
+**Valid `collateral_type` values:**
+
+| Value | Haircut | Description |
+|-------|---------|-------------|
+| `cash` | 0% | Cash collateral |
+| `gold` | 15% | Gold collateral |
+| `government_bond` | 0%-15% | Government/sovereign bonds |
+| `corporate_bond` | 1%-25% | Corporate bonds |
+| `covered_bond` | 1%-8% | Covered bonds |
+| `equity_main_index` | 15% | Main index equities |
+| `equity_other` | 25% | Other listed equities |
+| `residential_real_estate` | N/A | Residential property (RW approach) |
+| `commercial_real_estate` | N/A | Commercial property (RW approach) |
+| `receivables` | N/A | Trade receivables |
+| `other_physical` | N/A | Other physical collateral |
+
+**Valid `beneficiary_type` values:**
+
+| Value | Description |
+|-------|-------------|
+| `counterparty` | Allocated at counterparty level (expands to all exposures) |
+| `facility` | Allocated at facility level (expands to facility + child loans) |
+| `loan` | Allocated directly to specific loan |
+| `contingent` | Allocated directly to contingent |
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+collateral = pl.DataFrame({
+    "collateral_reference": ["COLL_001", "COLL_002"],
+    "collateral_type": ["cash", "residential_real_estate"],
+    "currency": ["GBP", "GBP"],
+    "maturity_date": [None, None],
+    "market_value": [1_000_000.0, 500_000.0],
+    "nominal_value": [1_000_000.0, None],
+    "beneficiary_type": ["counterparty", "loan"],
+    "beneficiary_reference": ["CORP_001", "LOAN_003"],
+    "issuer_cqs": [None, None],
+    "issuer_type": [None, None],
+    "residual_maturity_years": [None, None],
+    "is_eligible_financial_collateral": [True, False],
+    "is_eligible_irb_collateral": [True, True],
+    "valuation_date": [date(2024, 12, 31), date(2024, 11, 15)],
+    "valuation_type": ["market", "independent"],
+    "property_type": [None, "residential"],
+    "property_ltv": [None, 0.65],
+    "is_income_producing": [None, False],
+    "is_adc": [None, False],
+    "is_presold": [None, None],
+})
+```
+
+---
+
+## Guarantee Schema
+
+**Purpose:** Defines guarantee protection for Credit Risk Mitigation using the substitution approach.
+
+**File:** `guarantee/guarantee.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `guarantee_reference` | `String` | Yes | Unique identifier |
+| `guarantee_type` | `String` | Yes | Type of guarantee |
+| `guarantor` | `String` | Yes | Guarantor counterparty reference |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `maturity_date` | `Date` | No | Guarantee expiry date |
+| `amount_covered` | `Float64` | Yes | Amount covered by guarantee |
+| `percentage_covered` | `Float64` | No | Percentage of exposure covered |
+| `beneficiary_type` | `String` | Yes | Level of allocation |
+| `beneficiary_reference` | `String` | Yes | Reference to counterparty/facility/loan |
+
+**Valid `guarantee_type` values:**
+
+| Value | Description |
+|-------|-------------|
+| `guarantee` | Standard guarantee |
+| `credit_derivative` | Credit derivative protection |
+| `counter_guarantee` | Counter-guarantee |
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+guarantees = pl.DataFrame({
+    "guarantee_reference": ["GUAR_001"],
+    "guarantee_type": ["guarantee"],
+    "guarantor": ["SOV_001"],  # UK Treasury guaranteeing
+    "currency": ["GBP"],
+    "maturity_date": [date(2030, 12, 31)],
+    "amount_covered": [2_000_000.0],
+    "percentage_covered": [1.0],
+    "beneficiary_type": ["counterparty"],
+    "beneficiary_reference": ["CORP_001"],
+})
+```
+
+---
+
+## Provision Schema
+
+**Purpose:** Defines IFRS 9 provisions/impairments for EAD reduction and IRB expected loss comparison.
+
+**File:** `provision/provision.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `provision_reference` | `String` | Yes | Unique identifier |
+| `provision_type` | `String` | Yes | `SCRA` (specific) or `GCRA` (general) |
+| `ifrs9_stage` | `Int8` | No | IFRS 9 stage (1, 2, or 3) |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `amount` | `Float64` | Yes | Provision amount |
+| `as_of_date` | `Date` | Yes | Provision as-of date |
+| `beneficiary_type` | `String` | Yes | Level of allocation |
+| `beneficiary_reference` | `String` | Yes | Reference to counterparty/facility/loan |
+
+**Valid `provision_type` values:**
+
+| Value | Description | Usage |
+|-------|-------------|-------|
+| `SCRA` | Specific Credit Risk Adjustment | Reduces exposure value; affects defaulted RW |
+| `GCRA` | General Credit Risk Adjustment | Reduces exposure value |
+
+**Valid `ifrs9_stage` values:**
+
+| Stage | Description | ECL Type |
+|-------|-------------|----------|
+| `1` | Performing | 12-month ECL |
+| `2` | Performing, significant increase in credit risk | Lifetime ECL |
+| `3` | Non-performing/credit-impaired | Lifetime ECL |
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+provisions = pl.DataFrame({
+    "provision_reference": ["PROV_001", "PROV_002"],
+    "provision_type": ["SCRA", "GCRA"],
+    "ifrs9_stage": [1, 2],
+    "currency": ["GBP", "GBP"],
+    "amount": [50_000.0, 100_000.0],
+    "as_of_date": [date(2024, 12, 31), date(2024, 12, 31)],
+    "beneficiary_type": ["loan", "counterparty"],
+    "beneficiary_reference": ["LOAN_001", "CORP_002"],
+})
+```
+
+---
+
+## Rating Schema
+
+**Purpose:** Defines internal and external credit ratings for risk weight determination.
+
+**File:** `ratings/ratings.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `rating_reference` | `String` | Yes | Unique identifier |
+| `counterparty_reference` | `String` | Yes | Link to counterparty |
+| `rating_type` | `String` | Yes | `internal` or `external` |
+| `rating_agency` | `String` | Yes | Rating source |
+| `rating_value` | `String` | Yes | Rating value (e.g., `AAA`, `Aa1`) |
+| `cqs` | `Int8` | Yes | Credit Quality Step (1-6) |
+| `pd` | `Float64` | No | Probability of Default (internal ratings) |
+| `rating_date` | `Date` | Yes | Rating as-of date |
+| `is_solicited` | `Boolean` | No | Whether rating was solicited |
+
+**Valid `rating_agency` values:**
+
+| Value | Description |
+|-------|-------------|
+| `internal` | Internal rating system |
+| `SP` | Standard & Poor's |
+| `MOODYS` | Moody's |
+| `FITCH` | Fitch Ratings |
+| `DBRS` | DBRS Morningstar |
+
+**CQS Mapping:**
+
+| CQS | S&P/Fitch | Moody's | Sovereign RW | Institution RW | Corporate RW |
+|-----|-----------|---------|--------------|----------------|--------------|
+| 1 | AAA to AA- | Aaa to Aa3 | 0% | 20% | 20% |
+| 2 | A+ to A- | A1 to A3 | 20% | 30%* | 50% |
+| 3 | BBB+ to BBB- | Baa1 to Baa3 | 50% | 50% | 100% |
+| 4 | BB+ to BB- | Ba1 to Ba3 | 100% | 100% | 100% |
+| 5 | B+ to B- | B1 to B3 | 100% | 100% | 150% |
+| 6 | CCC+ and below | Caa1 and below | 150% | 150% | 150% |
+
+*UK deviation: CQS 2 institutions get 30% RW (not 50%)
+
+**Example:**
+
+```python
+from datetime import date
+import polars as pl
+
+ratings = pl.DataFrame({
+    "rating_reference": ["RAT_001", "RAT_002"],
+    "counterparty_reference": ["CORP_001", "SOV_001"],
+    "rating_type": ["external", "external"],
+    "rating_agency": ["SP", "SP"],
+    "rating_value": ["BBB+", "AA"],
+    "cqs": [3, 1],
+    "pd": [None, None],
+    "rating_date": [date(2024, 6, 15), date(2024, 1, 1)],
+    "is_solicited": [True, True],
+})
+```
+
+---
+
+## Specialised Lending Schema
+
+**Purpose:** Defines specialised lending exposures for slotting approach treatment (CRE33).
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `exposure_reference` | `String` | Yes | Links to facility/loan reference |
+| `sl_type` | `String` | Yes | Type of specialised lending |
+| `slotting_category` | `String` | Yes | Slotting category |
+| `remaining_maturity_years` | `Float64` | Yes | Remaining maturity in years |
+| `is_hvcre` | `Boolean` | No | High-volatility commercial real estate |
+
+**Valid `sl_type` values:**
+
+| Value | Description |
+|-------|-------------|
+| `project_finance` | Project finance (PF) |
+| `object_finance` | Object finance (OF) |
+| `commodities_finance` | Commodities finance (CF) |
+| `ipre` | Income-producing real estate |
+
+**Valid `slotting_category` values:**
+
+| Category | RW (>=2.5yr) | RW (<2.5yr) | Description |
+|----------|--------------|-------------|-------------|
+| `strong` | 70% | 50% | Excellent risk profile |
+| `good` | 90% | 70% | Good risk profile |
+| `satisfactory` | 115% | 115% | Acceptable risk profile |
+| `weak` | 250% | 250% | Higher risk profile |
+| `default` | 0% | 0% | In default (provisions apply) |
+
+---
+
+## Equity Exposure Schema
+
+**Purpose:** Defines equity holdings (SA only under Basel 3.1, IRB approaches withdrawn).
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `exposure_reference` | `String` | Yes | Unique identifier |
+| `counterparty_reference` | `String` | Yes | Link to counterparty |
+| `equity_type` | `String` | Yes | Type of equity exposure |
+| `currency` | `String` | Yes | ISO 4217 currency code |
+| `carrying_value` | `Float64` | Yes | Balance sheet value |
+| `fair_value` | `Float64` | No | Mark-to-market value |
+| `is_speculative` | `Boolean` | No | Speculative unlisted equity |
+| `is_exchange_traded` | `Boolean` | No | Listed on recognised exchange |
+| `is_government_supported` | `Boolean` | No | Government-supported programme |
+| `is_significant_investment` | `Boolean` | No | >10% of CET1 |
+
+**Valid `equity_type` values:**
+
+| Value | Risk Weight | Description |
+|-------|-------------|-------------|
+| `listed` | 100% | Exchange-traded equities |
+| `unlisted` | 250% | Unlisted equities |
+| `private_equity` | 250% | Private equity investments |
+| `speculative` | 400% | Speculative unlisted |
+| `ciu` | Look-through | Collective investment undertakings |
+
+---
+
+## Facility Mapping Schema
+
+**Purpose:** Defines parent-child relationships between facilities, loans, and contingents.
+
+**File:** `exposures/facility_mapping.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `parent_facility_reference` | `String` | Yes | Parent facility reference |
+| `child_reference` | `String` | Yes | Child facility/loan/contingent reference |
+| `child_type` | `String` | Yes | `facility`, `loan`, or `contingent` |
+
+**Example:**
+
+```python
+import polars as pl
+
+facility_mapping = pl.DataFrame({
+    "parent_facility_reference": ["FAC_001", "FAC_001", "FAC_001"],
+    "child_reference": ["LOAN_001", "LOAN_002", "FAC_001A"],
+    "child_type": ["loan", "loan", "facility"],
+})
+```
+
+---
+
+## Org Mapping Schema
+
+**Purpose:** Defines organisation hierarchy for rating and turnover inheritance.
+
+**File:** `mapping/org_mapping.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `parent_counterparty_reference` | `String` | Yes | Parent counterparty reference |
+| `child_counterparty_reference` | `String` | Yes | Child counterparty reference |
+
+**Example:**
+
+```python
+import polars as pl
+
+org_mapping = pl.DataFrame({
+    "parent_counterparty_reference": ["CORP_PARENT", "CORP_PARENT"],
+    "child_counterparty_reference": ["CORP_001", "CORP_002"],
+})
+```
+
+---
+
+## Lending Mapping Schema
+
+**Purpose:** Defines lending groups for retail threshold aggregation.
+
+**File:** `mapping/lending_mapping.parquet`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `parent_counterparty_reference` | `String` | Yes | Lending group lead reference |
+| `child_counterparty_reference` | `String` | Yes | Member counterparty reference |
+
+Exposures are aggregated to the group level for retail eligibility (threshold: EUR 1m / GBP 880k).
+
+---
+
+## Data Preparation Checklist
+
+Before running the calculator, verify your data meets these requirements:
+
+- [ ] All required files present in expected locations
+- [ ] Column names match schema exactly (case-sensitive)
+- [ ] Data types match expected types
+- [ ] All required columns have non-null values
+- [ ] Reference columns have valid foreign key relationships
+- [ ] Dates are in `YYYY-MM-DD` format
+- [ ] Currency codes are valid ISO 4217
+- [ ] Country codes are valid ISO 3166-1 alpha-2
+- [ ] Numeric amounts are non-negative where expected
+- [ ] PD values are in range [0, 1]
+- [ ] LGD values are in range [0, 1.25]
+
+See [Data Validation Guide](data-validation.md) for validation functions and troubleshooting.
+
+---
 
 ## Next Steps
 
-- [Intermediate Schemas](intermediate-schemas.md)
-- [Output Schemas](output-schemas.md)
-- [Regulatory Tables](regulatory-tables.md)
+- [Data Validation Guide](data-validation.md) - Validation rules and error handling
+- [Intermediate Schemas](intermediate-schemas.md) - Pipeline intermediate data
+- [Output Schemas](output-schemas.md) - Calculation results

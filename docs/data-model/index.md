@@ -21,11 +21,24 @@ Define the structure of data loaded from external sources:
   - Counterparty Schema
   - Facility Schema
   - Loan Schema
+  - Contingent Schema
   - Collateral Schema
   - Guarantee Schema
   - Provision Schema
   - Rating Schema
-  - Mapping Schemas
+  - Specialised Lending Schema
+  - Equity Exposure Schema
+  - Mapping Schemas (Facility, Org, Lending)
+
+### Data Validation
+
+Validation rules and troubleshooting:
+
+- [**Data Validation Guide**](data-validation.md)
+  - Schema Validation Functions
+  - Business Rule Validators
+  - Common Errors and Fixes
+  - Debugging Tips
 
 ### Intermediate Schemas
 
@@ -113,5 +126,6 @@ COUNTERPARTY_SCHEMA = {
 ## Next Steps
 
 - [Input Schemas](input-schemas.md) - Required input data formats
+- [Data Validation Guide](data-validation.md) - Validation and troubleshooting
 - [Output Schemas](output-schemas.md) - Result data formats
 - [Regulatory Tables](regulatory-tables.md) - Lookup table reference

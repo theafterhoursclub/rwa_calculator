@@ -20,11 +20,13 @@ Hierarchy Requirements:
 - Facility: facility_mapping with depth >= 2 (facility -> sub-facility -> loan)
 
 Parquet Caching:
-- Datasets can be saved to/loaded from parquet for faster benchmark runs
-- Use save_benchmark_dataset() and load_benchmark_dataset() functions
+- Datasets are cached to parquet files by default for fast benchmark runs
+- Use get_or_create_dataset() to load from cache or generate
+- Set force_regenerate=True to regenerate cached datasets
 - Default cache location: tests/benchmarks/data/
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -32,6 +34,9 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
+
+# Configure logger for benchmark data generation
+logger = logging.getLogger("rwa_calc.benchmarks")
 
 # Default directory for cached benchmark data
 BENCHMARK_DATA_DIR = Path(__file__).parent / "data"
@@ -1147,9 +1152,9 @@ def save_benchmark_dataset(
     for name, lf in dataset.items():
         file_path = dataset_path / f"{name}.parquet"
         lf.collect().write_parquet(file_path)
-        print(f"  Saved {name} to {file_path}")
+        logger.debug(f"Saved {name} to {file_path}")
 
-    print(f"Dataset saved to {dataset_path}")
+    logger.info(f"Benchmark dataset '{scale}' saved to {dataset_path}")
     return dataset_path
 
 
@@ -1170,6 +1175,7 @@ def load_benchmark_dataset(
     dataset_path = get_dataset_path(scale, data_dir)
 
     if not dataset_path.exists():
+        logger.debug(f"Cache directory {dataset_path} does not exist")
         return None
 
     expected_files = [
@@ -1187,7 +1193,7 @@ def load_benchmark_dataset(
     for name in expected_files:
         file_path = dataset_path / f"{name}.parquet"
         if not file_path.exists():
-            print(f"Missing {file_path}, will regenerate dataset")
+            logger.debug(f"Missing {file_path}, will regenerate dataset")
             return None
 
     # Load all files as LazyFrames
@@ -1196,6 +1202,7 @@ def load_benchmark_dataset(
         file_path = dataset_path / f"{name}.parquet"
         dataset[name] = pl.scan_parquet(file_path)
 
+    logger.debug(f"Loaded benchmark dataset '{scale}' from cache")
     return dataset
 
 
@@ -1209,6 +1216,10 @@ def get_or_create_dataset(
 ) -> dict[str, pl.LazyFrame]:
     """
     Load dataset from cache or generate if not available.
+
+    This is the primary function for benchmark tests. By default, it loads
+    cached datasets for fast test runs. Use force_regenerate=True to update
+    the cached datasets when the data generation logic changes.
 
     Args:
         scale: Scale identifier (e.g., "10k", "100k", "1m", "10m")
@@ -1224,17 +1235,17 @@ def get_or_create_dataset(
     if not force_regenerate:
         dataset = load_benchmark_dataset(scale, data_dir)
         if dataset is not None:
-            print(f"Loaded {scale} dataset from cache")
+            logger.debug(f"Using cached '{scale}' dataset")
             return dataset
 
-    print(f"Generating {scale} dataset ({n_counterparties:,} counterparties)...")
+    logger.info(f"Generating '{scale}' dataset ({n_counterparties:,} counterparties)...")
     dataset = generate_benchmark_dataset(
         n_counterparties=n_counterparties,
         hierarchy_depth=hierarchy_depth,
         seed=seed,
     )
 
-    print(f"Saving {scale} dataset to cache...")
+    logger.info(f"Caching '{scale}' dataset...")
     save_benchmark_dataset(dataset, scale, data_dir)
 
     return dataset
@@ -1252,6 +1263,6 @@ def clear_cached_datasets(data_dir: Path | None = None) -> None:
     base_dir = data_dir or BENCHMARK_DATA_DIR
     if base_dir.exists():
         shutil.rmtree(base_dir)
-        print(f"Cleared cached datasets from {base_dir}")
+        logger.info(f"Cleared cached datasets from {base_dir}")
     else:
-        print(f"No cached datasets found at {base_dir}")
+        logger.debug(f"No cached datasets found at {base_dir}")

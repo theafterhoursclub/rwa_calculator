@@ -294,6 +294,64 @@ Impact: IRB RWA is 6% higher under CRR compared to the base formula.
 
 The calculator implements the full credit risk framework for both regimes as adopted by the UK Prudential Regulation Authority (PRA). It supports both Standardised Approach (SA) and Internal Ratings-Based (IRB) approaches with full Credit Risk Mitigation (CRM) capabilities.
 
+---
+
+## Data Requirements
+
+To run an RWA calculation, you need to provide data files in Parquet or CSV format. The table below summarises the required inputs.
+
+### Required Data Files
+
+| Category | File | Required | Description |
+|----------|------|----------|-------------|
+| **Counterparties** | `counterparty/*.parquet` | Yes | Borrower/obligor information by entity type |
+| **Exposures** | `exposures/facilities.parquet` | Yes | Credit facilities (committed limits) |
+| | `exposures/loans.parquet` | Yes | Drawn loan exposures |
+| | `exposures/contingents.parquet` | No | Off-balance sheet commitments |
+| **CRM** | `collateral/collateral.parquet` | No | Collateral holdings |
+| | `guarantee/guarantee.parquet` | No | Guarantee protection |
+| | `provision/provision.parquet` | No | IFRS 9 provisions |
+| **Ratings** | `ratings/ratings.parquet` | No | Internal/external credit ratings |
+| **Mappings** | `mapping/org_mapping.parquet` | No | Organisation hierarchy (rating inheritance) |
+| | `mapping/lending_mapping.parquet` | No | Lending groups (retail threshold) |
+| | `exposures/facility_mapping.parquet` | No | Facility-to-loan hierarchy |
+
+### Key Fields Summary
+
+**Counterparty** (minimum required fields):
+- `counterparty_reference` - Unique identifier
+- `entity_type` - `corporate`, `sovereign`, `institution`, `individual`, etc.
+- `country_code` - ISO 3166-1 alpha-2 code
+
+**Facility** (minimum required fields):
+- `facility_reference` - Unique identifier
+- `counterparty_reference` - Link to counterparty
+- `product_type` - Product classification
+- `limit` - Committed amount
+- `currency` - ISO 4217 currency code
+- `maturity_date` - Final maturity
+
+**Loan** (minimum required fields):
+- `loan_reference` - Unique identifier
+- `counterparty_reference` - Link to counterparty
+- `drawn_amount` - Outstanding balance
+- `currency` - ISO 4217 currency code
+
+### Data Formats
+
+- **Parquet** (recommended): Best performance with Polars lazy evaluation
+- **CSV**: Supported via `CSVLoader`
+
+### Documentation
+
+For complete schema definitions including all fields, types, and valid enum values:
+
+- **[Input Schemas](docs/data-model/input-schemas.md)** - Complete field-by-field documentation
+- **[Data Validation Guide](docs/data-model/data-validation.md)** - Validation rules and troubleshooting
+- **[Data Flow](docs/architecture/data-flow.md)** - How data flows through the pipeline
+
+---
+
 ### Key Features
 
 - **Dual Regulatory Compliance**: Full support for UK CRR (Basel 3.0) and PRA PS9/24 (Basel 3.1) with UK-specific deviations
