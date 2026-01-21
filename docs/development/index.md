@@ -24,8 +24,8 @@ The development guide covers:
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/repo-branch-docs.git
-cd repo-branch-docs
+git clone https://github.com/theafterhoursclub/rwa_calculator.git
+cd rwa_calculator
 
 # Install with development dependencies
 uv sync --all-extras

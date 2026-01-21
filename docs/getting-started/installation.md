@@ -30,8 +30,8 @@ This guide covers how to install the UK Credit Risk RWA Calculator and its depen
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/repo-branch-docs.git
-cd repo-branch-docs
+git clone https://github.com/theafterhoursclub/rwa_calculator.git
+cd rwa_calculator
 
 # Install dependencies with uv
 uv sync
@@ -46,8 +46,8 @@ If you prefer pip, you can install using:
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/repo-branch-docs.git
-cd repo-branch-docs
+git clone https://github.com/theafterhoursclub/rwa_calculator.git
+cd rwa_calculator
 
 # Create a virtual environment
 python -m venv .venv
@@ -120,7 +120,7 @@ tests/contracts/test_bundles.py::TestRawDataBundle ...
 After installation, your project structure should look like:
 
 ```
-repo-branch-docs/
+rwa_calculator/
 ├── src/
 │   └── rwa_calc/           # Main source code
 │       ├── config/         # Configuration (FX rates)

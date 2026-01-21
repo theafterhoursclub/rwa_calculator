@@ -1,7 +1,7 @@
 site_name: UK Credit Risk RWA Calculator
 site_description: Documentation for the UK Credit Risk RWA Calculator - supporting CRR and Basel 3.1 frameworks
 site_author: theafterhoursclub
-repo_url: https://github.com/theafterhoursclub/repo-branch-docs
+repo_url: https://github.com/theafterhoursclub/rwa_calculator
 
 theme:
   name: material
@@ -77,7 +77,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/theafterhoursclub/repo-branch-docs
+      link: https://github.com/theafterhoursclub/rwa_calculator
 
 nav:
   - Home: index.md
@@ -117,6 +117,7 @@ nav:
   - Data Model:
     - data-model/index.md
     - Input Schemas: data-model/input-schemas.md
+    - Data Validation: data-model/data-validation.md
     - Intermediate Schemas: data-model/intermediate-schemas.md
     - Output Schemas: data-model/output-schemas.md
     - Regulatory Tables: data-model/regulatory-tables.md
