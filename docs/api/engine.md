@@ -238,6 +238,133 @@ class IRBCalculator:
         """
 ```
 
+### Module: `rwa_calc.engine.irb.namespace`
+
+The IRB module provides Polars namespace extensions for fluent, chainable IRB calculations.
+
+#### IRBLazyFrame Namespace
+
+```python
+@pl.api.register_lazyframe_namespace("irb")
+class IRBLazyFrame:
+    """LazyFrame namespace for IRB calculations."""
+
+    def classify_approach(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Classify exposures as F-IRB or A-IRB.
+
+        Adds columns:
+        - approach: "F-IRB" or "A-IRB"
+        - is_airb: Boolean flag
+        """
+
+    def apply_firb_lgd(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Apply supervisory LGD for F-IRB exposures.
+
+        F-IRB supervisory LGD values:
+        - Senior unsecured: 45%
+        - Subordinated: 75%
+        - Financial collateral: 0%
+        - Other secured: 35-40%
+        """
+
+    def prepare_columns(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Ensure required columns exist with defaults.
+
+        Sets defaults for missing columns:
+        - pd: 0.01 (1%)
+        - lgd: 0.45 (45%)
+        - maturity: 2.5 years
+        - exposure_class: "CORPORATE"
+        """
+
+    def apply_all_formulas(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Apply complete IRB calculation pipeline.
+
+        Chains: apply_pd_floor -> apply_lgd_floor -> calculate_correlation
+        -> calculate_k -> calculate_maturity_adjustment -> calculate_rwa
+        -> calculate_expected_loss
+        """
+
+    def apply_pd_floor(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Apply PD floor based on framework (0.03% CRR, 0.05% Basel 3.1)."""
+
+    def apply_lgd_floor(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Apply LGD floor (Basel 3.1 A-IRB only)."""
+
+    def calculate_correlation(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Calculate asset correlation with SME adjustment."""
+
+    def calculate_k(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Calculate capital requirement K using IRB formula."""
+
+    def calculate_maturity_adjustment(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Calculate maturity adjustment (non-retail only)."""
+
+    def calculate_rwa(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Calculate RWA = K × 12.5 × EAD × MA × [1.06]."""
+
+    def calculate_expected_loss(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Calculate expected loss = PD × LGD × EAD."""
+
+    def select_expected_loss(self) -> pl.LazyFrame:
+        """Select expected loss columns for output."""
+
+    def build_audit(self) -> pl.LazyFrame:
+        """Build audit trail with intermediate calculation values."""
+```
+
+**Usage Example:**
+
+```python
+import polars as pl
+from datetime import date
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.irb.namespace  # Registers namespace
+
+config = CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+# Fluent IRB calculation pipeline
+result = (
+    exposures
+    .irb.classify_approach(config)
+    .irb.apply_firb_lgd(config)
+    .irb.prepare_columns(config)
+    .irb.apply_all_formulas(config)
+    .collect()
+)
+```
+
+#### IRBExpr Namespace
+
+```python
+@pl.api.register_expr_namespace("irb")
+class IRBExpr:
+    """Expression namespace for column-level IRB operations."""
+
+    def floor_pd(self, floor_value: float) -> pl.Expr:
+        """Floor PD values to minimum."""
+
+    def floor_lgd(self, floor_value: float) -> pl.Expr:
+        """Floor LGD values to minimum."""
+
+    def clip_maturity(self, floor: float = 1.0, cap: float = 5.0) -> pl.Expr:
+        """Clip maturity to regulatory bounds [1, 5] years."""
+```
+
+**Usage Example:**
+
+```python
+# Use expression namespace directly
+result = lf.with_columns(
+    pl.col("pd").irb.floor_pd(0.0003),
+    pl.col("maturity").irb.clip_maturity(1.0, 5.0),
+)
+```
+
 ### Module: `rwa_calc.engine.irb.formulas`
 
 ```python

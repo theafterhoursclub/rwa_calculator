@@ -304,6 +304,169 @@ class TestNewTable:
             lookup_new_table("UNKNOWN")
 ```
 
+## Using Polars Namespaces
+
+The calculator uses Polars namespace extensions to provide fluent, chainable APIs for complex calculations. The IRB module demonstrates this pattern.
+
+### Using Existing Namespaces
+
+```python
+import polars as pl
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.irb.namespace  # Registers .irb namespace
+
+config = CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+# Fluent calculation pipeline
+result = (
+    exposures
+    .irb.classify_approach(config)
+    .irb.apply_firb_lgd(config)
+    .irb.prepare_columns(config)
+    .irb.apply_all_formulas(config)
+)
+```
+
+### Creating a New Namespace
+
+To add a new calculation namespace (e.g., for a custom approach):
+
+#### Step 1: Create Namespace Module
+
+```python
+# src/rwa_calc/engine/custom/namespace.py
+
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import polars as pl
+
+if TYPE_CHECKING:
+    from rwa_calc.contracts.config import CalculationConfig
+
+
+@pl.api.register_lazyframe_namespace("custom")
+class CustomLazyFrame:
+    """LazyFrame namespace for custom calculations."""
+
+    def __init__(self, lf: pl.LazyFrame) -> None:
+        self._lf = lf
+
+    def apply_custom_formula(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Apply custom calculation formula."""
+        return self._lf.with_columns(
+            (pl.col("ead") * pl.col("risk_weight")).alias("rwa")
+        )
+
+    def validate_inputs(self, config: CalculationConfig) -> pl.LazyFrame:
+        """Validate required columns exist."""
+        schema = self._lf.collect_schema()
+        required = ["ead", "risk_weight"]
+        missing = [col for col in required if col not in schema.names()]
+        if missing:
+            raise ValueError(f"Missing columns: {missing}")
+        return self._lf
+
+
+@pl.api.register_expr_namespace("custom")
+class CustomExpr:
+    """Expression namespace for column-level custom operations."""
+
+    def __init__(self, expr: pl.Expr) -> None:
+        self._expr = expr
+
+    def apply_factor(self, factor: float) -> pl.Expr:
+        """Apply a multiplication factor."""
+        return self._expr * factor
+```
+
+#### Step 2: Register in `__init__.py`
+
+```python
+# src/rwa_calc/engine/custom/__init__.py
+
+# Import to register namespace on module load
+import rwa_calc.engine.custom.namespace  # noqa: F401
+
+from rwa_calc.engine.custom.namespace import CustomLazyFrame, CustomExpr
+
+__all__ = ["CustomLazyFrame", "CustomExpr"]
+```
+
+#### Step 3: Use Vectorized NumPy for Performance
+
+For computationally intensive formulas, use `map_batches` with NumPy:
+
+```python
+import numpy as np
+from scipy import special
+
+def _numpy_custom_formula(values: np.ndarray) -> np.ndarray:
+    """Vectorized calculation using NumPy/SciPy."""
+    return special.ndtr(values)  # Example: normal CDF
+
+def apply_custom_formula(self, config: CalculationConfig) -> pl.LazyFrame:
+    """Apply custom calculation using NumPy for performance."""
+    def calc_batch(series: pl.Series) -> pl.Series:
+        arr = series.to_numpy()
+        result = _numpy_custom_formula(arr)
+        return pl.Series(result)
+
+    return self._lf.with_columns(
+        pl.col("input_value")
+        .map_batches(calc_batch, return_dtype=pl.Float64)
+        .alias("output_value")
+    )
+```
+
+#### Step 4: Add Tests
+
+```python
+# tests/unit/test_custom_namespace.py
+
+import polars as pl
+import pytest
+from datetime import date
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.custom.namespace  # Register namespace
+
+
+class TestCustomNamespace:
+    @pytest.fixture
+    def config(self):
+        return CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+    def test_namespace_registered(self):
+        """Custom namespace is available on LazyFrame."""
+        lf = pl.LazyFrame({"a": [1]})
+        assert hasattr(lf, "custom")
+
+    def test_apply_custom_formula(self, config):
+        """Custom formula produces expected results."""
+        lf = pl.LazyFrame({"ead": [1000.0], "risk_weight": [0.5]})
+        result = lf.custom.apply_custom_formula(config).collect()
+        assert result["rwa"][0] == 500.0
+
+    def test_method_chaining(self, config):
+        """Methods can be chained fluently."""
+        lf = pl.LazyFrame({"ead": [1000.0], "risk_weight": [0.5]})
+        result = (
+            lf
+            .custom.validate_inputs(config)
+            .custom.apply_custom_formula(config)
+            .collect()
+        )
+        assert "rwa" in result.columns
+```
+
+### Namespace Design Guidelines
+
+1. **Return `pl.LazyFrame`** from all LazyFrame namespace methods for chaining
+2. **Accept `CalculationConfig`** to handle framework-specific logic
+3. **Use `map_batches`** with NumPy for vectorized performance
+4. **Check column existence** before operations using `collect_schema()`
+5. **Provide sensible defaults** for optional columns
+6. **Document added columns** in method docstrings
+
 ## Best Practices
 
 ### 1. Follow Existing Patterns

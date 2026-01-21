@@ -344,74 +344,61 @@ class IRBCalculatorProtocol(Protocol):
 
 ### Implementation
 
+The IRB Calculator uses a Polars namespace extension (`IRBLazyFrame`) for fluent, chainable calculations:
+
 ```python
 class IRBCalculator:
     """Calculate IRB RWA using K formula."""
 
-    def calculate(
+    def get_irb_result_bundle(
         self,
-        exposures: pl.LazyFrame,
+        data: CRMAdjustedBundle,
         config: CalculationConfig
     ) -> IRBResultBundle:
-        result = (
-            exposures
-            # Apply PD floor
-            .with_columns(
-                pd=pl.max_horizontal(
-                    pl.col("pd"),
-                    self._get_pd_floor(pl.col("exposure_class"), config)
-                )
-            )
-            # Apply LGD floor (A-IRB, Basel 3.1)
-            .with_columns(
-                lgd=self._apply_lgd_floor(
-                    pl.col("lgd"),
-                    pl.col("collateral_type"),
-                    config
-                )
-            )
-            # Calculate correlation
-            .with_columns(
-                correlation=self._calculate_correlation(
-                    pl.col("exposure_class"),
-                    pl.col("pd"),
-                    pl.col("turnover")
-                )
-            )
-            # Calculate K
-            .with_columns(
-                k=self._calculate_k(
-                    pl.col("pd"),
-                    pl.col("lgd"),
-                    pl.col("correlation")
-                )
-            )
-            # Calculate maturity adjustment
-            .with_columns(
-                ma=self._calculate_maturity_adjustment(
-                    pl.col("pd"),
-                    pl.col("effective_maturity")
-                )
-            )
-            # Calculate RWA
-            .with_columns(
-                rwa=pl.col("k") * 12.5 * pl.col("ead") * pl.col("ma") *
-                    config.scaling_factor
-            )
-            # Calculate expected loss
-            .with_columns(
-                expected_loss=pl.col("pd") * pl.col("lgd") * pl.col("ead")
-            )
+        # Apply IRB calculations using namespace for fluent pipeline
+        exposures = (data.irb_exposures
+            .irb.classify_approach(config)   # Determine F-IRB vs A-IRB
+            .irb.apply_firb_lgd(config)      # Apply supervisory LGD for F-IRB
+            .irb.prepare_columns(config)     # Ensure required columns exist
+            .irb.apply_all_formulas(config)  # Run full IRB calculation
         )
 
-        return IRBResultBundle(data=result)
+        # Apply supporting factors (CRR only - Art. 501)
+        exposures = self._apply_supporting_factors(exposures, config)
+
+        return IRBResultBundle(
+            results=exposures,
+            expected_loss=exposures.irb.select_expected_loss(),
+            calculation_audit=exposures.irb.build_audit(),
+            errors=[],
+        )
 ```
+
+### IRB Namespace
+
+The `.irb` namespace provides chainable methods for each calculation step:
+
+| Method | Description |
+|--------|-------------|
+| `classify_approach(config)` | Classify as F-IRB or A-IRB |
+| `apply_firb_lgd(config)` | Apply supervisory LGD for F-IRB |
+| `prepare_columns(config)` | Ensure required columns exist |
+| `apply_pd_floor(config)` | Apply PD floor (0.03% CRR, 0.05% Basel 3.1) |
+| `apply_lgd_floor(config)` | Apply LGD floor (Basel 3.1 A-IRB only) |
+| `calculate_correlation(config)` | Calculate asset correlation with SME adjustment |
+| `calculate_k(config)` | Calculate capital requirement K |
+| `calculate_maturity_adjustment(config)` | Calculate maturity adjustment |
+| `calculate_rwa(config)` | Calculate RWA |
+| `calculate_expected_loss(config)` | Calculate expected loss |
+| `apply_all_formulas(config)` | Run complete calculation pipeline |
 
 ### Key Features
 
+- **Fluent API**: Namespace enables readable, chainable method calls
+- **NumPy/SciPy performance**: Vectorized batch calculations via `map_batches`
 - PD and LGD floor application
 - Correlation calculation with SME adjustment
-- K formula implementation
+- K formula implementation (scipy.special.ndtr for normal CDF)
 - Maturity adjustment
 - Expected loss calculation
 - CRR 1.06 scaling factor

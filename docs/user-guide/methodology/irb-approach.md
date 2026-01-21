@@ -279,6 +279,60 @@ RWA_final = max(33,154,688, 36,250,000) = £36,250,000
 
 ## Implementation
 
+### Using the IRB Namespace (Recommended)
+
+The IRB module provides a Polars namespace extension for fluent, chainable calculations:
+
+```python
+import polars as pl
+from datetime import date
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.irb.namespace  # Registers .irb namespace
+
+config = CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+# Create sample exposure data
+exposures = pl.LazyFrame({
+    "exposure_reference": ["EXP001"],
+    "pd": [0.005],
+    "lgd": [0.45],
+    "ead_final": [50_000_000.0],
+    "maturity": [3.0],
+    "exposure_class": ["CORPORATE"],
+    "turnover_m": [25.0],  # Annual turnover in millions
+})
+
+# Fluent IRB calculation pipeline
+result = (
+    exposures
+    .irb.classify_approach(config)   # Determine F-IRB vs A-IRB
+    .irb.apply_firb_lgd(config)      # Apply supervisory LGD for F-IRB
+    .irb.prepare_columns(config)     # Ensure required columns exist
+    .irb.apply_all_formulas(config)  # Run full IRB calculation
+    .collect()
+)
+
+# Access results
+print(result.select([
+    "pd_floored", "correlation", "k", "maturity_adjustment", "rwa", "expected_loss"
+]))
+```
+
+**Individual formula steps** can also be chained:
+
+```python
+result = (
+    exposures
+    .irb.apply_pd_floor(config)
+    .irb.apply_lgd_floor(config)
+    .irb.calculate_correlation(config)
+    .irb.calculate_k(config)
+    .irb.calculate_maturity_adjustment(config)
+    .irb.calculate_rwa(config)
+    .irb.calculate_expected_loss(config)
+)
+```
+
 ### Using the IRB Calculator
 
 ```python

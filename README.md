@@ -298,6 +298,7 @@ The calculator implements the full credit risk framework for both regimes as ado
 
 - **Dual Regulatory Compliance**: Full support for UK CRR (Basel 3.0) and PRA PS9/24 (Basel 3.1) with UK-specific deviations
 - **High Performance**: Polars-native vectorized calculations - no row-by-row iteration - utilising LazyFrame optimisations
+- **Fluent API**: Polars namespace extensions (`.irb`) for readable, chainable IRB calculations
 - **Dual Approach Support**: Both Standardised (SA) and IRB (F-IRB & A-IRB) approaches
 - **Complete CRM**: Collateral at counterparty/facility/loan level with supervisory haircuts and RWA-optimized allocation
 - **Provisions/Impairments**: Full IFRS 9 ECL integration with EL comparison for IRB
@@ -341,7 +342,8 @@ rwa_calculator/
 │   │   │   └── supporting_factors.py   # SME & infrastructure factors (CRR)
 │   │   ├── irb/                        # IRB Approach
 │   │   │   ├── calculator.py           # IRBCalculator
-│   │   │   └── formulas.py             # K, correlation, maturity adjustment
+│   │   │   ├── formulas.py             # K, correlation, maturity adjustment
+│   │   │   └── namespace.py            # IRBLazyFrame & IRBExpr Polars namespaces
 │   │   └── slotting/                   # Specialised Lending
 │   │       └── calculator.py           # SlottingCalculator
 │   ├── api/                            # API layer
@@ -770,6 +772,28 @@ Where:
 - `LGD` = Loss Given Default
 
 Risk Weight = K x 12.5 (x 1.06 for CRR)
+
+### Using the IRB Namespace
+
+The IRB module provides a Polars namespace for fluent calculations:
+
+```python
+import polars as pl
+from datetime import date
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.irb.namespace  # Registers .irb namespace
+
+config = CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+result = (
+    exposures
+    .irb.classify_approach(config)   # Determine F-IRB vs A-IRB
+    .irb.apply_firb_lgd(config)      # Apply supervisory LGD
+    .irb.prepare_columns(config)     # Set defaults
+    .irb.apply_all_formulas(config)  # Run IRB calculation
+    .collect()
+)
+```
 
 ### Asset Correlation (R) by Exposure Class
 

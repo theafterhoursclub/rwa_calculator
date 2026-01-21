@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### IRB Namespace Extension
+- **`IRBLazyFrame` namespace**: Polars LazyFrame namespace (`.irb`) for fluent, chainable IRB calculations
+- **`IRBExpr` namespace**: Polars expression namespace for column-level IRB operations
+- Namespace methods for each calculation step: `classify_approach`, `apply_firb_lgd`, `prepare_columns`, `apply_pd_floor`, `apply_lgd_floor`, `calculate_correlation`, `calculate_k`, `calculate_maturity_adjustment`, `calculate_rwa`, `calculate_expected_loss`
+- `apply_all_formulas` convenience method for complete IRB calculation pipeline
+- `select_expected_loss` and `build_audit` for output generation
+- Expression methods: `floor_pd`, `floor_lgd`, `clip_maturity`
+- 33 unit tests for namespace functionality
+
+### Changed
+- **IRBCalculator refactored** to use namespace-based fluent API instead of private methods
+- Improved code readability with chainable method calls
+
 ### Planned
 - Basel 3.1 full implementation
 - Output floor calculation

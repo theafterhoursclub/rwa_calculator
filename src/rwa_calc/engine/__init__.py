@@ -21,12 +21,31 @@ Subpackages:
     sa: Standardised Approach calculator
     irb: IRB approach calculator
     slotting: Specialised lending slotting calculator
+
+Polars Namespaces:
+    All namespaces are registered when their parent modules are imported.
+    - lf.sa: Standardised Approach calculations
+    - lf.irb: IRB approach calculations
+    - lf.crm: Credit Risk Mitigation
+    - lf.haircuts: Collateral haircuts
+    - lf.slotting: Specialised lending slotting
+    - lf.hierarchy: Hierarchy resolution
+    - lf.aggregator: Result aggregation
+    - lf.audit: Audit trail formatting
 """
+
+# Import namespace modules to register namespaces on module load
+import rwa_calc.engine.hierarchy_namespace  # noqa: F401
+import rwa_calc.engine.aggregator_namespace  # noqa: F401
+import rwa_calc.engine.audit_namespace  # noqa: F401
 
 from .loader import ParquetLoader, CSVLoader
 from .hierarchy import HierarchyResolver, create_hierarchy_resolver
 from .aggregator import OutputAggregator, create_output_aggregator
 from .pipeline import PipelineOrchestrator, create_pipeline, create_test_pipeline
+from .hierarchy_namespace import HierarchyLazyFrame
+from .aggregator_namespace import AggregatorLazyFrame
+from .audit_namespace import AuditLazyFrame, AuditExpr
 
 __all__ = [
     "ParquetLoader",
@@ -38,4 +57,9 @@ __all__ = [
     "PipelineOrchestrator",
     "create_pipeline",
     "create_test_pipeline",
+    # Namespace classes
+    "HierarchyLazyFrame",
+    "AggregatorLazyFrame",
+    "AuditLazyFrame",
+    "AuditExpr",
 ]
