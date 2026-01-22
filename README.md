@@ -2,11 +2,11 @@
 
 # UK Credit Risk RWA Calculator
 
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://theafterhoursclub.github.io/rwa_calculator/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://OpenAfterHours.github.io/rwa_calculator/)
 
 A high-performance Risk-Weighted Assets (RWA) calculator for UK credit risk, supporting both current regulations and future Basel 3.1 implementation. Built with Python using Polars for vectorized performance.
 
-**Documentation:** [https://theafterhoursclub.github.io/rwa_calculator/](https://theafterhoursclub.github.io/rwa_calculator/)
+**Documentation:** [https://OpenAfterHours.github.io/rwa_calculator/](https://OpenAfterHours.github.io/rwa_calculator/)
 
 ## Regulatory Scope
 

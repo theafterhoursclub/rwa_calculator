@@ -30,7 +30,7 @@ This guide covers how to install the UK Credit Risk RWA Calculator and its depen
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/rwa_calculator.git
+git clone https://github.com/OpenAfterHours/rwa_calculator.git
 cd rwa_calculator
 
 # Install dependencies with uv
@@ -46,7 +46,7 @@ If you prefer pip, you can install using:
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/rwa_calculator.git
+git clone https://github.com/OpenAfterHours/rwa_calculator.git
 cd rwa_calculator
 
 # Create a virtual environment

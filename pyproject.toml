@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = {text = "MIT"}
 authors = [
-    {name = "theafterhoursclub"}
+    {name = "OpenAfterHours"}
 ]
 keywords = ["basel", "rwa", "credit-risk", "pra", "regulatory", "capital"]
 classifiers = [

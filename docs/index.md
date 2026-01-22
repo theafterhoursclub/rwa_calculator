@@ -2,9 +2,9 @@
 
 Welcome to the documentation for the **UK Credit Risk RWA Calculator** - a high-performance, production-ready system for calculating Risk-Weighted Assets (RWA) for UK credit risk exposures.
 
-**Documentation:** [https://theafterhoursclub.github.io/rwa_calculator/](https://theafterhoursclub.github.io/rwa_calculator/)
+**Documentation:** [https://OpenAfterHours.github.io/rwa_calculator/](https://OpenAfterHours.github.io/rwa_calculator/)
 
-**Source Code:** [https://github.com/theafterhoursclub/rwa_calculator](https://github.com/theafterhoursclub/rwa_calculator)
+**Source Code:** [https://github.com/OpenAfterHours/rwa_calculator](https://github.com/OpenAfterHours/rwa_calculator)
 
 ## Overview
 

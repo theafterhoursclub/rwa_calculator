@@ -24,7 +24,7 @@ The development guide covers:
 
 ```bash
 # Clone the repository
-git clone https://github.com/theafterhoursclub/rwa_calculator.git
+git clone https://github.com/OpenAfterHours/rwa_calculator.git
 cd rwa_calculator
 
 # Install with development dependencies
