@@ -9,3 +9,5 @@ site
 tests/benchmarks/data/
 *.csvsite/ 
 site/
+.pypirc
+dist/

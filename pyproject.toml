@@ -24,14 +24,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Typing :: Typed",
 ]
-
-[project.urls]
-Homepage = "https://github.com/OpenAfterHours/rwa_calculator"
-Documentation = "https://OpenAfterHours.github.io/rwa_calculator/"
-Repository = "https://github.com/OpenAfterHours/rwa_calculator.git"
-Issues = "https://github.com/OpenAfterHours/rwa_calculator/issues"
-Changelog = "https://github.com/OpenAfterHours/rwa_calculator/blob/master/docs/appendix/changelog.md"
-
 dependencies = [
     "polars>=1.0.0",
     "pydantic>=2.0.0",
@@ -41,6 +33,13 @@ dependencies = [
     "pyarrow>=14.0.0",
     "pyyaml>=6.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/OpenAfterHours/rwa_calculator"
+Documentation = "https://OpenAfterHours.github.io/rwa_calculator/"
+Repository = "https://github.com/OpenAfterHours/rwa_calculator.git"
+Issues = "https://github.com/OpenAfterHours/rwa_calculator/issues"
+Changelog = "https://github.com/OpenAfterHours/rwa_calculator/blob/master/docs/appendix/changelog.md"
 
 [project.optional-dependencies]
 ui = [
@@ -57,8 +56,6 @@ dev = [
     "mkdocs-material>=9.5.0",
     "mkdocs-mermaid2-plugin>=1.1.0",
     "mkdocstrings[python]>=0.24.0",
-    "build>=1.0.0",
-    "twine>=5.0.0",
 ]
 all = [
     "rwa-calc[ui,dev]",
