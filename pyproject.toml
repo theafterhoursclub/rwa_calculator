@@ -8,36 +8,60 @@ license = {text = "Apache-2.0"}
 authors = [
     {name = "OpenAfterHours"}
 ]
-keywords = ["basel", "rwa", "credit-risk", "pra", "regulatory", "capital"]
+maintainers = [
+    {name = "OpenAfterHours"}
+]
+keywords = ["basel", "rwa", "credit-risk", "pra", "regulatory", "capital", "banking", "risk-management", "polars"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
 ]
 
+[project.urls]
+Homepage = "https://github.com/OpenAfterHours/rwa_calculator"
+Documentation = "https://OpenAfterHours.github.io/rwa_calculator/"
+Repository = "https://github.com/OpenAfterHours/rwa_calculator.git"
+Issues = "https://github.com/OpenAfterHours/rwa_calculator/issues"
+Changelog = "https://github.com/OpenAfterHours/rwa_calculator/blob/master/docs/appendix/changelog.md"
+
 dependencies = [
-    "polars",
-    "pydantic",
-    "marimo",
-    "scipy",
-    "numpy",
-    "duckdb",
-    "pyarrow",
-    "pyyaml",
-    "pytest",
-    "uvicorn",
+    "polars>=1.0.0",
+    "pydantic>=2.0.0",
+    "scipy>=1.11.0",
+    "numpy>=1.26.0",
+    "duckdb>=0.9.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
+ui = [
+    "marimo>=0.5.0",
+    "uvicorn>=0.27.0",
+]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-benchmark",
-    "ruff",
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocs-mermaid2-plugin",
-    "mkdocstrings[python]",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0",
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+    "mkdocstrings[python]>=0.24.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
+]
+all = [
+    "rwa-calc[ui,dev]",
 ]
 
 [build-system]
