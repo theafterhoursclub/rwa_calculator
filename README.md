@@ -8,6 +8,19 @@ A high-performance Risk-Weighted Assets (RWA) calculator for UK credit risk, sup
 
 **Documentation:** [https://OpenAfterHours.github.io/rwa_calculator/](https://OpenAfterHours.github.io/rwa_calculator/)
 
+## Installation
+
+```bash
+# Install from PyPI
+pip install rwa-calc
+
+# Or with uv
+uv add rwa-calc
+
+# With optional UI dependencies (Marimo workbooks)
+pip install rwa-calc[ui]
+```
+
 ## Regulatory Scope
 
 This calculator supports two regulatory regimes:

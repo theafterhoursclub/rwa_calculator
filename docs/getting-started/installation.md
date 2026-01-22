@@ -8,7 +8,37 @@ This guide covers how to install the UK Credit Risk RWA Calculator and its depen
 - **Operating System**: Windows, macOS, or Linux
 - **Package Manager**: uv (recommended) or pip
 
-## Installation with uv (Recommended)
+## Install from PyPI (Recommended)
+
+The simplest way to install the calculator:
+
+=== "pip"
+
+    ```bash
+    pip install rwa-calc
+    ```
+
+=== "uv"
+
+    ```bash
+    uv add rwa-calc
+    ```
+
+### Optional Dependencies
+
+Install with UI support for Marimo workbooks:
+
+```bash
+pip install rwa-calc[ui]
+```
+
+---
+
+## Install from Source
+
+For development or to get the latest unreleased changes, install from the GitHub repository.
+
+### Installation with uv (Recommended)
 
 [uv](https://docs.astral.sh/uv/) is the recommended package manager for this project due to its speed and reliability.
 
