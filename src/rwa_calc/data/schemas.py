@@ -210,6 +210,17 @@ EQUITY_EXPOSURE_SCHEMA = {
 
 
 # =============================================================================
+# FX RATES SCHEMA
+# =============================================================================
+
+FX_RATES_SCHEMA = {
+    "currency_from": pl.String,   # Source currency (e.g., "USD")
+    "currency_to": pl.String,     # Target currency (e.g., "GBP")
+    "rate": pl.Float64,           # Multiply source amount by rate to get target amount
+}
+
+
+# =============================================================================
 # MAPPING SCHEMAS
 # =============================================================================
 
@@ -331,6 +342,10 @@ RAW_EXPOSURE_SCHEMA = {
     "seniority": pl.String,  # senior, subordinated
     "commitment_type": pl.String,  # For CCF determination
     "ccf_category": pl.String,  # CCF lookup category
+    # FX conversion audit trail (populated after FX conversion)
+    "original_currency": pl.String,       # Currency before FX conversion
+    "original_amount": pl.Float64,        # Amount before FX conversion (drawn + nominal)
+    "fx_rate_applied": pl.Float64,        # Rate used (null if no conversion needed)
 }
 
 # Schema for exposures after hierarchy resolution

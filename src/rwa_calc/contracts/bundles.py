@@ -50,6 +50,7 @@ class RawDataBundle:
         lending_mappings: Lending group mappings (for retail aggregation)
         specialised_lending: Specialised lending metadata (slotting)
         equity_exposures: Equity exposure details
+        fx_rates: FX rates for currency conversion (optional)
     """
 
     facilities: pl.LazyFrame
@@ -65,6 +66,7 @@ class RawDataBundle:
     lending_mappings: pl.LazyFrame
     specialised_lending: pl.LazyFrame | None = None
     equity_exposures: pl.LazyFrame | None = None
+    fx_rates: pl.LazyFrame | None = None
 
 
 @dataclass(frozen=True)
@@ -297,6 +299,7 @@ def create_empty_raw_data_bundle() -> RawDataBundle:
         facility_mappings=pl.LazyFrame(),
         org_mappings=pl.LazyFrame(),
         lending_mappings=pl.LazyFrame(),
+        fx_rates=None,
     )
 
 

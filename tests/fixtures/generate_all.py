@@ -56,6 +56,7 @@ def generate_all_fixtures(fixtures_dir: Path) -> list[FixtureGroupResult]:
         ("Collateral", "collateral", _generate_collateral),
         ("Guarantees", "guarantee", _generate_guarantees),
         ("Provisions", "provision", _generate_provisions),
+        ("FX Rates", "fx_rates", _generate_fx_rates),
     ]
 
     for group_name, subdir, generator_func in generators:
@@ -195,6 +196,19 @@ def _generate_provisions(output_dir: Path) -> list[tuple[str, int]]:
         df = create_provisions()
         save_provisions(output_dir)
         return [("provision.parquet", len(df))]
+    finally:
+        sys.path.remove(str(output_dir))
+
+
+def _generate_fx_rates(output_dir: Path) -> list[tuple[str, int]]:
+    """Generate FX rates fixtures."""
+    sys.path.insert(0, str(output_dir))
+    try:
+        from fx_rates import create_fx_rates, save_fx_rates
+
+        df = create_fx_rates()
+        save_fx_rates(output_dir)
+        return [("fx_rates.parquet", len(df))]
     finally:
         sys.path.remove(str(output_dir))
 

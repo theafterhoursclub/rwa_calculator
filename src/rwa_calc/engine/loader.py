@@ -54,6 +54,7 @@ class DataSourceConfig:
         lending_mappings_file: Path to lending group mappings
         specialised_lending_file: Optional path to specialised lending data
         equity_exposures_file: Optional path to equity exposure data
+        fx_rates_file: Optional path to FX rates data for currency conversion
     """
 
     counterparty_files: list[str] = field(default_factory=lambda: [
@@ -74,6 +75,7 @@ class DataSourceConfig:
     lending_mappings_file: str = "mapping/lending_mapping.parquet"
     specialised_lending_file: str | None = "counterparty/specialised_lending.parquet"
     equity_exposures_file: str | None = None
+    fx_rates_file: str | None = "fx_rates/fx_rates.parquet"
 
 
 class DataLoadError(Exception):
@@ -219,6 +221,9 @@ class ParquetLoader:
             equity_exposures=self._load_parquet_optional(
                 self.config.equity_exposures_file
             ),
+            fx_rates=self._load_parquet_optional(
+                self.config.fx_rates_file
+            ),
         )
 
 
@@ -276,6 +281,7 @@ class CSVLoader:
             lending_mappings_file="mapping/lending_mapping.csv",
             specialised_lending_file="counterparty/specialised_lending.csv",
             equity_exposures_file=None,
+            fx_rates_file="fx_rates/fx_rates.csv",
         )
 
     def _load_csv(self, relative_path: str) -> pl.LazyFrame:
@@ -373,6 +379,9 @@ class CSVLoader:
             ),
             equity_exposures=self._load_csv_optional(
                 self.config.equity_exposures_file
+            ),
+            fx_rates=self._load_csv_optional(
+                self.config.fx_rates_file
             ),
         )
 

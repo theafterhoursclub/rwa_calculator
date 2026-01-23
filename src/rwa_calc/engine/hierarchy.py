@@ -28,6 +28,7 @@ from rwa_calc.contracts.bundles import (
     RawDataBundle,
     ResolvedHierarchyBundle,
 )
+from rwa_calc.engine.fx_converter import FXConverter
 
 if TYPE_CHECKING:
     from rwa_calc.contracts.config import CalculationConfig
@@ -90,8 +91,28 @@ class HierarchyResolver:
         )
         errors.extend(exp_errors)
 
+        # Step 2a: Apply FX conversion to exposures and CRM data
+        # This enables threshold calculations in consistent currency
+        fx_converter = FXConverter()
+        collateral = data.collateral
+        guarantees = data.guarantees
+        provisions = data.provisions
+
+        if config.apply_fx_conversion and data.fx_rates is not None:
+            exposures = fx_converter.convert_exposures(exposures, data.fx_rates, config)
+            collateral = fx_converter.convert_collateral(collateral, data.fx_rates, config)
+            guarantees = fx_converter.convert_guarantees(guarantees, data.fx_rates, config)
+            provisions = fx_converter.convert_provisions(provisions, data.fx_rates, config)
+        else:
+            # Add audit trail columns with null values when no conversion
+            exposures = exposures.with_columns([
+                pl.col("currency").alias("original_currency"),
+                (pl.col("drawn_amount") + pl.col("nominal_amount")).alias("original_amount"),
+                pl.lit(None).cast(pl.Float64).alias("fx_rate_applied"),
+            ])
+
         # Step 2b: Add collateral LTV to exposures (for real estate risk weights)
-        exposures = self._add_collateral_ltv(exposures, data.collateral)
+        exposures = self._add_collateral_ltv(exposures, collateral)
 
         # Step 3: Calculate lending group totals
         lending_group_totals, lg_errors = self._calculate_lending_group_totals(
@@ -110,9 +131,9 @@ class HierarchyResolver:
         return ResolvedHierarchyBundle(
             exposures=exposures,
             counterparty_lookup=counterparty_lookup,
-            collateral=data.collateral,
-            guarantees=data.guarantees,
-            provisions=data.provisions,
+            collateral=collateral,
+            guarantees=guarantees,
+            provisions=provisions,
             lending_group_totals=lending_group_totals,
             hierarchy_errors=errors,
         )

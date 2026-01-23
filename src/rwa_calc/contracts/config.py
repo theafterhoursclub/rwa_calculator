@@ -347,6 +347,7 @@ class CalculationConfig:
         framework: Regulatory framework (CRR or BASEL_3_1)
         reporting_date: As-of date for the calculation
         base_currency: Currency for reporting (default GBP)
+        apply_fx_conversion: Whether to convert exposures to base_currency
         pd_floors: PD floor configuration
         lgd_floors: LGD floor configuration (A-IRB)
         supporting_factors: SME/infrastructure factors
@@ -362,6 +363,7 @@ class CalculationConfig:
     framework: RegulatoryFramework
     reporting_date: date
     base_currency: str = "GBP"
+    apply_fx_conversion: bool = True  # Convert exposures to base_currency using fx_rates
     pd_floors: PDFloors = field(default_factory=PDFloors.crr)
     lgd_floors: LGDFloors = field(default_factory=LGDFloors.crr)
     supporting_factors: SupportingFactors = field(default_factory=SupportingFactors.crr)
