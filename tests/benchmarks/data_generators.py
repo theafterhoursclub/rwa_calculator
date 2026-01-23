@@ -184,6 +184,7 @@ def generate_counterparties(config: BenchmarkDataConfig) -> pl.LazyFrame:
         "is_international_org": pl.Series(np.zeros(n, dtype=bool)),
         "is_central_counterparty": pl.Series(is_ccp),
         "is_regional_govt_local_auth": pl.Series(is_rgla),
+        "is_managed_as_retail": pl.Series(np.zeros(n, dtype=bool)),
     }).cast(COUNTERPARTY_SCHEMA).lazy()
 
 

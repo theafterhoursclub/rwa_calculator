@@ -64,6 +64,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Project Finance - Good (Scenario E2)
         {
@@ -82,6 +83,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Project Finance - Satisfactory
         {
@@ -100,6 +102,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Project Finance - Weak
         {
@@ -118,6 +121,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Object Finance - Aircraft
         {
@@ -136,6 +140,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Object Finance - Shipping
         {
@@ -154,6 +159,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Commodities Finance
         {
@@ -172,6 +178,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "SL_CF_002",
@@ -189,6 +196,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # IPRE - Strong
         {
@@ -207,6 +215,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # IPRE - Satisfactory/Speculative (Scenario E3)
         {
@@ -225,6 +234,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # HVCRE - High Volatility Commercial Real Estate (Scenario E4)
         {
@@ -243,6 +253,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "SL_HVCRE_002",
@@ -260,6 +271,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # ADC - Acquisition, Development, Construction
         {
@@ -278,6 +290,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted Specialised Lending
         {
@@ -296,6 +309,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # CRR-E Slotting Test Scenarios
@@ -318,6 +332,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-E2: Project Finance - Good (70% RW under CRR, same as Strong)
         {
@@ -336,6 +351,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-E3: IPRE - Weak (250% RW - punitive)
         {
@@ -354,6 +370,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-E4: HVCRE - Strong (70% RW under CRR, same as non-HVCRE)
         {
@@ -372,6 +389,7 @@ def create_specialised_lending_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
     ]
 

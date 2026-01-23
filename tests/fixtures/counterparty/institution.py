@@ -49,6 +49,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "INST_UK_002",
@@ -66,6 +67,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "INST_US_001",
@@ -83,6 +85,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "INST_DE_001",
@@ -100,6 +103,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 2 Institution - 30% Risk Weight (UK deviation)
         {
@@ -118,6 +122,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 3 Institution - 50% Risk Weight
         {
@@ -136,6 +141,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 4/5 Institution - 100% Risk Weight
         {
@@ -154,6 +160,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 6 Institution - 150% Risk Weight
         {
@@ -172,6 +179,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Unrated Institution - 40% Risk Weight
         {
@@ -190,6 +198,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Investment Firm - regulated
         {
@@ -208,6 +217,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Central Counterparty
         {
@@ -226,6 +236,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": True,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted Institution
         {
@@ -244,6 +255,7 @@ def create_institution_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
     ]
 

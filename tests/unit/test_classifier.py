@@ -95,6 +95,7 @@ def corporate_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False, False, False],
         "is_central_counterparty": [False, False, False, False],
         "is_regional_govt_local_auth": [False, False, False, False],
+        "is_managed_as_retail": [False, False, False, False],
     }).lazy()
 
 
@@ -138,6 +139,7 @@ def mixed_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False, False, False, False, False],
         "is_central_counterparty": [False, False, False, False, False, False],
         "is_regional_govt_local_auth": [False, False, False, False, False, False],
+        "is_managed_as_retail": [False, False, False, False, False, False],
     }).lazy()
 
 
@@ -164,6 +166,7 @@ def retail_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False, False],
         "is_central_counterparty": [False, False, False],
         "is_regional_govt_local_auth": [False, False, False],
+        "is_managed_as_retail": [False, False, False],
     }).lazy()
 
 
@@ -186,6 +189,7 @@ def defaulted_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False],
         "is_central_counterparty": [False, False],
         "is_regional_govt_local_auth": [False, False],
+        "is_managed_as_retail": [False, False],
     }).lazy()
 
 
@@ -452,6 +456,7 @@ class TestSMEClassification:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({
@@ -513,6 +518,7 @@ class TestSMEClassification:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({
@@ -576,6 +582,7 @@ class TestSMEClassification:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({
@@ -646,6 +653,7 @@ class TestRetailClassification:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({
@@ -707,6 +715,7 @@ class TestRetailClassification:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({
@@ -852,6 +861,7 @@ class TestApproachAssignment:
             "is_international_org": [False],
             "is_central_counterparty": [False],
             "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
         }).lazy()
 
         exposures = pl.DataFrame({

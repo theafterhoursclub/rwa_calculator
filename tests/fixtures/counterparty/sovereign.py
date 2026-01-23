@@ -47,6 +47,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "SOV_US_001",
@@ -64,6 +65,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "SOV_DE_001",
@@ -81,6 +83,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 2 Sovereign - 20% Risk Weight
         {
@@ -99,6 +102,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 3 Sovereign - 50% Risk Weight
         {
@@ -117,6 +121,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 4/5 Sovereign - 100% Risk Weight
         {
@@ -135,6 +140,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 6 Sovereign - 150% Risk Weight
         {
@@ -153,6 +159,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Unrated Sovereign - 100% Risk Weight
         {
@@ -171,6 +178,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted Sovereign - for scenario testing
         {
@@ -189,6 +197,7 @@ def create_sovereign_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
     ]
 
