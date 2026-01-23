@@ -130,9 +130,13 @@ class SALazyFrame:
         if "has_income_cover" not in schema.names():
             lf = lf.with_columns([pl.lit(False).alias("has_income_cover")])
 
-        # Book code (for retail SME treatment)
+        # Book code (legacy - kept for backward compatibility)
         if "book_code" not in schema.names():
             lf = lf.with_columns([pl.lit("").alias("book_code")])
+
+        # Managed as retail flag (CRR Art. 123 - for SME retail treatment)
+        if "cp_is_managed_as_retail" not in schema.names():
+            lf = lf.with_columns([pl.lit(False).alias("cp_is_managed_as_retail")])
 
         return lf
 
@@ -223,10 +227,10 @@ class SALazyFrame:
                 .otherwise(pl.lit(cre_rw_standard))
             )
 
-            # 3. SME with retail book: 75% RW
+            # 3. SME managed as retail: 75% RW (CRR Art. 123)
             .when(
                 (pl.col("exposure_class").str.contains("(?i)sme")) &
-                (pl.col("book_code").str.contains("(?i)retail"))
+                (pl.col("cp_is_managed_as_retail") == True)  # noqa: E712
             )
             .then(pl.lit(retail_rw))
 

@@ -75,6 +75,7 @@ def simple_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False, False, False],
         "is_central_counterparty": [False, False, False, False],
         "is_regional_govt_local_auth": [False, False, False, False],
+        "is_managed_as_retail": [False, False, False, False],
     }).lazy()
 
 
@@ -188,6 +189,7 @@ def lending_group_counterparties() -> pl.LazyFrame:
         "is_international_org": [False, False, False, False],
         "is_central_counterparty": [False, False, False, False],
         "is_regional_govt_local_auth": [False, False, False, False],
+        "is_managed_as_retail": [False, False, False, False],
     }).lazy()
 
 

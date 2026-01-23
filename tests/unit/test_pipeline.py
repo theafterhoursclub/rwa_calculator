@@ -118,6 +118,7 @@ def mock_raw_data() -> RawDataBundle:
         "is_international_org": [False, False],
         "is_central_counterparty": [False, False],
         "is_regional_govt_local_auth": [False, False],
+        "is_managed_as_retail": [False, False],
     })
 
     # Collateral (empty with full schema)
@@ -249,6 +250,7 @@ def mock_resolved_bundle() -> ResolvedHierarchyBundle:
         "is_international_org": [False, False],
         "is_central_counterparty": [False, False],
         "is_regional_govt_local_auth": [False, False],
+        "is_managed_as_retail": [False, False],
     })
 
     rating_inheritance = pl.LazyFrame({

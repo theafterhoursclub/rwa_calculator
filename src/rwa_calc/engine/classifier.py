@@ -182,6 +182,7 @@ class ExposureClassifier:
             pl.col("is_international_org").alias("cp_is_international_org"),
             pl.col("is_central_counterparty").alias("cp_is_central_counterparty"),
             pl.col("is_regional_govt_local_auth").alias("cp_is_rgla"),
+            pl.col("is_managed_as_retail").alias("cp_is_managed_as_retail"),
         ])
 
         # Join with exposures

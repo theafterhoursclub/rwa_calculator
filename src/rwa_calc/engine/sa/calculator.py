@@ -188,6 +188,10 @@ class SACalculator:
             exposures = exposures.with_columns([
                 pl.lit("").alias("book_code"),
             ])
+        if "cp_is_managed_as_retail" not in schema.names():
+            exposures = exposures.with_columns([
+                pl.lit(False).alias("cp_is_managed_as_retail"),
+            ])
 
         # Prepare exposures for join
         # Normalize exposure class names for matching
@@ -259,10 +263,10 @@ class SACalculator:
                 .otherwise(pl.lit(cre_rw_standard))
             )
 
-            # 3. SME with retail book: 75% RW (retail SME treatment)
+            # 3. SME managed as retail: 75% RW (CRR Art. 123)
             .when(
                 (pl.col("exposure_class").str.contains("(?i)sme")) &
-                (pl.col("book_code").str.contains("(?i)retail"))
+                (pl.col("cp_is_managed_as_retail") == True)  # noqa: E712
             )
             .then(pl.lit(retail_rw))
 
@@ -501,6 +505,7 @@ class SACalculator:
         ltv: Decimal | None = None,
         is_sme: bool = False,
         is_infrastructure: bool = False,
+        is_managed_as_retail: bool = False,
         config: CalculationConfig | None = None,
     ) -> dict:
         """
@@ -513,6 +518,7 @@ class SACalculator:
             ltv: Loan-to-value ratio (for real estate)
             is_sme: Whether SME supporting factor applies
             is_infrastructure: Whether infrastructure factor applies
+            is_managed_as_retail: Whether SME is managed on pooled retail basis (CRR Art. 123)
             config: Calculation configuration (defaults to CRR)
 
         Returns:
@@ -534,6 +540,7 @@ class SACalculator:
             "is_sme": [is_sme],
             "is_infrastructure": [is_infrastructure],
             "has_income_cover": [False],
+            "cp_is_managed_as_retail": [is_managed_as_retail],
         }).lazy()
 
         # Apply risk weights

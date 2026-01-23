@@ -52,6 +52,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_UK_002",
@@ -69,6 +70,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 2 Corporate - 50% Risk Weight
         {
@@ -87,6 +89,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 3 Corporate - 75% Risk Weight
         {
@@ -105,6 +108,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 4 Corporate - 100% Risk Weight
         {
@@ -123,6 +127,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CQS 5/6 Corporate - 150% Risk Weight
         {
@@ -141,6 +146,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Unrated Corporate - 100% Risk Weight (Scenario A2 from plan)
         {
@@ -159,6 +165,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # SME Corporate (revenue < £44m) - eligible for SME supporting factor
         {
@@ -177,6 +184,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_SME_002",
@@ -194,8 +202,9 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
-        # Small SME (revenue < £50m but > £880k, corporate treatment)
+        # Small SME (revenue < £50m but > £880k, managed as retail - 75% RW)
         {
             "counterparty_reference": "CORP_SME_003",
             "counterparty_name": "Small Business Services Ltd",
@@ -212,6 +221,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": True,  # Managed on pooled retail basis (CRR Art. 123)
         },
         # Large Corporate (revenue > £440m)
         {
@@ -230,6 +240,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # PSE treated as corporate
         {
@@ -248,6 +259,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted Corporate
         {
@@ -266,6 +278,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # A-IRB TEST: Corporate with bank's own LGD estimate (CRR-C1)
@@ -288,6 +301,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # ORG HIERARCHY TEST GROUP 1: Rated Parent with Unrated Subsidiaries
@@ -310,6 +324,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP1_SUB1",
@@ -327,6 +342,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP1_SUB2",
@@ -344,6 +360,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP1_SUB3",
@@ -361,6 +378,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # ORG HIERARCHY TEST GROUP 2: Multi-level Hierarchy
@@ -383,6 +401,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP2_INTHOLD",
@@ -400,6 +419,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP2_OPSUB1",
@@ -417,6 +437,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP2_OPSUB2",
@@ -434,6 +455,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # ORG HIERARCHY TEST GROUP 3: SME Turnover Aggregation
@@ -456,6 +478,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP3_SUB1",
@@ -473,6 +496,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "CORP_GRP3_SUB2",
@@ -490,6 +514,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # CRR-F: Supporting Factor Test Scenarios
@@ -513,6 +538,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-F3: SME Large - uses CORP_SME_002 (already exists, turnover £35m)
         # CRR-F5: Infrastructure project (0.75 factor, not tiered)
@@ -532,6 +558,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-F6: Large Corporate - no SME factor (turnover > £44m)
         {
@@ -550,6 +577,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-F7: SME at boundary - turnover £20m (at threshold)
         {
@@ -568,6 +596,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Alias for CRR-F1 (CORP_SME_SMALL -> same characteristics as CORP_SME_001)
         {
@@ -586,6 +615,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Alias for CRR-F3 (CORP_SME_LARGE -> same characteristics as CORP_SME_002)
         {
@@ -604,6 +634,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # CRR-G: Provisions & Impairments Test Scenarios
@@ -626,6 +657,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-G2: IRB EL shortfall (F-IRB corporate, PD 2%)
         {
@@ -644,6 +676,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-G3: IRB EL excess (F-IRB corporate, PD 0.5%)
         {
@@ -662,6 +695,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # CRR-H: Complex/Combined Scenario Test Counterparties
@@ -684,6 +718,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-H2: Counterparty group parent (rated CQS 2 = 50% RW)
         # Has unrated subsidiary (inherits 50%) and rated subsidiary (CQS 3 = 100%)
@@ -703,6 +738,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-H2: Unrated subsidiary (inherits parent CQS 2 = 50% RW)
         {
@@ -721,6 +757,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-H2: Rated subsidiary (own CQS 3 = 100% RW)
         {
@@ -739,6 +776,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-H3: SME chain with supporting factor (turnover £25m)
         {
@@ -757,6 +795,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # CRR-H4: Full CRM chain (unrated corporate = 100% RW base)
         {
@@ -775,6 +814,7 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
     ]
 

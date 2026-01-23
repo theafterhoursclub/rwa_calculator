@@ -114,6 +114,7 @@ COUNTERPARTY_SCHEMA = {
     "is_international_org": pl.Boolean,  # International Organisation - 0% RW (CRR Art 118)
     "is_central_counterparty": pl.Boolean,  # CCP exposure treatment (CRR Art 300-311)
     "is_regional_govt_local_auth": pl.Boolean,  # RGLA - may receive sovereign RW (CRR Art 115)
+    "is_managed_as_retail": pl.Boolean,  # SME managed on pooled retail basis (CRR Art 123)
 }
 
 COLLATERAL_SCHEMA = {

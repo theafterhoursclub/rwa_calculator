@@ -52,6 +52,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_IND_002",
@@ -69,6 +70,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_IND_003",
@@ -86,6 +88,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Individual - Mortgage borrower (for residential mortgage scenarios)
         {
@@ -104,6 +107,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_MTG_002",
@@ -121,6 +125,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # SME Retail - Turnover under £880k threshold (Scenario A10)
         {
@@ -139,6 +144,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": True,  # Managed on pooled retail basis
         },
         {
             "counterparty_reference": "RTL_SME_002",
@@ -156,6 +162,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_SME_003",
@@ -173,6 +180,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # SME at threshold boundary (just under £880k)
         {
@@ -191,6 +199,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # QRRE eligible individuals (credit cards, overdrafts)
         {
@@ -209,6 +218,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_QRRE_002",
@@ -226,6 +236,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # High-income individual (still retail if exposure criteria met)
         {
@@ -244,6 +255,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # A-IRB TEST: Retail with bank's own estimates (CRR-C2)
@@ -267,6 +279,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted retail individual
         {
@@ -285,6 +298,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # Defaulted SME retail
         {
@@ -303,6 +317,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # LENDING GROUP TEST 1: Connected Individuals (Married Couple)
@@ -325,6 +340,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG1_SPOUSE2",
@@ -342,6 +358,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # LENDING GROUP TEST 2: Business Owner and Their Company
@@ -364,6 +381,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG2_COMPANY",
@@ -381,6 +399,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # LENDING GROUP TEST 3: Family Business Group
@@ -403,6 +422,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG3_PERSON2",
@@ -420,6 +440,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG3_BIZ1",
@@ -437,6 +458,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG3_BIZ2",
@@ -454,6 +476,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # LENDING GROUP TEST 4: Threshold Boundary Test
@@ -476,6 +499,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG4_BIZ",
@@ -493,6 +517,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # LENDING GROUP TEST 5: Group Exceeding Retail Threshold
@@ -515,6 +540,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         {
             "counterparty_reference": "RTL_LG5_BIZ",
@@ -532,6 +558,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
         # =============================================================================
         # CRR-F4: Retail SME with SME Supporting Factor
@@ -553,6 +580,7 @@ def create_retail_counterparties() -> pl.DataFrame:
             "is_international_org": False,
             "is_central_counterparty": False,
             "is_regional_govt_local_auth": False,
+            "is_managed_as_retail": False,
         },
     ]
 

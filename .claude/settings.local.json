@@ -4,7 +4,8 @@
       "WebFetch(domain:service.betterregulation.com)",
       "Bash(uv run pytest:*)",
       "Bash(uv run python:*)",
-      "WebFetch(domain:docs.marimo.io)"
+      "WebFetch(domain:docs.marimo.io)",
+      "WebFetch(domain:www.prarulebook.co.uk)"
     ]
   }
 }
