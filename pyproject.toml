@@ -34,6 +34,9 @@ dependencies = [
     "pyyaml>=6.0.0",
 ]
 
+[project.scripts]
+rwa-calc-ui = "rwa_calc.ui.marimo.server:main"
+
 [project.urls]
 Homepage = "https://github.com/OpenAfterHours/rwa_calculator"
 Documentation = "https://OpenAfterHours.github.io/rwa_calculator/"
