@@ -587,9 +587,16 @@ class TestLendingGroupAggregation:
             counterparty_lookup,
         )
 
+        # Calculate residential property coverage (empty for this test)
+        residential_coverage = resolver._calculate_residential_property_coverage(
+            exposures,
+            None,  # No collateral
+        )
+
         lending_group_totals, errors = resolver._calculate_lending_group_totals(
             exposures,
             lending_group_mappings,
+            residential_coverage,
         )
 
         df = lending_group_totals.collect()
@@ -600,6 +607,8 @@ class TestLendingGroupAggregation:
 
         # Total should be sum of anchor + members (300k + 200k + 400k = 900k)
         assert df["total_drawn"][0] == 900000.0
+        # Adjusted exposure should equal total (no residential collateral)
+        assert df["adjusted_exposure"][0] == 900000.0
 
     def test_standalone_not_in_lending_group(
         self,
@@ -674,16 +683,24 @@ class TestLendingGroupAggregation:
             counterparty_lookup,
         )
 
+        # Calculate residential property coverage (empty for this test)
+        residential_coverage = resolver._calculate_residential_property_coverage(
+            exposures,
+            None,  # No collateral
+        )
+
         # Add lending group totals
         lending_group_totals, _ = resolver._calculate_lending_group_totals(
             exposures,
             lending_group_mappings,
+            residential_coverage,
         )
 
         enriched_exposures = resolver._add_lending_group_totals_to_exposures(
             exposures,
             lending_group_mappings,
             lending_group_totals,
+            residential_coverage,
         )
 
         df = enriched_exposures.collect()

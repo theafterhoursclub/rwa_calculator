@@ -117,18 +117,28 @@ class HierarchyResolver:
         # Step 2b: Add collateral LTV to exposures (for real estate risk weights)
         exposures = self._add_collateral_ltv(exposures, collateral)
 
-        # Step 3: Calculate lending group totals
+        # Step 3: Calculate residential property coverage per exposure
+        # This is needed to exclude residential RE from retail threshold calculation
+        # per CRR Art. 123(c) and Basel 3.1 CRE20.65
+        residential_coverage = self._calculate_residential_property_coverage(
+            exposures,
+            collateral,
+        )
+
+        # Step 4: Calculate lending group totals (excluding residential property)
         lending_group_totals, lg_errors = self._calculate_lending_group_totals(
             exposures,
             data.lending_mappings,
+            residential_coverage,
         )
         errors.extend(lg_errors)
 
-        # Step 4: Add lending group exposure totals to exposures
+        # Step 5: Add lending group exposure totals to exposures
         exposures = self._add_lending_group_totals_to_exposures(
             exposures,
             data.lending_mappings,
             lending_group_totals,
+            residential_coverage,
         )
 
         return ResolvedHierarchyBundle(
@@ -550,9 +560,17 @@ class HierarchyResolver:
         self,
         exposures: pl.LazyFrame,
         lending_mappings: pl.LazyFrame,
+        residential_coverage: pl.LazyFrame,
     ) -> tuple[pl.LazyFrame, list[HierarchyError]]:
         """
         Calculate total exposure by lending group for retail threshold testing.
+
+        Per CRR Art. 123(c) and Basel 3.1 CRE20.65, exposures secured by residential
+        property (under SA treatment) are excluded from the EUR 1m threshold calculation.
+
+        Calculates both:
+        - total_exposure: Raw sum of drawn + nominal amounts
+        - adjusted_exposure: Sum excluding residential property collateral value
 
         Returns:
             Tuple of (lending group totals LazyFrame, list of errors)
@@ -582,13 +600,35 @@ class HierarchyResolver:
             how="left",
         )
 
-        # Calculate total drawn amount per lending group
+        # Join with residential coverage to get adjusted exposure amounts
+        exposures_with_group = exposures_with_group.join(
+            residential_coverage.select([
+                pl.col("exposure_reference").alias("_res_exp_ref"),
+                pl.col("residential_collateral_value"),
+                pl.col("exposure_for_retail_threshold"),
+            ]),
+            left_on="exposure_reference",
+            right_on="_res_exp_ref",
+            how="left",
+        ).with_columns([
+            # Fill nulls for exposures without residential coverage data
+            pl.col("residential_collateral_value").fill_null(0.0),
+            pl.col("exposure_for_retail_threshold").fill_null(
+                pl.col("drawn_amount") + pl.col("nominal_amount")
+            ),
+        ])
+
+        # Calculate totals per lending group
+        # - total_exposure: Raw sum (for reference/audit)
+        # - adjusted_exposure: Sum excluding residential property (for retail threshold)
         lending_group_totals = exposures_with_group.filter(
             pl.col("lending_group_reference").is_not_null()
         ).group_by("lending_group_reference").agg([
             pl.col("drawn_amount").sum().alias("total_drawn"),
             pl.col("nominal_amount").sum().alias("total_nominal"),
             (pl.col("drawn_amount") + pl.col("nominal_amount")).sum().alias("total_exposure"),
+            pl.col("exposure_for_retail_threshold").sum().alias("adjusted_exposure"),
+            pl.col("residential_collateral_value").sum().alias("total_residential_coverage"),
             pl.len().alias("exposure_count"),
         ])
 
@@ -649,14 +689,124 @@ class HierarchyResolver:
 
         return exposures
 
+    def _calculate_residential_property_coverage(
+        self,
+        exposures: pl.LazyFrame,
+        collateral: pl.LazyFrame | None,
+    ) -> pl.LazyFrame:
+        """
+        Calculate residential property collateral coverage per exposure.
+
+        Per CRR Art. 123(c) and Basel 3.1 CRE20.65, exposures fully and completely
+        secured by residential property (assigned to SA residential property class)
+        should be excluded from the EUR 1m retail threshold aggregation.
+
+        The exclusion amount is the lesser of:
+        - The residential property collateral value (after any haircuts)
+        - The exposure amount (to prevent over-exclusion)
+
+        Args:
+            exposures: Unified exposures with exposure_reference
+            collateral: Collateral data with property_type and market_value
+
+        Returns:
+            LazyFrame with columns:
+            - exposure_reference: The exposure identifier
+            - residential_collateral_value: Value of residential RE securing this exposure
+            - exposure_for_retail_threshold: Exposure amount minus residential coverage
+        """
+        # Get exposure amounts for capping
+        exposure_amounts = exposures.select([
+            pl.col("exposure_reference"),
+            (pl.col("drawn_amount") + pl.col("nominal_amount")).alias("total_exposure_amount"),
+        ])
+
+        # If no collateral, return exposures with zero residential coverage
+        if collateral is None:
+            return exposure_amounts.with_columns([
+                pl.lit(0.0).alias("residential_collateral_value"),
+                pl.col("total_exposure_amount").alias("exposure_for_retail_threshold"),
+            ])
+
+        # Check if collateral has the required columns
+        collateral_schema = collateral.collect_schema()
+        required_cols = {"beneficiary_reference", "collateral_type", "market_value"}
+        if not required_cols.issubset(set(collateral_schema.names())):
+            return exposure_amounts.with_columns([
+                pl.lit(0.0).alias("residential_collateral_value"),
+                pl.col("total_exposure_amount").alias("exposure_for_retail_threshold"),
+            ])
+
+        # Check if property_type column exists (needed to identify residential)
+        has_property_type = "property_type" in collateral_schema.names()
+
+        # Filter for residential property collateral only
+        # Residential property = collateral_type is 'real_estate' AND property_type is 'residential'
+        if has_property_type:
+            residential_collateral = collateral.filter(
+                (pl.col("collateral_type").str.to_lowercase() == "real_estate") &
+                (pl.col("property_type").str.to_lowercase() == "residential")
+            )
+        else:
+            # If no property_type, cannot identify residential - return zero coverage
+            return exposure_amounts.with_columns([
+                pl.lit(0.0).alias("residential_collateral_value"),
+                pl.col("total_exposure_amount").alias("exposure_for_retail_threshold"),
+            ])
+
+        # Sum residential collateral value per beneficiary (exposure)
+        residential_by_exposure = residential_collateral.group_by("beneficiary_reference").agg([
+            pl.col("market_value").sum().alias("residential_collateral_value"),
+        ])
+
+        # Join with exposure amounts
+        result = exposure_amounts.join(
+            residential_by_exposure,
+            left_on="exposure_reference",
+            right_on="beneficiary_reference",
+            how="left",
+        )
+
+        # Fill nulls with 0 and cap at exposure amount
+        result = result.with_columns([
+            pl.col("residential_collateral_value").fill_null(0.0),
+        ]).with_columns([
+            # Cap residential coverage at exposure amount (can't exclude more than exposure)
+            pl.when(pl.col("residential_collateral_value") > pl.col("total_exposure_amount"))
+            .then(pl.col("total_exposure_amount"))
+            .otherwise(pl.col("residential_collateral_value"))
+            .alias("residential_collateral_value"),
+        ]).with_columns([
+            # Calculate exposure for retail threshold = exposure - residential coverage
+            (pl.col("total_exposure_amount") - pl.col("residential_collateral_value"))
+            .alias("exposure_for_retail_threshold"),
+        ])
+
+        return result.select([
+            "exposure_reference",
+            "residential_collateral_value",
+            "exposure_for_retail_threshold",
+        ])
+
     def _add_lending_group_totals_to_exposures(
         self,
         exposures: pl.LazyFrame,
         lending_mappings: pl.LazyFrame,
         lending_group_totals: pl.LazyFrame,
+        residential_coverage: pl.LazyFrame,
     ) -> pl.LazyFrame:
         """
-        Add lending group reference and total exposure to each exposure.
+        Add lending group reference and exposure totals to each exposure.
+
+        Adds columns:
+        - lending_group_reference: Reference to the lending group parent
+        - lending_group_total_exposure: Raw sum of exposures in the lending group
+        - lending_group_adjusted_exposure: Sum excluding residential property (for retail threshold)
+        - residential_collateral_value: Residential RE collateral value for this exposure
+        - exposure_for_retail_threshold: This exposure's contribution to retail threshold
+
+        Per CRR Art. 123(c), the adjusted_exposure is used for retail threshold testing,
+        excluding exposures secured by residential property under SA treatment.
         """
         # Build lending group membership (same as above)
         lending_groups = lending_mappings.select([
@@ -679,20 +829,38 @@ class HierarchyResolver:
             how="left",
         )
 
-        # Join to get lending group total exposure
+        # Join to get lending group totals (both raw and adjusted)
         exposures = exposures.join(
             lending_group_totals.select([
                 pl.col("lending_group_reference").alias("lg_ref_for_join"),
                 pl.col("total_exposure").alias("lending_group_total_exposure"),
+                pl.col("adjusted_exposure").alias("lending_group_adjusted_exposure"),
             ]),
             left_on="lending_group_reference",
             right_on="lg_ref_for_join",
             how="left",
         )
 
-        # Fill nulls with 0 for non-grouped exposures
+        # Join residential coverage per exposure (for audit trail)
+        exposures = exposures.join(
+            residential_coverage.select([
+                pl.col("exposure_reference").alias("_res_exp_ref"),
+                pl.col("residential_collateral_value"),
+                pl.col("exposure_for_retail_threshold"),
+            ]),
+            left_on="exposure_reference",
+            right_on="_res_exp_ref",
+            how="left",
+        )
+
+        # Fill nulls with 0 for non-grouped exposures and exposures without residential coverage
         exposures = exposures.with_columns([
             pl.col("lending_group_total_exposure").fill_null(0.0),
+            pl.col("lending_group_adjusted_exposure").fill_null(0.0),
+            pl.col("residential_collateral_value").fill_null(0.0),
+            pl.col("exposure_for_retail_threshold").fill_null(
+                pl.col("drawn_amount") + pl.col("nominal_amount")
+            ),
         ])
 
         return exposures

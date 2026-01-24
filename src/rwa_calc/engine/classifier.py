@@ -292,32 +292,23 @@ class ExposureClassifier:
         Apply retail classification and threshold checks.
 
         Retail criteria (CRR Art. 123, Basel 3.1 CRE20.65-70):
-        - Aggregated exposure to lending group < threshold
-        - CRR: EUR 1m (GBP 880k)
-        - Basel 3.1: GBP 880k
+        - Aggregated exposure to lending group < threshold (EUR 1m / GBP 880k)
+        - Exposures secured by residential property are EXCLUDED from threshold
+          calculation per CRR Art. 123(c) (SA treatment only)
+
+        Threshold treatment by approach:
+        - SA residential mortgages: Stay as RETAIL_MORTGAGE regardless of threshold
+          (assigned to Article 112(i) residential property class)
+        - IRB SMEs exceeding threshold: Reclassify to CORPORATE_SME
+        - Other retail exceeding threshold: Reclassify to CORPORATE
 
         Mortgage classification:
-        - Product type indicates mortgage
+        - Product type indicates mortgage/home loan
         - Secured by residential property
         """
         max_retail_exposure = float(config.retail_thresholds.max_exposure_threshold)
 
-        # First, check if exposure exceeds retail threshold
-        exposures = exposures.with_columns([
-            # Check if lending group total exceeds retail threshold
-            pl.when(
-                pl.col("lending_group_total_exposure") > max_retail_exposure
-            ).then(pl.lit(False))
-            .when(
-                # For standalone (no lending group), check individual exposure
-                (pl.col("lending_group_total_exposure") == 0) &
-                (pl.col("drawn_amount") + pl.col("nominal_amount") > max_retail_exposure)
-            ).then(pl.lit(False))
-            .otherwise(pl.lit(True))
-            .alias("qualifies_as_retail"),
-        ])
-
-        # Apply mortgage classification
+        # First, apply mortgage classification (needed for exclusion logic)
         exposures = exposures.with_columns([
             pl.when(
                 (pl.col("product_type").str.to_uppercase().str.contains("MORTGAGE")) |
@@ -327,10 +318,41 @@ class ExposureClassifier:
             .alias("is_mortgage"),
         ])
 
-        # Update exposure class for retail
+        # Check if exposure exceeds retail threshold using ADJUSTED amounts
+        # (excluding residential property collateral per CRR Art. 123(c))
+        # The columns lending_group_adjusted_exposure and exposure_for_retail_threshold
+        # already exclude residential property value from hierarchy.py
+        exposures = exposures.with_columns([
+            # Check if lending group adjusted total exceeds retail threshold
+            pl.when(
+                pl.col("lending_group_adjusted_exposure") > max_retail_exposure
+            ).then(pl.lit(False))
+            .when(
+                # For standalone (no lending group), check individual adjusted exposure
+                (pl.col("lending_group_adjusted_exposure") == 0) &
+                (pl.col("exposure_for_retail_threshold") > max_retail_exposure)
+            ).then(pl.lit(False))
+            .otherwise(pl.lit(True))
+            .alias("qualifies_as_retail"),
+
+            # Track whether residential property exclusion was applied
+            pl.when(pl.col("residential_collateral_value") > 0)
+            .then(pl.lit(True))
+            .otherwise(pl.lit(False))
+            .alias("retail_threshold_exclusion_applied"),
+        ])
+
+        # Get SME threshold for checking if retail exposures should move to CORPORATE_SME
+        sme_threshold_gbp = float(
+            config.supporting_factors.sme_turnover_threshold_eur * config.eur_gbp_rate
+        )
+
+        # Update exposure class for retail with differentiated treatment
         exposures = exposures.with_columns([
             pl.when(
-                # Retail mortgage
+                # Retail mortgage - stays as RETAIL_MORTGAGE regardless of threshold
+                # Under SA, these are assigned to Article 112(i) residential property class
+                # and excluded from the EUR 1m aggregation
                 (pl.col("is_mortgage") == True) &  # noqa: E712
                 (
                     (pl.col("exposure_class") == ExposureClass.RETAIL_OTHER.value) |
@@ -338,12 +360,33 @@ class ExposureClassifier:
                 )
             ).then(pl.lit(ExposureClass.RETAIL_MORTGAGE.value))
             .when(
-                # Corporate that doesn't qualify as retail due to threshold
+                # SME retail that doesn't qualify as retail due to threshold
+                # Check SME criteria directly (turnover < EUR 50m) since is_sme flag
+                # is only set for exposures already classified as CORPORATE
+                # Reclassify to CORPORATE_SME (retains firm-size adjustment under IRB)
+                (pl.col("exposure_class") == ExposureClass.RETAIL_OTHER.value) &
+                (pl.col("qualifies_as_retail") == False) &  # noqa: E712
+                (pl.col("cp_annual_revenue") < sme_threshold_gbp) &
+                (pl.col("cp_annual_revenue") > 0)
+            ).then(pl.lit(ExposureClass.CORPORATE_SME.value))
+            .when(
+                # Other retail that doesn't qualify due to threshold
+                # (either large corporates or missing revenue data)
+                # Reclassify to CORPORATE
                 (pl.col("exposure_class") == ExposureClass.RETAIL_OTHER.value) &
                 (pl.col("qualifies_as_retail") == False)  # noqa: E712
-            ).then(pl.lit(ExposureClass.CORPORATE.value))  # Reclassify as corporate
+            ).then(pl.lit(ExposureClass.CORPORATE.value))
             .otherwise(pl.col("exposure_class"))
             .alias("exposure_class"),
+        ])
+
+        # Update is_sme flag for exposures that were reclassified to CORPORATE_SME
+        exposures = exposures.with_columns([
+            pl.when(
+                pl.col("exposure_class") == ExposureClass.CORPORATE_SME.value
+            ).then(pl.lit(True))
+            .otherwise(pl.col("is_sme"))
+            .alias("is_sme"),
         ])
 
         return exposures
@@ -520,6 +563,10 @@ class ExposureClassifier:
                 pl.col("is_defaulted").cast(pl.String),
                 pl.lit("; is_infrastructure="),
                 pl.col("is_infrastructure").cast(pl.String),
+                pl.lit("; qualifies_as_retail="),
+                pl.col("qualifies_as_retail").cast(pl.String),
+                pl.lit("; res_prop_exclusion="),
+                pl.col("retail_threshold_exclusion_applied").cast(pl.String),
             ]).alias("classification_reason"),
         ])
 
@@ -628,6 +675,9 @@ class ExposureClassifier:
             pl.col("is_mortgage"),
             pl.col("is_defaulted"),
             pl.col("qualifies_as_retail"),
+            pl.col("retail_threshold_exclusion_applied"),
+            pl.col("residential_collateral_value"),
+            pl.col("lending_group_adjusted_exposure"),
             pl.col("classification_reason"),
         ])
 
