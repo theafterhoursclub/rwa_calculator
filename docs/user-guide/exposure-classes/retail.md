@@ -13,14 +13,24 @@ Retail exposures must meet ALL of the following criteria:
 | **Size** | Total exposure ≤ EUR 1m (GBP 880k) |
 | **Management** | Managed as part of a portfolio with similar characteristics |
 
+!!! info "Conceptual Logic"
+    The following illustrates the retail classification decision logic. For the actual implementation,
+    see [`classifier.py:285-392`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/classifier.py#L285-L392).
+
 ```python
-def is_retail(exposure, counterparty):
+# Conceptual overview - actual implementation in ExposureClassifier._apply_retail_classification
+def is_retail(exposure, counterparty, lending_group_adjusted_exposure):
     return (
-        counterparty.type in ["INDIVIDUAL", "SMALL_BUSINESS"] and
-        total_exposure(counterparty) <= 1_000_000 and  # EUR
-        is_managed_as_retail_pool(exposure)
+        counterparty.type in ["individual", "retail", "small_business"] and
+        lending_group_adjusted_exposure <= 1_000_000 and  # EUR threshold
+        is_managed_as_retail_pool(exposure)  # cp_is_managed_as_retail flag
     )
 ```
+
+??? example "Actual Implementation (classifier.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/classifier.py:285:343"
+    ```
 
 ## Retail Sub-Classes
 
@@ -275,8 +285,12 @@ This exclusion applies because:
 | **SA** | Excluded from EUR 1m threshold; stays as residential mortgage |
 | **IRB** | NOT excluded from EUR 1m threshold (per EBA Q&A 2018_4012) |
 
+!!! info "Conceptual Logic"
+    The following illustrates the residential property exclusion logic. For the actual implementation,
+    see [`hierarchy.py:692-789`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L692-L789).
+
 ```python
-# Adjusted exposure for retail threshold
+# Conceptual overview - actual implementation in HierarchyResolver._calculate_residential_property_coverage
 def calculate_adjusted_exposure(exposures, residential_collateral):
     """
     Per CRR Art. 123(c), residential property secured exposures (SA)
@@ -293,10 +307,21 @@ def calculate_adjusted_exposure(exposures, residential_collateral):
         exposure.for_retail_threshold = exposure.amount - exclusion
 
     return exposures
+```
 
-# Total adjusted exposure to lending group
+??? example "Actual Implementation (hierarchy.py)"
+    The real implementation uses Polars LazyFrames for efficient processing:
+
+    ```python
+    --8<-- "src/rwa_calc/engine/hierarchy.py:692:789"
+    ```
+
+**Lending Group Threshold Check:**
+
+```python
+# Total adjusted exposure to lending group (from hierarchy resolver)
 adjusted_group_exposure = sum(
-    exp.for_retail_threshold for entity in lending_group
+    exp.exposure_for_retail_threshold for entity in lending_group
     for exp in entity.exposures
 )
 

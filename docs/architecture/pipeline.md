@@ -56,10 +56,10 @@ flowchart TD
 
 ## Pipeline Orchestration
 
-The pipeline is orchestrated by `RWAPipeline`:
+The pipeline is orchestrated by `PipelineOrchestrator` (see [`pipeline.py:80-594`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/pipeline.py#L80-L594)):
 
 ```python
-from rwa_calc.engine.pipeline import RWAPipeline, create_pipeline
+from rwa_calc.engine.pipeline import create_pipeline
 
 # Create pipeline with default components
 pipeline = create_pipeline()
@@ -73,53 +73,18 @@ result = pipeline.run_with_data(raw_data, config)
 
 ### Pipeline Implementation
 
-```python
-class RWAPipeline:
-    def __init__(
-        self,
-        loader: LoaderProtocol,
-        hierarchy_resolver: HierarchyResolverProtocol,
-        classifier: ClassifierProtocol,
-        crm_processor: CRMProcessorProtocol,
-        sa_calculator: SACalculatorProtocol,
-        irb_calculator: IRBCalculatorProtocol,
-        slotting_calculator: SlottingCalculatorProtocol,
-        aggregator: OutputAggregatorProtocol,
-    ):
-        self._loader = loader
-        self._hierarchy_resolver = hierarchy_resolver
-        # ... other components
+::: rwa_calc.engine.pipeline.PipelineOrchestrator
+    options:
+      show_root_heading: true
+      members:
+        - run
+        - run_with_data
+      show_source: false
 
-    def run(self, config: CalculationConfig) -> AggregatedResultBundle:
-        """Run the complete pipeline."""
-        # Stage 1: Load data
-        raw_data = self._loader.load(config.data_path)
-
-        # Stage 2: Resolve hierarchies
-        resolved = self._hierarchy_resolver.resolve(raw_data, config)
-
-        # Stage 3: Classify exposures
-        classified = self._classifier.classify(resolved, config)
-
-        # Stage 4: Apply CRM
-        crm_adjusted = self._crm_processor.process(classified, config)
-
-        # Stage 5: Calculate RWA by approach
-        sa_result = self._sa_calculator.calculate(
-            crm_adjusted.sa_exposures, config
-        )
-        irb_result = self._irb_calculator.calculate(
-            crm_adjusted.irb_exposures, config
-        )
-        slotting_result = self._slotting_calculator.calculate(
-            crm_adjusted.slotting_exposures, config
-        )
-
-        # Stage 6: Aggregate results
-        return self._aggregator.aggregate(
-            sa_result, irb_result, slotting_result, config
-        )
-```
+??? example "Full Implementation (pipeline.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/pipeline.py:80:261"
+    ```
 
 ## Stage 1: Data Loading
 
@@ -184,55 +149,31 @@ Resolve counterparty and facility hierarchies, inherit ratings and attributes.
 
 ### Implementation
 
-Uses iterative joins for performance:
+The hierarchy resolution uses iterative Polars LazyFrame joins for performance. See [`hierarchy.py:208-277`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L208-L277) for the full implementation.
 
-```python
-def resolve_counterparty_hierarchy(
-    counterparties: pl.LazyFrame,
-    org_mapping: pl.LazyFrame
-) -> pl.LazyFrame:
-    """Resolve counterparty parent-child relationships."""
-    resolved = counterparties
+::: rwa_calc.engine.hierarchy.HierarchyResolver._build_ultimate_parent_lazy
+    options:
+      show_root_heading: false
+      show_source: false
 
-    # Iteratively resolve up to max depth
-    for _ in range(MAX_HIERARCHY_DEPTH):
-        resolved = (
-            resolved
-            .join(
-                org_mapping,
-                left_on="parent_id",
-                right_on="child_id",
-                how="left"
-            )
-            .with_columns(
-                parent_id=pl.coalesce("parent_id_right", "parent_id")
-            )
-        )
-
-    return resolved
-```
+??? example "Actual Implementation (hierarchy.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/hierarchy.py:208:277"
+    ```
 
 ### Rating Inheritance
 
-```python
-def inherit_ratings(
-    exposures: pl.LazyFrame,
-    ratings: pl.LazyFrame,
-    hierarchy: pl.LazyFrame
-) -> pl.LazyFrame:
-    """Inherit ratings from parent if not available."""
-    return (
-        exposures
-        .join(ratings, on="counterparty_id", how="left")
-        .with_columns(
-            effective_rating=pl.coalesce(
-                "own_rating",
-                "parent_rating",
-                "ultimate_parent_rating"
-            )
-        )
-    )
-```
+Ratings are inherited from parent entities when not directly available. See [`hierarchy.py:279-381`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L279-L381).
+
+The inheritance priority is:
+1. Entity's own rating
+2. Ultimate parent's rating
+3. Mark as unrated
+
+??? example "Actual Implementation (hierarchy.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/hierarchy.py:279:381"
+    ```
 
 ## Stage 3: Classification
 
@@ -253,37 +194,29 @@ Assign exposure classes and determine calculation approach.
 
 ### Classification Logic
 
-```python
-def classify_exposure(
-    counterparty_type: str,
-    total_exposure: float,
-    product_type: str,
-    is_defaulted: bool,
-    config: CalculationConfig
-) -> tuple[ExposureClass, ApproachType]:
-    """Classify exposure and determine approach."""
+The classifier assigns exposure classes and calculation approaches. See [`classifier.py:195-244`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/classifier.py#L195-L244) for the core classification logic.
 
-    # Check default status first
-    if is_defaulted:
-        return ExposureClass.DEFAULTED, determine_approach(...)
+::: rwa_calc.engine.classifier.ExposureClassifier
+    options:
+      show_root_heading: true
+      members:
+        - classify
+      show_source: false
 
-    # Classify by counterparty type
-    if counterparty_type == "SOVEREIGN":
-        return ExposureClass.SOVEREIGN, ApproachType.SA
+!!! info "Classification Priority Order"
+    1. **Sovereign**: Government entities, central banks
+    2. **RGLA**: Regional governments and local authorities
+    3. **PSE**: Public sector entities
+    4. **MDB**: Multilateral development banks
+    5. **Institution**: Banks, regulated financial institutions, CCPs
+    6. **Retail**: Individuals, small businesses meeting retail criteria
+    7. **Corporate**: Non-financial corporates
+    8. **Specialised Lending**: Project finance, object finance, etc.
 
-    if counterparty_type == "INSTITUTION":
-        return ExposureClass.INSTITUTION, determine_approach(...)
-
-    if counterparty_type in ["INDIVIDUAL", "SMALL_BUSINESS"]:
-        if is_retail_eligible(total_exposure, config):
-            return classify_retail(product_type), ApproachType.AIRB
-
-    # Corporate classification
-    if is_sme(counterparty):
-        return ExposureClass.CORPORATE_SME, determine_approach(...)
-
-    return ExposureClass.CORPORATE, determine_approach(...)
-```
+??? example "Actual Implementation (classifier.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/classifier.py:195:244"
+    ```
 
 ## Stage 4: CRM Processing
 

@@ -19,7 +19,7 @@ Two IRB variants are available:
 
 ## IRB Formula
 
-The core IRB formula calculates the capital requirement (K):
+The core IRB formula calculates the capital requirement (K). See [`irb/formulas.py:260-291`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/irb/formulas.py#L260-L291) for the vectorized NumPy implementation.
 
 ```
 K = [LGD × N((1-R)^(-0.5) × G(PD) + (R/(1-R))^0.5 × G(0.999)) - LGD × PD] × MA
@@ -37,6 +37,11 @@ Then:
 ```
 RWA = K × 12.5 × EAD × Scaling Factor
 ```
+
+??? example "Capital K Formula Implementation (formulas.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/irb/formulas.py:260:291"
+    ```
 
 ## Risk Parameters
 
@@ -124,7 +129,7 @@ M = max(1, min(5, weighted_average_life))
 
 ## Asset Correlation
 
-Asset correlation (R) determines how sensitive the exposure is to systematic risk.
+Asset correlation (R) determines how sensitive the exposure is to systematic risk. See [`irb/formulas.py:190-257`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/irb/formulas.py#L190-L257) for the vectorized implementation.
 
 ### Corporate/Bank Correlation
 
@@ -164,9 +169,14 @@ R = 0.03 × (1 - exp(-35 × PD)) / (1 - exp(-35)) +
     0.16 × [1 - (1 - exp(-35 × PD)) / (1 - exp(-35))]
 ```
 
+??? example "Actual Correlation Implementation (formulas.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/irb/formulas.py:323:365"
+    ```
+
 ## Maturity Adjustment
 
-For non-retail exposures:
+For non-retail exposures. See [`irb/formulas.py:293-316`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/irb/formulas.py#L293-L316) for implementation.
 
 ```python
 # Maturity factor b
@@ -177,6 +187,11 @@ MA = (1 + (M - 2.5) × b) / (1 - 1.5 × b)
 ```
 
 Where M is effective maturity in years.
+
+??? example "Actual Maturity Adjustment (formulas.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/irb/formulas.py:445:457"
+    ```
 
 **Example values:**
 
@@ -369,18 +384,21 @@ print(f"Expected Loss: {result.total_expected_loss:,.2f}")
 
 ### Using IRB Formulas Directly
 
+The IRB formulas are implemented in [`irb/formulas.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/irb/formulas.py). Both scalar and vectorized (NumPy/Polars) versions are available.
+
 ```python
 from rwa_calc.engine.irb.formulas import (
     calculate_k,
     calculate_correlation,
-    calculate_maturity_adjustment
+    calculate_maturity_adjustment,
+    calculate_irb_rwa,  # Convenience function for single exposures
 )
 
 # Calculate components
 R = calculate_correlation(
     pd=0.005,
-    exposure_class=ExposureClass.CORPORATE,
-    turnover=25_000_000
+    exposure_class="CORPORATE",
+    turnover_m=25.0  # Turnover in millions
 )
 
 MA = calculate_maturity_adjustment(pd=0.005, maturity=3)
@@ -389,7 +407,23 @@ K = calculate_k(pd=0.005, lgd=0.45, correlation=R)
 
 # Calculate RWA
 rwa = K * 12.5 * ead * MA * scaling_factor
+
+# Or use the convenience function for complete calculation
+result = calculate_irb_rwa(
+    ead=50_000_000,
+    pd=0.005,
+    lgd=0.45,
+    correlation=R,
+    maturity=3.0,
+    apply_scaling_factor=True,  # CRR 1.06 factor
+)
+print(f"RWA: {result['rwa']:,.0f}")
 ```
+
+??? example "Scalar K Calculation (formulas.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/irb/formulas.py:429:443"
+    ```
 
 ## Expected Loss Calculation
 

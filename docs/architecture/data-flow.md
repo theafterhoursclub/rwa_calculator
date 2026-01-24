@@ -161,6 +161,8 @@ counterparties = (
 **Input:** `RawDataBundle`
 **Output:** `ResolvedHierarchyBundle`
 
+See [`hierarchy.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py) for implementation.
+
 Transformations:
 - Resolve parent-child relationships
 - Calculate aggregate exposures
@@ -180,10 +182,17 @@ resolved = (
 )
 ```
 
+??? example "Hierarchy Resolution (hierarchy.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/hierarchy.py:208:277"
+    ```
+
 ### Stage 3: Classification
 
 **Input:** `ResolvedHierarchyBundle`
 **Output:** `ClassifiedExposuresBundle`
+
+See [`classifier.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/classifier.py) for implementation.
 
 Transformations:
 - Assign exposure class
@@ -204,10 +213,17 @@ classified = (
 )
 ```
 
+??? example "Classification Logic (classifier.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/classifier.py:195:244"
+    ```
+
 ### Stage 4: CRM Processing
 
 **Input:** `ClassifiedExposuresBundle`
 **Output:** `CRMAdjustedBundle`
+
+See [`crm/processor.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/crm/processor.py) for implementation.
 
 Transformations:
 - Apply provision deductions
@@ -230,10 +246,17 @@ crm_adjusted = (
 )
 ```
 
+??? example "CRM Processing (processor.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/crm/processor.py:96:169"
+    ```
+
 ### Stage 5: RWA Calculation
 
 **Input:** `CRMAdjustedBundle`
 **Output:** Result bundles
+
+See [`sa/calculator.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/sa/calculator.py) and [`irb/formulas.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/irb/formulas.py) for implementations.
 
 Transformations:
 - Look up risk weights (SA)
@@ -267,10 +290,17 @@ irb_result = (
 )
 ```
 
+??? example "IRB Formula Application (formulas.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/irb/formulas.py:75:179"
+    ```
+
 ### Stage 6: Aggregation
 
 **Input:** Result bundles
 **Output:** `AggregatedResultBundle`
+
+See [`aggregator.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/aggregator.py) for implementation.
 
 Transformations:
 - Combine results from all approaches
@@ -289,6 +319,11 @@ aggregated = (
     )
 )
 ```
+
+??? example "Aggregation (aggregator.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/aggregator.py:1:80"
+    ```
 
 ## Data Validation
 

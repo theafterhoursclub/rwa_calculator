@@ -1,100 +1,34 @@
 # Pipeline API
 
-The pipeline module provides the main entry points for RWA calculation.
+The pipeline module provides the main entry points for RWA calculation. See [`pipeline.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/pipeline.py) for the full implementation.
 
 ## Module: `rwa_calc.engine.pipeline`
 
 ### `create_pipeline`
 
-```python
-def create_pipeline() -> RWAPipeline:
-    """
-    Create a pipeline with default components.
+Factory function to create a pipeline with default components:
 
-    Returns:
-        RWAPipeline: Configured pipeline instance.
+::: rwa_calc.engine.pipeline.create_pipeline
+    options:
+      show_root_heading: false
+      show_source: false
 
-    Example:
-        >>> pipeline = create_pipeline()
-        >>> result = pipeline.run(config)
-    """
-```
+### `PipelineOrchestrator`
 
-### `RWAPipeline`
+The main pipeline class (note: the class is `PipelineOrchestrator`, not `RWAPipeline`):
 
-```python
-class RWAPipeline:
-    """
-    Main RWA calculation pipeline.
+::: rwa_calc.engine.pipeline.PipelineOrchestrator
+    options:
+      show_root_heading: true
+      members:
+        - run
+        - run_with_data
+      show_source: false
 
-    Orchestrates the calculation flow from raw data to final results.
-    """
-
-    def __init__(
-        self,
-        loader: LoaderProtocol,
-        hierarchy_resolver: HierarchyResolverProtocol,
-        classifier: ClassifierProtocol,
-        crm_processor: CRMProcessorProtocol,
-        sa_calculator: SACalculatorProtocol,
-        irb_calculator: IRBCalculatorProtocol,
-        slotting_calculator: SlottingCalculatorProtocol,
-        aggregator: OutputAggregatorProtocol,
-    ) -> None:
-        """
-        Initialize pipeline with components.
-
-        Args:
-            loader: Data loading component.
-            hierarchy_resolver: Hierarchy resolution component.
-            classifier: Exposure classification component.
-            crm_processor: CRM processing component.
-            sa_calculator: SA calculation component.
-            irb_calculator: IRB calculation component.
-            slotting_calculator: Slotting calculation component.
-            aggregator: Output aggregation component.
-        """
-
-    def run(self, config: CalculationConfig) -> AggregatedResultBundle:
-        """
-        Run the complete calculation pipeline.
-
-        Args:
-            config: Calculation configuration.
-
-        Returns:
-            AggregatedResultBundle: Calculation results.
-
-        Raises:
-            CalculationError: If critical errors occur.
-
-        Example:
-            >>> config = CalculationConfig.crr(date(2026, 12, 31))
-            >>> result = pipeline.run(config)
-            >>> print(f"Total RWA: {result.total_rwa:,.0f}")
-        """
-
-    def run_with_data(
-        self,
-        raw_data: RawDataBundle,
-        config: CalculationConfig,
-    ) -> AggregatedResultBundle:
-        """
-        Run pipeline with pre-loaded data.
-
-        Args:
-            raw_data: Pre-loaded raw data bundle.
-            config: Calculation configuration.
-
-        Returns:
-            AggregatedResultBundle: Calculation results.
-
-        Example:
-            >>> loader = ParquetLoader()
-            >>> raw_data = loader.load(Path("./data"))
-            >>> result = pipeline.run_with_data(raw_data, config)
-        """
-```
+??? example "Pipeline Implementation (pipeline.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/pipeline.py:80:180"
+    ```
 
 ## Usage Examples
 

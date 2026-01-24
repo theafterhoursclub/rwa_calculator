@@ -252,9 +252,15 @@ RWA = Guaranteed_RWA + Unguaranteed_RWA
 
 ## Supporting Factors (CRR Only)
 
+Supporting factors are implemented in [`sa/supporting_factors.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/sa/supporting_factors.py).
+
 ### SME Supporting Factor
 
-Reduces RWA for SME exposures:
+Reduces RWA for SME exposures (CRR Art. 501):
+
+!!! info "Conceptual Logic"
+    The following illustrates the SME factor calculation. See the actual implementation for
+    the full Polars-based processing.
 
 ```python
 # Check eligibility
@@ -269,9 +275,14 @@ if turnover <= EUR_50m and is_sme:
     RWA = RWA * factor
 ```
 
+??? example "Actual Implementation (supporting_factors.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/sa/supporting_factors.py"
+    ```
+
 ### Infrastructure Factor
 
-Reduces RWA for qualifying infrastructure:
+Reduces RWA for qualifying infrastructure (CRR Art. 501a):
 
 ```python
 if is_qualifying_infrastructure:
@@ -315,35 +326,56 @@ Final_RWA_B31 = £5,000,000
 
 ### Calculator Usage
 
+The SA calculator is implemented in [`sa/calculator.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/sa/calculator.py).
+
 ```python
 from rwa_calc.engine.sa.calculator import SACalculator
 from rwa_calc.contracts.config import CalculationConfig
+from datetime import date
 
 # Create SA calculator
 calculator = SACalculator()
 
-# Calculate RWA
-result = calculator.calculate(
-    exposures=classified_exposures,
+# Calculate RWA for a single exposure (convenience method)
+result = calculator.calculate_single_exposure(
+    ead=Decimal("10000000"),
+    exposure_class="CORPORATE",
+    cqs=2,
+    is_sme=True,
     config=CalculationConfig.crr(reporting_date=date(2026, 12, 31))
 )
 
 # Access results
-print(f"Total SA RWA: {result.total_rwa}")
+print(f"Risk Weight: {result['risk_weight']}")
+print(f"RWA: {result['rwa']}")
+print(f"Supporting Factor: {result['supporting_factor_applied']}")
 ```
+
+::: rwa_calc.engine.sa.calculator.SACalculator
+    options:
+      show_root_heading: true
+      members:
+        - calculate_single_exposure
+      show_source: false
 
 ### Risk Weight Lookup
 
-```python
-from rwa_calc.data.tables.crr_risk_weights import get_risk_weight
+Risk weights are defined in [`data/tables/crr_risk_weights.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/data/tables/crr_risk_weights.py).
 
-# Lookup risk weight
-rw = get_risk_weight(
-    exposure_class=ExposureClass.CORPORATE,
-    cqs=CQS.CQS_2
-)
-# Returns: 0.50 (50%)
+```python
+from rwa_calc.data.tables.crr_risk_weights import get_combined_cqs_risk_weights
+
+# Get risk weight lookup table
+rw_table = get_combined_cqs_risk_weights(use_uk_deviation=True)
+
+# Table includes: exposure_class, cqs, risk_weight
+# Example: CORPORATE, CQS 2 -> 50%
 ```
+
+??? example "Actual Risk Weight Application (calculator.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/sa/calculator.py:153:292"
+    ```
 
 ## Regulatory References
 

@@ -44,21 +44,22 @@ RWA = RWA_protected + RWA_unprotected
 
 #### Comprehensive Method
 
-Applies haircuts to both exposure and collateral:
+Applies haircuts to both exposure and collateral. See [`crm/haircuts.py:69-143`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/crm/haircuts.py#L69-L143) for the implementation.
 
-```python
-# Exposure with volatility adjustment
-E_adjusted = E × (1 + H_e)
+!!! info "Conceptual Formula"
+    ```python
+    # Exposure with volatility adjustment
+    E_adjusted = E × (1 + H_e)
 
-# Collateral with haircuts
-C_adjusted = C × (1 - H_c - H_fx)
+    # Collateral with haircuts
+    C_adjusted = C × (1 - H_c - H_fx)
 
-# Net exposure
-E_star = max(0, E_adjusted - C_adjusted)
+    # Net exposure
+    E_star = max(0, E_adjusted - C_adjusted)
 
-# RWA on net exposure
-RWA = E_star × Risk_Weight
-```
+    # RWA on net exposure
+    RWA = E_star × Risk_Weight
+    ```
 
 ### Supervisory Haircuts
 
@@ -341,40 +342,71 @@ Total_RWA = £2,800,000
 
 ## Implementation
 
+The CRM processing is implemented in [`crm/processor.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/crm/processor.py) and [`crm/haircuts.py`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/crm/haircuts.py).
+
 ### CRM Processor
 
 ```python
 from rwa_calc.engine.crm.processor import CRMProcessor
 from rwa_calc.contracts.config import CalculationConfig
+from datetime import date
 
 # Create processor
 processor = CRMProcessor()
 
-# Process exposures
-result = processor.process(
-    exposures=classified_exposures,
-    collateral=collateral_data,
-    guarantees=guarantee_data,
-    provisions=provision_data,
+# Process exposures through CRM pipeline
+result = processor.get_crm_adjusted_bundle(
+    data=classified_exposures_bundle,
     config=CalculationConfig.crr(reporting_date=date(2026, 12, 31))
 )
 
 # Access adjusted exposures
-adjusted = result.adjusted_exposures
+adjusted = result.exposures
+sa_adjusted = result.sa_exposures
+irb_adjusted = result.irb_exposures
 ```
 
-### Haircut Lookup
+::: rwa_calc.engine.crm.processor.CRMProcessor
+    options:
+      show_root_heading: true
+      members:
+        - apply_crm
+        - apply_collateral
+        - apply_guarantees
+        - apply_provisions
+      show_source: false
+
+??? example "CRM Processor Implementation (processor.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/crm/processor.py:51:169"
+    ```
+
+### Haircut Calculator
 
 ```python
-from rwa_calc.data.tables.crr_haircuts import get_haircut
+from rwa_calc.engine.crm.haircuts import HaircutCalculator
+from decimal import Decimal
 
-haircut = get_haircut(
-    collateral_type=CollateralType.GOVERNMENT_BOND,
-    cqs=CQS.CQS_1,
-    residual_maturity_years=3
+calculator = HaircutCalculator()
+
+# Calculate haircut for a single collateral item
+result = calculator.calculate_single_haircut(
+    collateral_type="govt_bond",
+    market_value=Decimal("8000000"),
+    collateral_currency="GBP",
+    exposure_currency="GBP",
+    cqs=1,
+    residual_maturity_years=3.0,
 )
-# Returns: 0.02 (2%)
+
+print(f"Collateral haircut: {result.collateral_haircut:.1%}")
+print(f"Adjusted value: {result.adjusted_value:,.0f}")
 ```
+
+??? example "Haircut Application (haircuts.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/crm/haircuts.py:145:301"
+    ```
 
 ## CRM Data Structure
 
