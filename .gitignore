@@ -1,6 +1,6 @@
 .idea
 nul
-
+__pycache__/
 # exclude datafiles
 *.parquet
 
