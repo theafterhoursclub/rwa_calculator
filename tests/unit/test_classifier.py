@@ -266,8 +266,18 @@ def mixed_exposures() -> pl.LazyFrame:
 def create_resolved_bundle(
     exposures: pl.LazyFrame,
     counterparties: pl.LazyFrame,
+    residential_collateral_value: float = 0.0,
+    lending_group_adjusted_exposure: float | None = None,
 ) -> ResolvedHierarchyBundle:
-    """Helper to create a ResolvedHierarchyBundle for testing."""
+    """Helper to create a ResolvedHierarchyBundle for testing.
+
+    Args:
+        exposures: Exposures LazyFrame
+        counterparties: Counterparties LazyFrame
+        residential_collateral_value: Optional residential collateral value per exposure
+        lending_group_adjusted_exposure: Optional adjusted exposure for lending group
+            (defaults to lending_group_total_exposure if not specified)
+    """
     # Add hierarchy columns to counterparties
     enriched_cp = counterparties.with_columns([
         pl.lit(False).alias("counterparty_has_parent"),
@@ -281,6 +291,28 @@ def create_resolved_bundle(
         pl.lit(None).cast(pl.String).alias("rating_value"),
         pl.lit(None).cast(pl.String).alias("rating_agency"),
     ])
+
+    # Add residential property exclusion columns to exposures if not present
+    exp_schema = exposures.collect_schema()
+    if "residential_collateral_value" not in exp_schema.names():
+        exposures = exposures.with_columns([
+            pl.lit(residential_collateral_value).alias("residential_collateral_value"),
+        ])
+    if "exposure_for_retail_threshold" not in exp_schema.names():
+        exposures = exposures.with_columns([
+            (pl.col("drawn_amount") + pl.col("nominal_amount") -
+             pl.col("residential_collateral_value")).alias("exposure_for_retail_threshold"),
+        ])
+    if "lending_group_adjusted_exposure" not in exp_schema.names():
+        # Default to lending_group_total_exposure if adjusted not specified
+        if lending_group_adjusted_exposure is not None:
+            exposures = exposures.with_columns([
+                pl.lit(lending_group_adjusted_exposure).alias("lending_group_adjusted_exposure"),
+            ])
+        else:
+            exposures = exposures.with_columns([
+                pl.col("lending_group_total_exposure").alias("lending_group_adjusted_exposure"),
+            ])
 
     return ResolvedHierarchyBundle(
         exposures=exposures,
@@ -313,6 +345,8 @@ def create_resolved_bundle(
             "total_drawn": pl.Float64,
             "total_nominal": pl.Float64,
             "total_exposure": pl.Float64,
+            "adjusted_exposure": pl.Float64,
+            "total_residential_coverage": pl.Float64,
             "exposure_count": pl.UInt32,
         }),
     )
@@ -746,6 +780,306 @@ class TestRetailClassification:
 
         df = result.all_exposures.collect()
         assert df["qualifies_as_retail"][0] is True
+
+    def test_residential_property_excluded_from_threshold(
+        self,
+        classifier: ExposureClassifier,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Residential property collateral should be excluded from EUR 1m threshold.
+
+        Per CRR Art. 123(c), exposures secured by residential property (SA treatment)
+        are excluded from the retail threshold aggregation.
+
+        Scenario: EUR 2m total exposure, EUR 1.2m secured by residential property
+        Adjusted exposure = EUR 2m - EUR 1.2m = EUR 0.8m (< EUR 1m threshold)
+        Result: Should qualify as retail
+        """
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["SME_RES_PROP"],
+            "counterparty_name": ["SME with Residential Collateral"],
+            "entity_type": ["individual"],
+            "country_code": ["GB"],
+            "annual_revenue": [0.0],
+            "total_assets": [0.0],
+            "default_status": [False],
+            "sector_code": ["RETAIL"],
+            "is_financial_institution": [False],
+            "is_regulated": [False],
+            "is_pse": [False],
+            "is_mdb": [False],
+            "is_international_org": [False],
+            "is_central_counterparty": [False],
+            "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [True],
+        }).lazy()
+
+        # Total exposure = 1,760,000 GBP (2m EUR equivalent)
+        # Residential collateral = 1,056,000 GBP (1.2m EUR equivalent)
+        # Adjusted exposure = 704,000 GBP (< 880k threshold)
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP_RES_PROP"],
+            "exposure_type": ["loan"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["RETAIL"],
+            "counterparty_reference": ["SME_RES_PROP"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [1760000.0],  # 2m EUR equivalent - above threshold raw
+            "undrawn_amount": [0.0],
+            "nominal_amount": [0.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "ccf_category": [None],
+            "exposure_has_parent": [False],
+            "root_facility_reference": [None],
+            "facility_hierarchy_depth": [1],
+            "counterparty_has_parent": [False],
+            "parent_counterparty_reference": [None],
+            "rating_inherited": [False],
+            "rating_source_counterparty": [None],
+            "rating_inheritance_reason": ["unrated"],
+            "ultimate_parent_reference": [None],
+            "counterparty_hierarchy_depth": [1],
+            "lending_group_reference": [None],
+            "lending_group_total_exposure": [0.0],
+            # Residential property exclusion columns
+            "residential_collateral_value": [1056000.0],  # 1.2m EUR equivalent
+            "exposure_for_retail_threshold": [704000.0],  # Below 880k threshold
+            "lending_group_adjusted_exposure": [0.0],  # Standalone
+        }).lazy()
+
+        bundle = create_resolved_bundle(exposures, counterparties)
+        result = classifier.classify(bundle, crr_config)
+
+        df = result.all_exposures.collect()
+        assert df["qualifies_as_retail"][0] is True
+        assert df["retail_threshold_exclusion_applied"][0] is True
+        assert df["exposure_class"][0] == ExposureClass.RETAIL_OTHER.value
+
+    def test_sme_exceeding_threshold_moves_to_corporate_sme(
+        self,
+        classifier: ExposureClassifier,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """SME exceeding retail threshold should be reclassified to CORPORATE_SME.
+
+        Scenario: SME with EUR 1.5m exposure, no residential property collateral
+        Adjusted exposure = EUR 1.5m (> EUR 1m threshold)
+        Result: Should be reclassified to CORPORATE_SME (retains firm-size adjustment)
+        """
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["SME_OVER_THRESHOLD"],
+            "counterparty_name": ["SME Over Threshold"],
+            "entity_type": ["retail"],  # Small business managed as retail
+            "country_code": ["GB"],
+            "annual_revenue": [20000000.0],  # 20m GBP - qualifies as SME
+            "total_assets": [50000000.0],
+            "default_status": [False],
+            "sector_code": ["RETAIL"],
+            "is_financial_institution": [False],
+            "is_regulated": [False],
+            "is_pse": [False],
+            "is_mdb": [False],
+            "is_international_org": [False],
+            "is_central_counterparty": [False],
+            "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [True],
+        }).lazy()
+
+        # Total exposure = 1,320,000 GBP (1.5m EUR equivalent)
+        # No residential collateral - exceeds threshold
+        exposures = pl.DataFrame({
+            "exposure_reference": ["SME_OVER"],
+            "exposure_type": ["loan"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["RETAIL"],
+            "counterparty_reference": ["SME_OVER_THRESHOLD"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [1320000.0],  # 1.5m EUR equivalent - above threshold
+            "undrawn_amount": [0.0],
+            "nominal_amount": [0.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "ccf_category": [None],
+            "exposure_has_parent": [False],
+            "root_facility_reference": [None],
+            "facility_hierarchy_depth": [1],
+            "counterparty_has_parent": [False],
+            "parent_counterparty_reference": [None],
+            "rating_inherited": [False],
+            "rating_source_counterparty": [None],
+            "rating_inheritance_reason": ["unrated"],
+            "ultimate_parent_reference": [None],
+            "counterparty_hierarchy_depth": [1],
+            "lending_group_reference": [None],
+            "lending_group_total_exposure": [0.0],
+            # No residential property exclusion
+            "residential_collateral_value": [0.0],
+            "exposure_for_retail_threshold": [1320000.0],  # Above 880k threshold
+            "lending_group_adjusted_exposure": [0.0],
+        }).lazy()
+
+        bundle = create_resolved_bundle(exposures, counterparties)
+        result = classifier.classify(bundle, crr_config)
+
+        df = result.all_exposures.collect()
+        assert df["qualifies_as_retail"][0] is False
+        assert df["exposure_class"][0] == ExposureClass.CORPORATE_SME.value
+        assert df["is_sme"][0] is True
+
+    def test_mortgage_stays_retail_regardless_of_threshold(
+        self,
+        classifier: ExposureClassifier,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """SA residential mortgage should stay as RETAIL_MORTGAGE even if exceeding threshold.
+
+        Per CRR Art. 112(i), residential mortgages are assigned to the residential
+        property exposure class and are excluded from the EUR 1m aggregation.
+        """
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["MTG_LARGE"],
+            "counterparty_name": ["Large Mortgage Customer"],
+            "entity_type": ["individual"],
+            "country_code": ["GB"],
+            "annual_revenue": [0.0],
+            "total_assets": [0.0],
+            "default_status": [False],
+            "sector_code": ["RETAIL"],
+            "is_financial_institution": [False],
+            "is_regulated": [False],
+            "is_pse": [False],
+            "is_mdb": [False],
+            "is_international_org": [False],
+            "is_central_counterparty": [False],
+            "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
+        }).lazy()
+
+        # Large mortgage - EUR 1.5m equivalent
+        exposures = pl.DataFrame({
+            "exposure_reference": ["MTG_LARGE_001"],
+            "exposure_type": ["loan"],
+            "product_type": ["RESIDENTIAL_MORTGAGE"],
+            "book_code": ["RETAIL"],
+            "counterparty_reference": ["MTG_LARGE"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2048, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [1320000.0],  # Above EUR 1m threshold
+            "undrawn_amount": [0.0],
+            "nominal_amount": [0.0],
+            "lgd": [0.15],
+            "seniority": ["senior"],
+            "ccf_category": [None],
+            "exposure_has_parent": [False],
+            "root_facility_reference": [None],
+            "facility_hierarchy_depth": [1],
+            "counterparty_has_parent": [False],
+            "parent_counterparty_reference": [None],
+            "rating_inherited": [False],
+            "rating_source_counterparty": [None],
+            "rating_inheritance_reason": ["unrated"],
+            "ultimate_parent_reference": [None],
+            "counterparty_hierarchy_depth": [1],
+            "lending_group_reference": [None],
+            "lending_group_total_exposure": [0.0],
+            "residential_collateral_value": [1320000.0],  # Fully secured
+            "exposure_for_retail_threshold": [0.0],  # Excluded from threshold
+            "lending_group_adjusted_exposure": [0.0],
+        }).lazy()
+
+        bundle = create_resolved_bundle(exposures, counterparties)
+        result = classifier.classify(bundle, crr_config)
+
+        df = result.all_exposures.collect()
+        # Mortgage stays as RETAIL_MORTGAGE regardless of threshold
+        assert df["exposure_class"][0] == ExposureClass.RETAIL_MORTGAGE.value
+        assert df["is_mortgage"][0] is True
+
+    def test_lending_group_with_residential_property_exclusion(
+        self,
+        classifier: ExposureClassifier,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Lending group threshold should use adjusted exposure excluding residential RE.
+
+        Scenario: Lending group with EUR 2.5m total exposure
+        - Member 1: EUR 1m term loan (no residential collateral)
+        - Member 2: EUR 1.5m mortgage (fully secured by residential RE)
+        Adjusted exposure = EUR 2.5m - EUR 1.5m = EUR 1m (at threshold)
+        """
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["LG_MEMBER_1", "LG_MEMBER_2"],
+            "counterparty_name": ["LG Member 1", "LG Member 2"],
+            "entity_type": ["individual", "individual"],
+            "country_code": ["GB", "GB"],
+            "annual_revenue": [0.0, 0.0],
+            "total_assets": [0.0, 0.0],
+            "default_status": [False, False],
+            "sector_code": ["RETAIL", "RETAIL"],
+            "is_financial_institution": [False, False],
+            "is_regulated": [False, False],
+            "is_pse": [False, False],
+            "is_mdb": [False, False],
+            "is_international_org": [False, False],
+            "is_central_counterparty": [False, False],
+            "is_regional_govt_local_auth": [False, False],
+            "is_managed_as_retail": [True, True],
+        }).lazy()
+
+        # Lending group total = 2.2m GBP (2.5m EUR)
+        # Adjusted = 880k GBP (1m EUR) after excluding residential
+        exposures = pl.DataFrame({
+            "exposure_reference": ["LG_EXP_1", "LG_EXP_2"],
+            "exposure_type": ["loan", "loan"],
+            "product_type": ["TERM_LOAN", "RESIDENTIAL_MORTGAGE"],
+            "book_code": ["RETAIL", "RETAIL"],
+            "counterparty_reference": ["LG_MEMBER_1", "LG_MEMBER_2"],
+            "value_date": [date(2023, 1, 1), date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1), date(2048, 1, 1)],
+            "currency": ["GBP", "GBP"],
+            "drawn_amount": [880000.0, 1320000.0],  # 1m EUR + 1.5m EUR
+            "undrawn_amount": [0.0, 0.0],
+            "nominal_amount": [0.0, 0.0],
+            "lgd": [0.45, 0.15],
+            "seniority": ["senior", "senior"],
+            "ccf_category": [None, None],
+            "exposure_has_parent": [False, False],
+            "root_facility_reference": [None, None],
+            "facility_hierarchy_depth": [1, 1],
+            "counterparty_has_parent": [False, False],
+            "parent_counterparty_reference": [None, None],
+            "rating_inherited": [False, False],
+            "rating_source_counterparty": [None, None],
+            "rating_inheritance_reason": ["unrated", "unrated"],
+            "ultimate_parent_reference": [None, None],
+            "counterparty_hierarchy_depth": [1, 1],
+            "lending_group_reference": ["LG_PARENT", "LG_PARENT"],
+            "lending_group_total_exposure": [2200000.0, 2200000.0],  # 2.5m EUR
+            # Residential exclusion: mortgage fully secured
+            "residential_collateral_value": [0.0, 1320000.0],
+            "exposure_for_retail_threshold": [880000.0, 0.0],
+            "lending_group_adjusted_exposure": [880000.0, 880000.0],  # At threshold
+        }).lazy()
+
+        bundle = create_resolved_bundle(exposures, counterparties)
+        result = classifier.classify(bundle, crr_config)
+
+        df = result.all_exposures.collect()
+
+        # Term loan should qualify as retail (adjusted group exposure at threshold)
+        term_loan = df.filter(pl.col("exposure_reference") == "LG_EXP_1")
+        assert term_loan["qualifies_as_retail"][0] is True
+        assert term_loan["exposure_class"][0] == ExposureClass.RETAIL_OTHER.value
+
+        # Mortgage should be RETAIL_MORTGAGE
+        mortgage = df.filter(pl.col("exposure_reference") == "LG_EXP_2")
+        assert mortgage["exposure_class"][0] == ExposureClass.RETAIL_MORTGAGE.value
 
 
 # =============================================================================

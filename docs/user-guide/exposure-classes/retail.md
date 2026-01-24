@@ -251,7 +251,7 @@ RWA = £17,813
 RW = 35.6%
 ```
 
-## Lending Groups
+## Lending Groups and EUR 1m Threshold
 
 ### Retail Lending Groups
 
@@ -260,19 +260,77 @@ For retail SME exposures, total exposure is calculated across the **lending grou
 - Common ownership or control
 - Aggregated for threshold purposes
 
+### Residential Property Exclusion (CRR Art. 123(c))
+
+**Important:** Exposures secured by residential property are **excluded** from the EUR 1m threshold calculation when they are assigned to the residential property exposure class under the Standardised Approach.
+
+This exclusion applies because:
+- Per CRR Art. 123(c), exposures "fully and completely secured on residential property collateral that have been assigned to the exposure class laid down in point (i) of Article 112" are excluded from the aggregation
+- This means the **collateral value** (capped at the exposure amount) is deducted from the total amount owed
+
+**Key Rules:**
+
+| Approach | Residential Property Treatment |
+|----------|-------------------------------|
+| **SA** | Excluded from EUR 1m threshold; stays as residential mortgage |
+| **IRB** | NOT excluded from EUR 1m threshold (per EBA Q&A 2018_4012) |
+
 ```python
-# Total exposure to lending group
-total_group_exposure = sum(
-    exposure for entity in lending_group
-    for exposure in entity.exposures
+# Adjusted exposure for retail threshold
+def calculate_adjusted_exposure(exposures, residential_collateral):
+    """
+    Per CRR Art. 123(c), residential property secured exposures (SA)
+    are excluded from the EUR 1m retail threshold calculation.
+    """
+    for exposure in exposures:
+        # Get residential collateral securing this exposure
+        res_collateral_value = residential_collateral.get(exposure.id, 0)
+
+        # Cap at exposure amount (can't exclude more than exposure)
+        exclusion = min(res_collateral_value, exposure.amount)
+
+        # Adjusted exposure for threshold
+        exposure.for_retail_threshold = exposure.amount - exclusion
+
+    return exposures
+
+# Total adjusted exposure to lending group
+adjusted_group_exposure = sum(
+    exp.for_retail_threshold for entity in lending_group
+    for exp in entity.exposures
 )
 
 # Must be ≤ EUR 1m for retail treatment
-if total_group_exposure <= 1_000_000:
+if adjusted_group_exposure <= 1_000_000:
     treatment = "RETAIL"
 else:
-    treatment = "CORPORATE_SME"
+    treatment = "CORPORATE_SME"  # SMEs retain firm-size adjustment
 ```
+
+### Treatment When Threshold Exceeded
+
+| Counterparty Type | Exceeds Threshold | Treatment |
+|-------------------|-------------------|-----------|
+| **Individual (mortgage)** | Yes | Stays as RETAIL_MORTGAGE (SA Art. 112(i)) |
+| **Individual (other)** | Yes | Reclassified to CORPORATE |
+| **SME (any product)** | Yes | Reclassified to CORPORATE_SME |
+
+**Regulatory References:**
+- CRR Art. 123(c) - Retail exclusion for residential property
+- EBA Q&A 2013_72 - SA residential property exclusion clarification
+- EBA Q&A 2018_4012 - IRB residential property NOT excluded
+
+### Example: Threshold Calculation with Exclusion
+
+**Scenario:** Lending group with EUR 2m total exposure
+
+| Exposure | Amount | Residential Collateral | For Threshold |
+|----------|--------|----------------------|---------------|
+| Term loan | EUR 1m | EUR 0 | EUR 1m |
+| Mortgage | EUR 1m | EUR 1m | EUR 0 |
+| **Total** | **EUR 2m** | | **EUR 1m** |
+
+**Result:** Adjusted exposure = EUR 1m (at threshold) - qualifies as retail
 
 ## CRM for Retail
 
@@ -293,13 +351,15 @@ Limited guarantee recognition for retail:
 
 ## Regulatory References
 
-| Topic | CRR Article | BCBS CRE |
-|-------|-------------|----------|
-| Retail definition | Art. 123 | CRE20.50-60 |
-| Retail mortgage | Art. 125 | CRE20.70-75 |
-| QRRE | Art. 154 | CRE31.10-12 |
-| Retail IRB | Art. 154 | CRE31 |
-| Correlation | Art. 154 | CRE31.13-15 |
+| Topic | CRR Article | BCBS CRE | EBA Q&A |
+|-------|-------------|----------|---------|
+| Retail definition | Art. 123 | CRE20.50-60 | - |
+| EUR 1m threshold | Art. 123(c) | CRE20.65 | 2016_2626 |
+| Residential property exclusion | Art. 123(c), Art. 112(i) | - | 2013_72, 2018_4012 |
+| Retail mortgage | Art. 125 | CRE20.70-75 | - |
+| QRRE | Art. 154 | CRE31.10-12 | - |
+| Retail IRB | Art. 154 | CRE31 | - |
+| Correlation | Art. 154 | CRE31.13-15 | - |
 
 ## Next Steps
 

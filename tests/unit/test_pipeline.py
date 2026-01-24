@@ -240,6 +240,10 @@ def mock_resolved_bundle() -> ResolvedHierarchyBundle:
         "lgd": [0.45, 0.10],
         "seniority": ["senior", "senior"],
         "lending_group_total_exposure": [0.0, 0.0],
+        # Residential property exclusion columns (CRR Art. 123(c))
+        "lending_group_adjusted_exposure": [0.0, 0.0],
+        "residential_collateral_value": [0.0, 0.0],
+        "exposure_for_retail_threshold": [500000.0, 250000.0],
     })
 
     # Create counterparty lookup with matching counterparties

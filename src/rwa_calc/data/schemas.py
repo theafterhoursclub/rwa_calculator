@@ -396,6 +396,10 @@ RESOLVED_HIERARCHY_SCHEMA = {
     # Lending group aggregation
     "lending_group_reference": pl.String,
     "lending_group_total_exposure": pl.Float64,
+    # Retail threshold adjustment (CRR Art. 123(c) - residential property exclusion)
+    "lending_group_adjusted_exposure": pl.Float64,  # Excludes residential RE for retail threshold
+    "residential_collateral_value": pl.Float64,  # Residential RE collateral securing this exposure
+    "exposure_for_retail_threshold": pl.Float64,  # This exposure's contribution (excl. residential RE)
 }
 
 # Schema for exposures after classification
