@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- (Next release changes will go here)
+
+### Changed
+- (Next release changes will go here)
+
+---
+
+## [0.1.3] - 2025-01-24
+
+### Added
+
+#### Documentation Code Linking
+- Updated documentation to link code examples to actual source implementations
+- Added `pymdownx.snippets` for embedding real code from source files
+- Added `mkdocstrings` auto-generated API documentation
+- New `docs/development/documentation-conventions.md` guide for contributors
+- Source code references with GitHub line number links throughout docs
 
 #### Mandatory `risk_type` Column for CCF Determination
 
@@ -278,8 +295,9 @@ The calculator now provides comprehensive Polars namespace extensions for fluent
 
 | Version | Date | Status |
 |---------|------|--------|
-| 0.1.2 | 2025-01-24 | Current |
-| 0.1.1 | 2025-01-22 | Previous |
+| 0.1.3 | 2025-01-24 | Current |
+| 0.1.2 | 2025-01-24 | Previous |
+| 0.1.1 | 2025-01-22 | - |
 | 0.1.0 | 2025-01-18 | Initial |
 
 ## Migration Notes
