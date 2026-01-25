@@ -2626,10 +2626,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#step-3-use-vectorized-numpy-for-performance" class="md-nav__link">
+  <a href="#step-3-use-pure-polars-expressions-for-performance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 3: Use Vectorized NumPy for Performance
+        Step 3: Use Pure Polars Expressions for Performance
       
     </span>
   </a>
@@ -3362,10 +3362,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#step-3-use-vectorized-numpy-for-performance" class="md-nav__link">
+  <a href="#step-3-use-pure-polars-expressions-for-performance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 3: Use Vectorized NumPy for Performance
+        Step 3: Use Pure Polars Expressions for Performance
       
     </span>
   </a>
@@ -3972,28 +3972,25 @@
 </span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>
 </span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CustomLazyFrame&quot;</span><span class="p">,</span> <span class="s2">&quot;CustomExpr&quot;</span><span class="p">]</span>
 </span></code></pre></div>
-<h4 id="step-3-use-vectorized-numpy-for-performance">Step 3: Use Vectorized NumPy for Performance<a class="headerlink" href="#step-3-use-vectorized-numpy-for-performance" title="Permanent link">&para;</a></h4>
-<p>For computationally intensive formulas, use <code>map_batches</code> with NumPy:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">special</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">_numpy_custom_formula</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Vectorized calculation using NumPy/SciPy.&quot;&quot;&quot;</span>
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="k">return</span> <span class="n">special</span><span class="o">.</span><span class="n">ndtr</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>  <span class="c1"># Example: normal CDF</span>
+<h4 id="step-3-use-pure-polars-expressions-for-performance">Step 3: Use Pure Polars Expressions for Performance<a class="headerlink" href="#step-3-use-pure-polars-expressions-for-performance" title="Permanent link">&para;</a></h4>
+<p>For computationally intensive formulas, use pure Polars expressions with <code>polars-normal-stats</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">polars_normal_stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">normal_cdf</span><span class="p">,</span> <span class="n">normal_ppf</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">_custom_formula_expr</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pure Polars expression for custom calculation.&quot;&quot;&quot;</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="c1"># Example: normal CDF of input values</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="k">return</span> <span class="n">normal_cdf</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;input_value&quot;</span><span class="p">))</span>
 </span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>
 </span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">apply_custom_formula</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">CalculationConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">:</span>
-</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply custom calculation using NumPy for performance.&quot;&quot;&quot;</span>
-</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">calc_batch</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
-</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>        <span class="n">arr</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
-</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">_numpy_custom_formula</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
-</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>        <span class="k">return</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>
-</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lf</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
-</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;input_value&quot;</span><span class="p">)</span>
-</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>        <span class="o">.</span><span class="n">map_batches</span><span class="p">(</span><span class="n">calc_batch</span><span class="p">,</span> <span class="n">return_dtype</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Float64</span><span class="p">)</span>
-</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>        <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;output_value&quot;</span><span class="p">)</span>
-</span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>    <span class="p">)</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply custom calculation using pure Polars expressions.&quot;&quot;&quot;</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lf</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>        <span class="n">_custom_formula_expr</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;output_value&quot;</span><span class="p">)</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>    <span class="p">)</span>
 </span></code></pre></div>
+<p>This approach:
+- Preserves full lazy evaluation (query optimization, streaming)
+- Enables processing of datasets larger than memory
+- Achieves 3M+ rows/second throughput</p>
 <h4 id="step-4-add-tests_1">Step 4: Add Tests<a class="headerlink" href="#step-4-add-tests_1" title="Permanent link">&para;</a></h4>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># tests/unit/test_custom_namespace.py</span>
 </span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>
@@ -4035,7 +4032,8 @@
 <ol>
 <li><strong>Return <code>pl.LazyFrame</code></strong> from all LazyFrame namespace methods for chaining</li>
 <li><strong>Accept <code>CalculationConfig</code></strong> to handle framework-specific logic</li>
-<li><strong>Use <code>map_batches</code></strong> with NumPy for vectorized performance</li>
+<li><strong>Use pure Polars expressions</strong> with <code>polars-normal-stats</code> for statistical functions</li>
+<li><strong>Preserve lazy evaluation</strong> - avoid <code>.collect()</code> or <code>.to_numpy()</code> in formulas</li>
 <li><strong>Check column existence</strong> before operations using <code>collect_schema()</code></li>
 <li><strong>Provide sensible defaults</strong> for optional columns</li>
 <li><strong>Document added columns</strong> in method docstrings</li>

@@ -4158,10 +4158,11 @@
 <h3 id="key-features_5">Key Features<a class="headerlink" href="#key-features_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Fluent API</strong>: Namespace enables readable, chainable method calls</li>
-<li><strong>NumPy/SciPy performance</strong>: Vectorized batch calculations via <code>map_batches</code></li>
+<li><strong>Pure Polars expressions</strong>: Full lazy evaluation with <code>polars-normal-stats</code> for statistical functions</li>
+<li><strong>Streaming-capable</strong>: No data materialization required, enabling large dataset processing</li>
 <li>PD and LGD floor application</li>
 <li>Correlation calculation with SME adjustment</li>
-<li>K formula implementation (scipy.special.ndtr for normal CDF)</li>
+<li>K formula implementation using <code>normal_cdf</code> and <code>normal_ppf</code></li>
 <li>Maturity adjustment</li>
 <li>Expected loss calculation</li>
 <li>CRR 1.06 scaling factor</li>
