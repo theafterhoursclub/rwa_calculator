@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../testing/">
+        <link rel="prev" href="../">
       
       
-        <link rel="next" href="../benchmarks/">
+        <link rel="next" href="../../data-model/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Workbooks & UI - UK Credit Risk RWA Calculator</title>
+        <title>Classification - UK Credit Risk RWA Calculator</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#workbooks-interactive-ui" class="md-skip">
+        <a href="#exposure-classification" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Workbooks & UI
+              Classification
             
           </span>
         </div>
@@ -309,11 +309,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../features/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -375,13 +377,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../development/" class="md-tabs__link">
           
   
   
@@ -1617,6 +1617,8 @@
       
   
   
+    
+  
   
   
     
@@ -1632,22 +1634,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../features/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -1665,13 +1668,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1688,10 +1691,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../features/classification/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Classification
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1707,6 +1737,286 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-type-the-single-source-of-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Type: The Single Source of Truth
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entity Type: The Single Source of Truth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#valid-entity-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Valid Entity Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dual-exposure-class-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dual Exposure Class Mapping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dual Exposure Class Mapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sa-exposure-class-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SA Exposure Class Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#irb-exposure-class-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IRB Exposure Class Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-classes-can-differ" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Classes Can Differ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#classification-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classification Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Classification Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-add-counterparty-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Add Counterparty Attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-classify-exposure-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Classify Exposure Class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-apply-sme-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Apply SME Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-apply-retail-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: Apply Retail Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-identify-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5: Identify Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5a-infrastructure-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5a: Infrastructure Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5b-fi-scalar-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5b: FI Scalar Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-determine-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6: Determine Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7-add-classification-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7: Add Classification Audit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7a-enrich-slotting-exposures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7a: Enrich Slotting Exposures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-8-split-by-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 8: Split by Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exposure-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exposure Classes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regulatory-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regulatory References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2175,8 +2485,6 @@
       
   
   
-    
-  
   
   
     
@@ -2202,23 +2510,22 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../../development/" class="md-nav__link ">
               
   
   
@@ -2236,13 +2543,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2262,7 +2569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
+      <a href="../../development/testing/" class="md-nav__link">
         
   
   
@@ -2287,37 +2594,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Workbooks & UI
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../development/workbooks/" class="md-nav__link">
         
   
   
@@ -2333,298 +2613,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interactive-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interactive UI
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Interactive UI">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#starting-the-server" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Starting the Server
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#available-applications" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Available Applications
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rwa-calculator-rwa_apppy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RWA Calculator (rwa_app.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#results-explorer-results_explorerpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Results Explorer (results_explorer.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#framework-reference-framework_referencepy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Framework Reference (framework_reference.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#server-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Server Architecture
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#expected-output-workbooks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Expected Output Workbooks
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Expected Output Workbooks">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Structure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#running-workbooks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Running Workbooks
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#scenario-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scenario Groups
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Scenario Groups">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#crr-scenarios-45-total" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CRR Scenarios (45 total)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basel-31-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basel 3.1 Scenarios
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#shared-utilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Shared Utilities
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Shared Utilities">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#irb-formulas-sharedirb_formulaspy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        IRB Formulas (shared/irb_formulas.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#asset-correlation-sharedcorrelationpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asset Correlation (shared/correlation.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#adding-new-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Adding New Scenarios
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Development Workflow
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Development Workflow">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#workbook-development" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Workbook Development
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ui-development" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        UI Development
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2637,7 +2625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../benchmarks/" class="md-nav__link">
+      <a href="../../development/benchmarks/" class="md-nav__link">
         
   
   
@@ -2665,7 +2653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../extending/" class="md-nav__link">
+      <a href="../../development/extending/" class="md-nav__link">
         
   
   
@@ -2693,7 +2681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code-style/" class="md-nav__link">
+      <a href="../../development/code-style/" class="md-nav__link">
         
   
   
@@ -2721,7 +2709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../documentation-conventions/" class="md-nav__link">
+      <a href="../../development/documentation-conventions/" class="md-nav__link">
         
   
   
@@ -2953,77 +2941,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#interactive-ui" class="md-nav__link">
+  <a href="#entity-type-the-single-source-of-truth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interactive UI
+        Entity Type: The Single Source of Truth
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Interactive UI">
+    <nav class="md-nav" aria-label="Entity Type: The Single Source of Truth">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#starting-the-server" class="md-nav__link">
+  <a href="#valid-entity-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Starting the Server
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#available-applications" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Available Applications
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rwa-calculator-rwa_apppy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RWA Calculator (rwa_app.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#results-explorer-results_explorerpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Results Explorer (results_explorer.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#framework-reference-framework_referencepy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Framework Reference (framework_reference.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#server-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Server Architecture
+        Valid Entity Types
       
     </span>
   </a>
@@ -3036,22 +2969,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#expected-output-workbooks" class="md-nav__link">
+  <a href="#dual-exposure-class-mapping" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Expected Output Workbooks
+        Dual Exposure Class Mapping
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Expected Output Workbooks">
+    <nav class="md-nav" aria-label="Dual Exposure Class Mapping">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#structure" class="md-nav__link">
+  <a href="#sa-exposure-class-mapping" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Structure
+        SA Exposure Class Mapping
       
     </span>
   </a>
@@ -3059,10 +2992,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#running-workbooks" class="md-nav__link">
+  <a href="#irb-exposure-class-mapping" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Running Workbooks
+        IRB Exposure Class Mapping
       
     </span>
   </a>
@@ -3070,88 +3003,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scenario-groups" class="md-nav__link">
+  <a href="#why-classes-can-differ" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario Groups
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Scenario Groups">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#crr-scenarios-45-total" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CRR Scenarios (45 total)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basel-31-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basel 3.1 Scenarios
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#shared-utilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Shared Utilities
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Shared Utilities">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#irb-formulas-sharedirb_formulaspy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        IRB Formulas (shared/irb_formulas.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#asset-correlation-sharedcorrelationpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Asset Correlation (shared/correlation.py)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#adding-new-scenarios" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Adding New Scenarios
+        Why Classes Can Differ
       
     </span>
   </a>
@@ -3164,22 +3019,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
+  <a href="#classification-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Development Workflow
+        Classification Pipeline
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Development Workflow">
+    <nav class="md-nav" aria-label="Classification Pipeline">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#workbook-development" class="md-nav__link">
+  <a href="#step-1-add-counterparty-attributes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Workbook Development
+        Step 1: Add Counterparty Attributes
       
     </span>
   </a>
@@ -3187,10 +3042,109 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ui-development" class="md-nav__link">
+  <a href="#step-2-classify-exposure-class" class="md-nav__link">
     <span class="md-ellipsis">
       
-        UI Development
+        Step 2: Classify Exposure Class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-apply-sme-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Apply SME Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-apply-retail-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4: Apply Retail Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-identify-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5: Identify Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5a-infrastructure-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5a: Infrastructure Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5b-fi-scalar-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5b: FI Scalar Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-determine-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6: Determine Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7-add-classification-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7: Add Classification Audit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7a-enrich-slotting-exposures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7a: Enrich Slotting Exposures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-8-split-by-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 8: Split by Approach
       
     </span>
   </a>
@@ -3203,10 +3157,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
+  <a href="#output-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Next Steps
+        Output Schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exposure-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exposure Classes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regulatory-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regulatory References
       
     </span>
   </a>
@@ -3259,7 +3235,7 @@
         <a href="../" class="md-path__link">
           
   <span class="md-ellipsis">
-    Development
+    Features
   </span>
 
         </a>
@@ -3281,319 +3257,632 @@
   
 
 
-<h1 id="workbooks-interactive-ui">Workbooks &amp; Interactive UI<a class="headerlink" href="#workbooks-interactive-ui" title="Permanent link">&para;</a></h1>
-<p>This guide covers the Marimo workbooks used for expected output generation and the interactive UI applications.</p>
+<h1 id="exposure-classification">Exposure Classification<a class="headerlink" href="#exposure-classification" title="Permanent link">&para;</a></h1>
+<p>This document provides comprehensive documentation of the exposure classification system used to determine regulatory exposure classes and calculation approaches.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The project includes two types of Marimo-based components:</p>
+<p>The classifier (<code>src/rwa_calc/engine/classifier.py</code>) is responsible for:</p>
 <ol>
-<li><strong>Expected Output Workbooks</strong> - Reference implementations for generating test expected outputs</li>
-<li><strong>Interactive UI Applications</strong> - Web-based tools for running calculations and exploring results</li>
+<li>Mapping counterparty entity types to regulatory exposure classes</li>
+<li>Determining the calculation approach (SA, F-IRB, A-IRB, Slotting)</li>
+<li>Applying SME and retail classification rules</li>
+<li>Identifying defaulted exposures</li>
+<li>Determining FI scalar eligibility for IRB correlation adjustment</li>
 </ol>
-<h2 id="interactive-ui">Interactive UI<a class="headerlink" href="#interactive-ui" title="Permanent link">&para;</a></h2>
-<p>The calculator includes a multi-app web server providing three interactive applications.</p>
-<h3 id="starting-the-server">Starting the Server<a class="headerlink" href="#starting-the-server" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># If installed from PyPI</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>rwa-calc-ui
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># From source with uv</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>src/rwa_calc/ui/marimo/server.py
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Or using uvicorn directly</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>uvicorn<span class="w"> </span>rwa_calc.ui.marimo.server:app<span class="w"> </span>--host<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span>
+<h2 id="entity-type-the-single-source-of-truth">Entity Type: The Single Source of Truth<a class="headerlink" href="#entity-type-the-single-source-of-truth" title="Permanent link">&para;</a></h2>
+<p>The <code>entity_type</code> field on counterparties is the <strong>authoritative source</strong> for exposure class determination. This design eliminates ambiguity from overlapping boolean flags and ensures consistent classification.</p>
+<h3 id="valid-entity-types">Valid Entity Types<a class="headerlink" href="#valid-entity-types" title="Permanent link">&para;</a></h3>
+<p>The system supports 17 entity types organised into logical groups:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">VALID_ENTITY_TYPES</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="c1"># Sovereign class</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;sovereign&quot;</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;central_bank&quot;</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="c1"># RGLA class (Regional Governments/Local Authorities)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;rgla_sovereign&quot;</span><span class="p">,</span>      <span class="c1"># Has taxing powers or government guarantee</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;rgla_institution&quot;</span><span class="p">,</span>    <span class="c1"># No sovereign equivalence</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="c1"># PSE class (Public Sector Entities)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">&quot;pse_sovereign&quot;</span><span class="p">,</span>       <span class="c1"># Government guaranteed</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">&quot;pse_institution&quot;</span><span class="p">,</span>     <span class="c1"># Commercial PSE</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="c1"># MDB/International org class</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="s2">&quot;mdb&quot;</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="s2">&quot;international_org&quot;</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="c1"># Institution class</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">&quot;institution&quot;</span><span class="p">,</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="s2">&quot;bank&quot;</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="s2">&quot;ccp&quot;</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="s2">&quot;financial_institution&quot;</span><span class="p">,</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="c1"># Corporate class</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="s2">&quot;corporate&quot;</span><span class="p">,</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="s2">&quot;company&quot;</span><span class="p">,</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="c1"># Retail class</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="s2">&quot;individual&quot;</span><span class="p">,</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="s2">&quot;retail&quot;</span><span class="p">,</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="c1"># Specialised lending</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="s2">&quot;specialised_lending&quot;</span><span class="p">,</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="p">}</span>
 </span></code></pre></div>
-<h3 id="available-applications">Available Applications<a class="headerlink" href="#available-applications" title="Permanent link">&para;</a></h3>
+<h2 id="dual-exposure-class-mapping">Dual Exposure Class Mapping<a class="headerlink" href="#dual-exposure-class-mapping" title="Permanent link">&para;</a></h2>
+<p>Each entity type maps to <strong>both</strong> an SA exposure class and an IRB exposure class. These can differ for certain entity types based on regulatory requirements.</p>
+<h3 id="sa-exposure-class-mapping">SA Exposure Class Mapping<a class="headerlink" href="#sa-exposure-class-mapping" title="Permanent link">&para;</a></h3>
+<p>Used for SA risk weight table lookups:</p>
 <table>
 <thead>
 <tr>
-<th>Application</th>
-<th>URL</th>
+<th>Entity Type</th>
+<th>SA Exposure Class</th>
+<th>Regulatory Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sovereign</code></td>
+<td>SOVEREIGN</td>
+<td>CRR Art. 112(a)</td>
+</tr>
+<tr>
+<td><code>central_bank</code></td>
+<td>SOVEREIGN</td>
+<td>CRR Art. 112(a)</td>
+</tr>
+<tr>
+<td><code>rgla_sovereign</code></td>
+<td>RGLA</td>
+<td>CRR Art. 115</td>
+</tr>
+<tr>
+<td><code>rgla_institution</code></td>
+<td>RGLA</td>
+<td>CRR Art. 115</td>
+</tr>
+<tr>
+<td><code>pse_sovereign</code></td>
+<td>PSE</td>
+<td>CRR Art. 116</td>
+</tr>
+<tr>
+<td><code>pse_institution</code></td>
+<td>PSE</td>
+<td>CRR Art. 116</td>
+</tr>
+<tr>
+<td><code>mdb</code></td>
+<td>MDB</td>
+<td>CRR Art. 117</td>
+</tr>
+<tr>
+<td><code>international_org</code></td>
+<td>MDB</td>
+<td>CRR Art. 118</td>
+</tr>
+<tr>
+<td><code>institution</code></td>
+<td>INSTITUTION</td>
+<td>CRR Art. 112(d)</td>
+</tr>
+<tr>
+<td><code>bank</code></td>
+<td>INSTITUTION</td>
+<td>CRR Art. 112(d)</td>
+</tr>
+<tr>
+<td><code>ccp</code></td>
+<td>INSTITUTION</td>
+<td>CRR Art. 300-311</td>
+</tr>
+<tr>
+<td><code>financial_institution</code></td>
+<td>INSTITUTION</td>
+<td>CRR Art. 112(d)</td>
+</tr>
+<tr>
+<td><code>corporate</code></td>
+<td>CORPORATE</td>
+<td>CRR Art. 112(g)</td>
+</tr>
+<tr>
+<td><code>company</code></td>
+<td>CORPORATE</td>
+<td>CRR Art. 112(g)</td>
+</tr>
+<tr>
+<td><code>individual</code></td>
+<td>RETAIL_OTHER</td>
+<td>CRR Art. 112(h)</td>
+</tr>
+<tr>
+<td><code>retail</code></td>
+<td>RETAIL_OTHER</td>
+<td>CRR Art. 112(h)</td>
+</tr>
+<tr>
+<td><code>specialised_lending</code></td>
+<td>SPECIALISED_LENDING</td>
+<td>CRR Art. 147(8)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="irb-exposure-class-mapping">IRB Exposure Class Mapping<a class="headerlink" href="#irb-exposure-class-mapping" title="Permanent link">&para;</a></h3>
+<p>Used for IRB formula selection:</p>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>IRB Exposure Class</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sovereign</code></td>
+<td>SOVEREIGN</td>
+<td>Standard sovereign treatment</td>
+</tr>
+<tr>
+<td><code>central_bank</code></td>
+<td>SOVEREIGN</td>
+<td>Standard sovereign treatment</td>
+</tr>
+<tr>
+<td><code>rgla_sovereign</code></td>
+<td>SOVEREIGN</td>
+<td>Sovereign IRB formula</td>
+</tr>
+<tr>
+<td><code>rgla_institution</code></td>
+<td>INSTITUTION</td>
+<td>Institution IRB formula</td>
+</tr>
+<tr>
+<td><code>pse_sovereign</code></td>
+<td>SOVEREIGN</td>
+<td>Sovereign IRB formula</td>
+</tr>
+<tr>
+<td><code>pse_institution</code></td>
+<td>INSTITUTION</td>
+<td>Institution IRB formula</td>
+</tr>
+<tr>
+<td><code>mdb</code></td>
+<td>SOVEREIGN</td>
+<td>CRR Art. 147(3)</td>
+</tr>
+<tr>
+<td><code>international_org</code></td>
+<td>SOVEREIGN</td>
+<td>CRR Art. 147(3)</td>
+</tr>
+<tr>
+<td><code>institution</code></td>
+<td>INSTITUTION</td>
+<td>Standard institution treatment</td>
+</tr>
+<tr>
+<td><code>bank</code></td>
+<td>INSTITUTION</td>
+<td>Standard institution treatment</td>
+</tr>
+<tr>
+<td><code>ccp</code></td>
+<td>INSTITUTION</td>
+<td>Standard institution treatment</td>
+</tr>
+<tr>
+<td><code>financial_institution</code></td>
+<td>INSTITUTION</td>
+<td>Standard institution treatment</td>
+</tr>
+<tr>
+<td><code>corporate</code></td>
+<td>CORPORATE</td>
+<td>Standard corporate treatment</td>
+</tr>
+<tr>
+<td><code>company</code></td>
+<td>CORPORATE</td>
+<td>Standard corporate treatment</td>
+</tr>
+<tr>
+<td><code>individual</code></td>
+<td>RETAIL_OTHER</td>
+<td>Standard retail treatment</td>
+</tr>
+<tr>
+<td><code>retail</code></td>
+<td>RETAIL_OTHER</td>
+<td>Standard retail treatment</td>
+</tr>
+<tr>
+<td><code>specialised_lending</code></td>
+<td>SPECIALISED_LENDING</td>
+<td>Slotting or IRB</td>
+</tr>
+</tbody>
+</table>
+<h3 id="why-classes-can-differ">Why Classes Can Differ<a class="headerlink" href="#why-classes-can-differ" title="Permanent link">&para;</a></h3>
+<p>The SA and IRB exposure classes differ for RGLA, PSE, and MDB entity types because:</p>
+<ul>
+<li><strong>SA treatment</strong>: Uses specific risk weight tables for RGLA, PSE, and MDB</li>
+<li><strong>IRB treatment</strong>: Uses the underlying IRB formula (sovereign or institution) based on the nature of the entity's credit support</li>
+</ul>
+<p>For example, a government-guaranteed PSE (<code>pse_sovereign</code>) uses the PSE risk weight table under SA but the sovereign IRB formula because its credit risk is backed by the government.</p>
+<h2 id="classification-pipeline">Classification Pipeline<a class="headerlink" href="#classification-pipeline" title="Permanent link">&para;</a></h2>
+<p>The <code>ExposureClassifier.classify()</code> method processes exposures through a defined sequence of steps:</p>
+<h3 id="step-1-add-counterparty-attributes">Step 1: Add Counterparty Attributes<a class="headerlink" href="#step-1-add-counterparty-attributes" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">_add_counterparty_attributes</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">counterparties</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Joins exposure data with counterparty attributes needed for classification:
+- <code>entity_type</code> - Single source of truth
+- <code>annual_revenue</code> - For SME check
+- <code>total_assets</code> - For large FSE threshold
+- <code>default_status</code> - For default identification
+- <code>is_regulated</code> - For FI scalar determination
+- <code>is_managed_as_retail</code> - For SME retail treatment</p>
+<h3 id="step-2-classify-exposure-class">Step 2: Classify Exposure Class<a class="headerlink" href="#step-2-classify-exposure-class" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">_classify_exposure_class</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Maps <code>entity_type</code> to exposure classes using the constant mappings:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Result columns:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">exposure_class_sa</span>   <span class="c1"># SA class for risk weight lookup</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">exposure_class_irb</span>  <span class="c1"># IRB class for formula selection</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">exposure_class</span>      <span class="c1"># Unified class (SA class for backwards compatibility)</span>
+</span></code></pre></div>
+<h3 id="step-3-apply-sme-classification">Step 3: Apply SME Classification<a class="headerlink" href="#step-3-apply-sme-classification" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">_apply_sme_classification</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Checks SME criteria per CRR Art. 501:
+- Entity must be classified as CORPORATE
+- <code>annual_revenue &lt; EUR 50m</code> (converted to GBP using config FX rate)
+- Revenue must be &gt; 0 (excludes missing data)</p>
+<p>If criteria met:
+- Sets <code>is_sme = True</code>
+- Updates <code>exposure_class</code> to <code>CORPORATE_SME</code></p>
+<h3 id="step-4-apply-retail-classification">Step 4: Apply Retail Classification<a class="headerlink" href="#step-4-apply-retail-classification" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">_apply_retail_classification</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">lending_group_totals</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Checks retail eligibility per CRR Art. 123:</p>
+<ol>
+<li><strong>Mortgage detection</strong>: Identifies mortgages via product_type pattern matching</li>
+<li><strong>Threshold check</strong>: Aggregated exposure to lending group &lt; EUR 1m</li>
+<li><strong>Residential exclusion</strong>: Residential property collateral excluded from threshold (CRR Art. 123(c))</li>
+</ol>
+<p>Classification outcomes:
+- Mortgages to individuals → <code>RETAIL_MORTGAGE</code>
+- Retail exceeding threshold + SME revenue → <code>CORPORATE_SME</code>
+- Retail exceeding threshold + no SME criteria → <code>CORPORATE</code>
+- Retail within threshold → remains <code>RETAIL_OTHER</code></p>
+<h3 id="step-5-identify-defaults">Step 5: Identify Defaults<a class="headerlink" href="#step-5-identify-defaults" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">_identify_defaults</span><span class="p">(</span><span class="n">exposures</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Checks <code>default_status</code> flag:
+- Sets <code>is_defaulted = True</code>
+- Sets <code>exposure_class_for_sa = DEFAULTED</code> (SA treatment)
+- IRB exposures keep their class but use default LGD</p>
+<h3 id="step-5a-infrastructure-classification">Step 5a: Infrastructure Classification<a class="headerlink" href="#step-5a-infrastructure-classification" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">_apply_infrastructure_classification</span><span class="p">(</span><span class="n">exposures</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Identifies infrastructure exposures per CRR Art. 501a:
+- Checks product_type for "INFRASTRUCTURE" pattern
+- Sets <code>is_infrastructure = True</code>
+- Eligible for 0.75 supporting factor under CRR (not Basel 3.1)</p>
+<h3 id="step-5b-fi-scalar-classification">Step 5b: FI Scalar Classification<a class="headerlink" href="#step-5b-fi-scalar-classification" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">_apply_fi_scalar_classification</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Determines Financial Sector Entity (FSE) status and FI scalar eligibility per CRR Art. 153(2):</p>
+<p><strong>Financial Sector Entity Types:</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">FINANCIAL_SECTOR_ENTITY_TYPES</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="s2">&quot;institution&quot;</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="s2">&quot;bank&quot;</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="s2">&quot;ccp&quot;</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">&quot;financial_institution&quot;</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="s2">&quot;pse_institution&quot;</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="s2">&quot;rgla_institution&quot;</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<p><strong>Output columns:</strong>
+- <code>is_financial_sector_entity</code> - True if entity_type in FSE set
+- <code>is_large_financial_sector_entity</code> - FSE with total_assets &gt;= EUR 70bn
+- <code>requires_fi_scalar</code> - True if large FSE OR unregulated FSE</p>
+<p><strong>FI Scalar effect</strong>: 1.25x multiplier on IRB correlation</p>
+<h3 id="step-6-determine-approach">Step 6: Determine Approach<a class="headerlink" href="#step-6-determine-approach" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">_determine_approach</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Assigns calculation approach based on IRB permissions:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specialised lending + A-IRB permission for SL</td>
+<td>AIRB</td>
+</tr>
+<tr>
+<td>Specialised lending + Slotting permission</td>
+<td>SLOTTING</td>
+</tr>
+<tr>
+<td>Retail classes + A-IRB permission</td>
+<td>AIRB</td>
+</tr>
+<tr>
+<td>Corporate classes + A-IRB permission</td>
+<td>AIRB</td>
+</tr>
+<tr>
+<td>Corporate/Institution/Sovereign + F-IRB (no A-IRB)</td>
+<td>FIRB</td>
+</tr>
+<tr>
+<td>Default / No IRB permission</td>
+<td>SA</td>
+</tr>
+</tbody>
+</table>
+<h3 id="step-7-add-classification-audit">Step 7: Add Classification Audit<a class="headerlink" href="#step-7-add-classification-audit" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">_add_classification_audit</span><span class="p">(</span><span class="n">exposures</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Builds audit trail string for each exposure:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>entity_type=corporate; exp_class_sa=CORPORATE; exp_class_irb=CORPORATE;
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>is_sme=true; is_mortgage=false; is_defaulted=false; is_infrastructure=false;
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>requires_fi_scalar=false; qualifies_as_retail=true
+</span></code></pre></div></p>
+<h3 id="step-7a-enrich-slotting-exposures">Step 7a: Enrich Slotting Exposures<a class="headerlink" href="#step-7a-enrich-slotting-exposures" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">_enrich_slotting_exposures</span><span class="p">(</span><span class="n">exposures</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Derives slotting metadata from patterns in reference fields:</p>
+<p><strong>Slotting Category</strong> (from counterparty_reference):
+- <code>*_STRONG*</code> → strong
+- <code>*_GOOD*</code> → good
+- <code>*_SATISFACTORY*</code> → satisfactory
+- <code>*_WEAK*</code> → weak
+- <code>*_DEFAULT*</code> → default</p>
+<p><strong>Specialised Lending Type</strong> (from product_type):
+- <code>*PROJECT*</code> → project_finance
+- <code>*OBJECT*</code> → object_finance
+- <code>*COMMOD*</code> → commodities_finance
+- <code>IPRE</code> → ipre
+- <code>HVCRE</code> → hvcre</p>
+<p><strong>HVCRE Flag</strong>:
+- <code>is_hvcre = True</code> if sl_type == "hvcre"</p>
+<h3 id="step-8-split-by-approach">Step 8: Split by Approach<a class="headerlink" href="#step-8-split-by-approach" title="Permanent link">&para;</a></h3>
+<p>Filters exposures into separate LazyFrames:
+- <code>sa_exposures</code> - Approach = SA
+- <code>irb_exposures</code> - Approach = FIRB or AIRB
+- <code>slotting_exposures</code> - Approach = SLOTTING</p>
+<h2 id="output-schema">Output Schema<a class="headerlink" href="#output-schema" title="Permanent link">&para;</a></h2>
+<p>The classifier adds these columns to the exposure data:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>RWA Calculator</strong></td>
-<td><code>http://localhost:8000/</code> or <code>/calculator</code></td>
-<td>Run RWA calculations</td>
+<td><code>exposure_class</code></td>
+<td>String</td>
+<td>SA exposure class (backwards compatible)</td>
 </tr>
 <tr>
-<td><strong>Results Explorer</strong></td>
-<td><code>http://localhost:8000/results</code></td>
-<td>Analyze calculation results</td>
+<td><code>exposure_class_sa</code></td>
+<td>String</td>
+<td>SA exposure class (explicit)</td>
 </tr>
 <tr>
-<td><strong>Framework Reference</strong></td>
-<td><code>http://localhost:8000/reference</code></td>
-<td>Regulatory documentation</td>
+<td><code>exposure_class_irb</code></td>
+<td>String</td>
+<td>IRB exposure class</td>
+</tr>
+<tr>
+<td><code>is_sme</code></td>
+<td>Boolean</td>
+<td>SME classification (revenue &lt; EUR 50m)</td>
+</tr>
+<tr>
+<td><code>is_mortgage</code></td>
+<td>Boolean</td>
+<td>Mortgage product flag</td>
+</tr>
+<tr>
+<td><code>qualifies_as_retail</code></td>
+<td>Boolean</td>
+<td>Meets retail threshold</td>
+</tr>
+<tr>
+<td><code>retail_threshold_exclusion_applied</code></td>
+<td>Boolean</td>
+<td>Residential RE excluded from threshold</td>
+</tr>
+<tr>
+<td><code>is_defaulted</code></td>
+<td>Boolean</td>
+<td>Default status</td>
+</tr>
+<tr>
+<td><code>exposure_class_for_sa</code></td>
+<td>String</td>
+<td>SA class (DEFAULTED if in default)</td>
+</tr>
+<tr>
+<td><code>is_infrastructure</code></td>
+<td>Boolean</td>
+<td>Infrastructure lending flag</td>
+</tr>
+<tr>
+<td><code>is_financial_sector_entity</code></td>
+<td>Boolean</td>
+<td>FSE flag</td>
+</tr>
+<tr>
+<td><code>is_large_financial_sector_entity</code></td>
+<td>Boolean</td>
+<td>Large FSE (&gt;= EUR 70bn assets)</td>
+</tr>
+<tr>
+<td><code>requires_fi_scalar</code></td>
+<td>Boolean</td>
+<td>Requires 1.25x correlation</td>
+</tr>
+<tr>
+<td><code>approach</code></td>
+<td>String</td>
+<td>Calculation approach (SA/FIRB/AIRB/SLOTTING)</td>
+</tr>
+<tr>
+<td><code>firb_permitted</code></td>
+<td>Boolean</td>
+<td>F-IRB permitted by config</td>
+</tr>
+<tr>
+<td><code>airb_permitted</code></td>
+<td>Boolean</td>
+<td>A-IRB permitted by config</td>
+</tr>
+<tr>
+<td><code>slotting_category</code></td>
+<td>String</td>
+<td>Slotting category (for SL)</td>
+</tr>
+<tr>
+<td><code>sl_type</code></td>
+<td>String</td>
+<td>Specialised lending type</td>
+</tr>
+<tr>
+<td><code>is_hvcre</code></td>
+<td>Boolean</td>
+<td>High-volatility CRE flag</td>
+</tr>
+<tr>
+<td><code>classification_reason</code></td>
+<td>String</td>
+<td>Full audit trail</td>
 </tr>
 </tbody>
 </table>
-<h3 id="rwa-calculator-rwa_apppy">RWA Calculator (<code>rwa_app.py</code>)<a class="headerlink" href="#rwa-calculator-rwa_apppy" title="Permanent link">&para;</a></h3>
-<p>The main calculator application provides:</p>
-<ul>
-<li>
-<p><strong>Data Input</strong></p>
-<ul>
-<li>Data path selection with validation</li>
-<li>Format selection (Parquet / CSV)</li>
-<li>Reporting date picker</li>
-</ul>
-</li>
-<li>
-<p><strong>Configuration</strong></p>
-<ul>
-<li>Framework selection (CRR / Basel 3.1)</li>
-<li>IRB approach toggle</li>
-</ul>
-</li>
-<li>
-<p><strong>Results</strong></p>
-<ul>
-<li>Summary statistics (total EAD, total RWA, average risk weight)</li>
-<li>Breakdown by calculation approach</li>
-<li>Performance metrics (duration, throughput)</li>
-<li>Results preview (first 100 rows)</li>
-<li>CSV export</li>
-</ul>
-</li>
-</ul>
-<h3 id="results-explorer-results_explorerpy">Results Explorer (<code>results_explorer.py</code>)<a class="headerlink" href="#results-explorer-results_explorerpy" title="Permanent link">&para;</a></h3>
-<p>Analyze and filter calculation results:</p>
-<ul>
-<li>
-<p><strong>Filters</strong></p>
-<ul>
-<li>By exposure class (dropdown)</li>
-<li>By approach (dropdown)</li>
-<li>By risk weight range (min/max)</li>
-</ul>
-</li>
-<li>
-<p><strong>Aggregation Options</strong></p>
-<ul>
-<li>By Exposure Class</li>
-<li>By Approach</li>
-<li>By Risk Weight Band</li>
-</ul>
-</li>
-<li>
-<p><strong>Features</strong></p>
-<ul>
-<li>Column selector for detailed view</li>
-<li>Export filtered results (CSV + Parquet)</li>
-<li>Summary statistics</li>
-</ul>
-</li>
-</ul>
-<h3 id="framework-reference-framework_referencepy">Framework Reference (<code>framework_reference.py</code>)<a class="headerlink" href="#framework-reference-framework_referencepy" title="Permanent link">&para;</a></h3>
-<p>Interactive regulatory reference with tabbed navigation:</p>
-<ul>
-<li>Overview of CRR vs Basel 3.1</li>
-<li>CRR (Basel 3.0) parameters</li>
-<li>Basel 3.1 parameters</li>
-<li>Risk weight tables</li>
-<li>IRB parameters</li>
-</ul>
-<h3 id="server-architecture">Server Architecture<a class="headerlink" href="#server-architecture" title="Permanent link">&para;</a></h3>
-<p>The multi-app server uses Marimo's ASGI integration:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">marimo</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_asgi_app</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">app</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">create_asgi_app</span><span class="p">()</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="o">.</span><span class="n">with_app</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">apps_dir</span> <span class="o">/</span> <span class="s2">&quot;rwa_app.py&quot;</span><span class="p">))</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="o">.</span><span class="n">with_app</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;/calculator&quot;</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">apps_dir</span> <span class="o">/</span> <span class="s2">&quot;rwa_app.py&quot;</span><span class="p">))</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="o">.</span><span class="n">with_app</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;/results&quot;</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">apps_dir</span> <span class="o">/</span> <span class="s2">&quot;results_explorer.py&quot;</span><span class="p">))</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="o">.</span><span class="n">with_app</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;/reference&quot;</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">apps_dir</span> <span class="o">/</span> <span class="s2">&quot;framework_reference.py&quot;</span><span class="p">))</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">)</span>
-</span></code></pre></div>
-<hr />
-<h2 id="expected-output-workbooks">Expected Output Workbooks<a class="headerlink" href="#expected-output-workbooks" title="Permanent link">&para;</a></h2>
-<p>The workbooks in <code>workbooks/</code> provide reference implementations for generating expected test outputs, ensuring calculator accuracy.</p>
-<h3 id="structure">Structure<a class="headerlink" href="#structure" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>workbooks/
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── shared/                         # Common utilities
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>│   ├── fixture_loader.py           # Test data loading
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>│   ├── irb_formulas.py             # IRB K calculation
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>│   └── correlation.py              # Asset correlation
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>├── crr_expected_outputs/           # CRR (Basel 3.0)
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>│   ├── data/
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>│   │   └── crr_params.py           # Regulatory parameters
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>│   ├── calculations/               # Calculation modules
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>│   │   ├── crr_risk_weights.py     # SA risk weights
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│   │   ├── crr_ccf.py              # Credit conversion factors
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│   │   ├── crr_haircuts.py         # CRM haircuts
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>│   │   ├── crr_supporting_factors.py
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>│   │   └── crr_irb.py              # CRR IRB (with 1.06 factor)
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>│   ├── scenarios/                  # Expected output scenarios
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>│   │   ├── group_crr_a_sa.py       # SA scenarios (12)
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>│   │   ├── group_crr_b_firb.py     # F-IRB scenarios (6)
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>│   │   ├── group_crr_c_airb.py     # A-IRB scenarios (3)
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>│   │   ├── group_crr_d_crm.py      # CRM scenarios (6)
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>│   │   ├── group_crr_e_slotting.py # Slotting scenarios (4)
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>│   │   ├── group_crr_f_supporting_factors.py (7)
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>│   │   ├── group_crr_g_provisions.py (3)
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>│   │   └── group_crr_h_complex.py  # Complex scenarios (4)
-</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>│   ├── main.py                     # Main orchestration workbook
-</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>│   └── generate_outputs.py         # Output generation
-</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>└── basel31_expected_outputs/       # Basel 3.1 (mirrors CRR structure)
-</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    ├── data/
-</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    │   └── regulatory_params.py    # Basel 3.1 parameters
-</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    ├── calculations/
-</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>    │   ├── sa_risk_weights.py      # Basel 3.1 SA (LTV-based)
-</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    │   ├── ccf.py
-</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>    │   ├── crm_haircuts.py
-</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>    │   ├── irb_formulas.py         # IRB with floors
-</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>    │   └── correlation.py
-</span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>    ├── scenarios/                  # 8 groups including output floor
-</span><span id="__span-2-36"><a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>    │   ├── group_a_sa.py
-</span><span id="__span-2-37"><a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>    │   ├── group_b_firb.py
-</span><span id="__span-2-38"><a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>    │   ├── group_c_airb.py
-</span><span id="__span-2-39"><a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>    │   ├── group_d_crm.py
-</span><span id="__span-2-40"><a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>    │   ├── group_e_slotting.py
-</span><span id="__span-2-41"><a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>    │   ├── group_f_output_floor.py # Output floor mechanics
-</span><span id="__span-2-42"><a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>    │   ├── group_g_provisions.py
-</span><span id="__span-2-43"><a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>    │   └── group_h_complex.py
-</span><span id="__span-2-44"><a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>    └── main.py
-</span></code></pre></div>
-<h3 id="running-workbooks">Running Workbooks<a class="headerlink" href="#running-workbooks" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Run CRR workbook interactively</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>marimo<span class="w"> </span>edit<span class="w"> </span>workbooks/crr_expected_outputs/main.py
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Run Basel 3.1 workbook</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>uv<span class="w"> </span>run<span class="w"> </span>marimo<span class="w"> </span>edit<span class="w"> </span>workbooks/basel31_expected_outputs/main.py
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Generate expected outputs (non-interactive)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>workbooks/crr_expected_outputs/generate_outputs.py
-</span></code></pre></div>
-<h3 id="scenario-groups">Scenario Groups<a class="headerlink" href="#scenario-groups" title="Permanent link">&para;</a></h3>
-<h4 id="crr-scenarios-45-total">CRR Scenarios (45 total)<a class="headerlink" href="#crr-scenarios-45-total" title="Permanent link">&para;</a></h4>
+<h2 id="exposure-classes">Exposure Classes<a class="headerlink" href="#exposure-classes" title="Permanent link">&para;</a></h2>
+<p>The system supports these exposure classes (defined in <code>domain/enums.py</code>):</p>
 <table>
 <thead>
 <tr>
-<th>Group</th>
+<th>Class</th>
 <th>Description</th>
-<th>Scenarios</th>
+<th>SA Treatment</th>
+<th>IRB Treatment</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>CRR-A</td>
-<td>Standardised Approach</td>
-<td>12</td>
+<td><code>SOVEREIGN</code></td>
+<td>Central governments, central banks</td>
+<td>CQS-based (0%-150%)</td>
+<td>Sovereign formula</td>
 </tr>
 <tr>
-<td>CRR-B</td>
-<td>Foundation IRB</td>
-<td>6</td>
+<td><code>RGLA</code></td>
+<td>Regional govts, local authorities</td>
+<td>CQS-based</td>
+<td>Sovereign or Institution</td>
 </tr>
 <tr>
-<td>CRR-C</td>
-<td>Advanced IRB</td>
-<td>3</td>
+<td><code>PSE</code></td>
+<td>Public sector entities</td>
+<td>CQS-based</td>
+<td>Sovereign or Institution</td>
 </tr>
 <tr>
-<td>CRR-D</td>
-<td>Credit Risk Mitigation</td>
-<td>6</td>
+<td><code>MDB</code></td>
+<td>Multilateral development banks</td>
+<td>0% (eligible) or CQS</td>
+<td>Sovereign formula</td>
 </tr>
 <tr>
-<td>CRR-E</td>
-<td>Specialised Lending (Slotting)</td>
-<td>4</td>
+<td><code>INSTITUTION</code></td>
+<td>Banks, investment firms</td>
+<td>CQS-based (20%-150%)</td>
+<td>Institution formula</td>
 </tr>
 <tr>
-<td>CRR-F</td>
-<td>Supporting Factors</td>
-<td>7</td>
+<td><code>CORPORATE</code></td>
+<td>Non-financial corporates</td>
+<td>CQS-based or 100%</td>
+<td>Corporate formula</td>
 </tr>
 <tr>
-<td>CRR-G</td>
-<td>Provisions &amp; Impairments</td>
-<td>3</td>
+<td><code>CORPORATE_SME</code></td>
+<td>SME corporates (&lt;EUR 50m)</td>
+<td>As corporate</td>
+<td>SME adjustment</td>
 </tr>
 <tr>
-<td>CRR-H</td>
-<td>Complex/Combined</td>
-<td>4</td>
+<td><code>RETAIL_MORTGAGE</code></td>
+<td>Residential mortgages</td>
+<td>LTV-based (20%-70%)</td>
+<td>Retail formula</td>
+</tr>
+<tr>
+<td><code>RETAIL_QRRE</code></td>
+<td>Qualifying revolving retail</td>
+<td>75%</td>
+<td>QRRE formula</td>
+</tr>
+<tr>
+<td><code>RETAIL_OTHER</code></td>
+<td>Other retail</td>
+<td>75%</td>
+<td>Retail formula</td>
+</tr>
+<tr>
+<td><code>SPECIALISED_LENDING</code></td>
+<td>PF, OF, CF, IPRE</td>
+<td>Per slotting</td>
+<td>Slotting/IRB</td>
+</tr>
+<tr>
+<td><code>EQUITY</code></td>
+<td>Equity exposures</td>
+<td>100%-400%</td>
+<td>SA only (Basel 3.1)</td>
+</tr>
+<tr>
+<td><code>DEFAULTED</code></td>
+<td>Defaulted exposures</td>
+<td>100%-150%</td>
+<td>Default LGD</td>
+</tr>
+<tr>
+<td><code>OTHER</code></td>
+<td>Unmapped/other</td>
+<td>100%</td>
+<td>N/A</td>
 </tr>
 </tbody>
 </table>
-<h4 id="basel-31-scenarios">Basel 3.1 Scenarios<a class="headerlink" href="#basel-31-scenarios" title="Permanent link">&para;</a></h4>
-<p>Similar structure to CRR with additional:</p>
+<h2 id="regulatory-references">Regulatory References<a class="headerlink" href="#regulatory-references" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Group F: Output Floor</strong> - Testing the 72.5% floor mechanics and transitional schedule</li>
-</ul>
-<h3 id="shared-utilities">Shared Utilities<a class="headerlink" href="#shared-utilities" title="Permanent link">&para;</a></h3>
-<h4 id="irb-formulas-sharedirb_formulaspy">IRB Formulas (<code>shared/irb_formulas.py</code>)<a class="headerlink" href="#irb-formulas-sharedirb_formulaspy" title="Permanent link">&para;</a></h4>
-<p>Common IRB calculations used by both frameworks:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">workbooks.shared.irb_formulas</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_k</span><span class="p">,</span> <span class="n">maturity_adjustment</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># Calculate capital requirement (K)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">k</span> <span class="o">=</span> <span class="n">calculate_k</span><span class="p">(</span><span class="n">pd</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">lgd</span><span class="o">=</span><span class="mf">0.45</span><span class="p">,</span> <span class="n">correlation</span><span class="o">=</span><span class="mf">0.20</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># Calculate maturity adjustment</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">ma</span> <span class="o">=</span> <span class="n">maturity_adjustment</span><span class="p">(</span><span class="n">pd</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">maturity</span><span class="o">=</span><span class="mf">2.5</span><span class="p">)</span>
-</span></code></pre></div>
-<h4 id="asset-correlation-sharedcorrelationpy">Asset Correlation (<code>shared/correlation.py</code>)<a class="headerlink" href="#asset-correlation-sharedcorrelationpy" title="Permanent link">&para;</a></h4>
-<p>Correlation parameters by exposure class:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">workbooks.shared.correlation</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_correlation</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># Corporate correlation (PD-dependent)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">r</span> <span class="o">=</span> <span class="n">get_correlation</span><span class="p">(</span><span class="s2">&quot;CORPORATE&quot;</span><span class="p">,</span> <span class="n">pd</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># Retail mortgage (fixed 15%)</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">r</span> <span class="o">=</span> <span class="n">get_correlation</span><span class="p">(</span><span class="s2">&quot;RETAIL_MORTGAGE&quot;</span><span class="p">,</span> <span class="n">pd</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="adding-new-scenarios">Adding New Scenarios<a class="headerlink" href="#adding-new-scenarios" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>Create scenario file</strong> in the appropriate <code>scenarios/</code> directory</li>
-<li><strong>Define expected outputs</strong> with all required fields</li>
-<li><strong>Add to main.py</strong> orchestration</li>
-<li><strong>Generate outputs</strong> using the generation script</li>
-<li><strong>Create acceptance test</strong> in <code>tests/acceptance/</code></li>
-</ol>
-<p>Example scenario definition:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># workbooks/crr_expected_outputs/scenarios/group_crr_a_sa.py</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_scenarios</span><span class="p">():</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">return</span> <span class="p">[</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="p">{</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>            <span class="s2">&quot;scenario_id&quot;</span><span class="p">:</span> <span class="s2">&quot;CRR-A01&quot;</span><span class="p">,</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Sovereign CQS1 - 0% RW&quot;</span><span class="p">,</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>            <span class="s2">&quot;exposure_ref&quot;</span><span class="p">:</span> <span class="s2">&quot;EXP_SOV_CQS1&quot;</span><span class="p">,</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="s2">&quot;expected&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>                <span class="s2">&quot;exposure_class&quot;</span><span class="p">:</span> <span class="s2">&quot;SOVEREIGN&quot;</span><span class="p">,</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>                <span class="s2">&quot;approach&quot;</span><span class="p">:</span> <span class="s2">&quot;SA&quot;</span><span class="p">,</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>                <span class="s2">&quot;risk_weight&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>                <span class="s2">&quot;ead&quot;</span><span class="p">:</span> <span class="mi">1_000_000</span><span class="p">,</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>                <span class="s2">&quot;rwa&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>            <span class="p">}</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="p">},</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="c1"># ... more scenarios</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="p">]</span>
-</span></code></pre></div>
-<hr />
-<h2 id="development-workflow">Development Workflow<a class="headerlink" href="#development-workflow" title="Permanent link">&para;</a></h2>
-<h3 id="workbook-development">Workbook Development<a class="headerlink" href="#workbook-development" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>Edit interactively</strong> using <code>marimo edit</code></li>
-<li><strong>Test calculations</strong> against regulatory documentation</li>
-<li><strong>Generate outputs</strong> to CSV/JSON/Parquet</li>
-<li><strong>Validate</strong> with acceptance tests</li>
-</ol>
-<h3 id="ui-development">UI Development<a class="headerlink" href="#ui-development" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>Run server</strong> in development mode</li>
-<li><strong>Edit app files</strong> - Marimo hot-reloads changes</li>
-<li><strong>Test</strong> all applications through the browser</li>
-<li><strong>Validate</strong> with API and integration tests</li>
-</ol>
-<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../testing/">Testing Guide</a> - Testing approach and examples</li>
-<li><a href="../benchmarks/">Benchmark Tests</a> - Performance testing</li>
-<li><a href="../extending/">Adding Features</a> - Extending the calculator</li>
+<li><strong>CRR Art. 112</strong>: SA exposure class definitions</li>
+<li><strong>CRR Art. 115</strong>: RGLA treatment</li>
+<li><strong>CRR Art. 116</strong>: PSE treatment</li>
+<li><strong>CRR Art. 117-118</strong>: MDB and international organisation treatment</li>
+<li><strong>CRR Art. 123</strong>: Retail exposure criteria</li>
+<li><strong>CRR Art. 147</strong>: IRB exposure class definitions</li>
+<li><strong>CRR Art. 153(2)</strong>: FI scalar (1.25x correlation)</li>
+<li><strong>CRR Art. 501</strong>: SME supporting factor</li>
+<li><strong>CRR Art. 501a</strong>: Infrastructure supporting factor</li>
+<li><strong>CRE30.6</strong>: SME classification (Basel Framework)</li>
+<li><strong>CRE20.65-70</strong>: Retail exposure criteria (Basel Framework)</li>
 </ul>
 
 
