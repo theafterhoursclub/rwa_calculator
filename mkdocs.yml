@@ -5,6 +5,7 @@ repo_url: https://github.com/OpenAfterHours/rwa_calculator
 
 theme:
   name: material
+  logo: assets/openafterhours-logo.svg
   palette:
     - scheme: default
       primary: indigo
