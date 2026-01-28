@@ -141,6 +141,8 @@ def calculate_correlation(
     exposure_class: str,
     turnover: float | None = None,
     sme_threshold: float = 50.0,
+    eur_gbp_rate: float = 0.8732,
+    turnover_currency: str = "GBP",
 ) -> float:
     """
     Calculate asset correlation for IRB formula.
@@ -149,7 +151,9 @@ def calculate_correlation(
         pd: Probability of default
         exposure_class: Exposure class (CORPORATE, RETAIL, etc.)
         turnover: Annual turnover in millions (for SME adjustment)
-        sme_threshold: SME turnover threshold in millions (default EUR 50m)
+        sme_threshold: SME turnover threshold in EUR millions (default EUR 50m)
+        eur_gbp_rate: EUR/GBP exchange rate for converting GBP turnover to EUR
+        turnover_currency: Currency of turnover ("GBP" or "EUR")
 
     Returns:
         Asset correlation (R)
@@ -166,7 +170,7 @@ def calculate_correlation(
 
     For SME corporates (turnover < threshold), apply firm size adjustment:
         R_adjusted = R - 0.04 * (1 - (max(S, 5) - 5) / 45)
-        where S = annual turnover in millions, capped at threshold
+        where S = annual turnover in EUR millions, capped at threshold
     """
     # Get correlation parameters for exposure class
     params = CORRELATION_PARAMS.get(
@@ -195,7 +199,11 @@ def calculate_correlation(
 
     # SME firm size adjustment (CRR Art. 153(4) / CRE31.5)
     if exposure_class in ["CORPORATE", "CORPORATE_SME", "CORPORATES"] and turnover is not None:
-        correlation = _apply_sme_adjustment(correlation, turnover, sme_threshold)
+        # Convert GBP turnover to EUR for comparison against EUR threshold
+        turnover_eur = turnover
+        if turnover_currency.upper() == "GBP":
+            turnover_eur = turnover / eur_gbp_rate
+        correlation = _apply_sme_adjustment(correlation, turnover_eur, sme_threshold)
 
     return correlation
 

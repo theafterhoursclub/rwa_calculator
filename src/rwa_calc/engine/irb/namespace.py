@@ -124,6 +124,11 @@ class IRBLazyFrame:
             lf = lf.with_columns([
                 pl.lit(None).cast(pl.Float64).alias("lgd"),
             ])
+        elif schema["lgd"] != pl.Float64:
+            # Cast lgd to Float64 if it's not already (handles String type from Excel imports)
+            lf = lf.with_columns([
+                pl.col("lgd").cast(pl.Float64, strict=False).alias("lgd"),
+            ])
 
         default_lgd = float(FIRB_SUPERVISORY_LGD["unsecured_senior"])
         sub_lgd = float(FIRB_SUPERVISORY_LGD["subordinated"])
@@ -279,7 +284,7 @@ class IRBLazyFrame:
         - Retail mortgage: Fixed 0.15
         - QRRE: Fixed 0.04
         - Other retail: PD-dependent (0.03-0.16)
-        - SME adjustment for corporates
+        - SME adjustment for corporates (turnover converted from GBP to EUR)
         - FI scalar (1.25x) for large/unregulated financial sector entities
 
         Args:
@@ -294,8 +299,10 @@ class IRBLazyFrame:
         if "requires_fi_scalar" not in schema.names():
             lf = lf.with_columns(pl.lit(False).alias("requires_fi_scalar"))
 
+        # Pass EUR/GBP rate from config to convert GBP turnover to EUR for SME adjustment
+        eur_gbp_rate = float(config.eur_gbp_rate)
         return lf.with_columns(
-            _polars_correlation_expr().alias("correlation")
+            _polars_correlation_expr(eur_gbp_rate=eur_gbp_rate).alias("correlation")
         )
 
     def calculate_k(self, config: CalculationConfig) -> pl.LazyFrame:

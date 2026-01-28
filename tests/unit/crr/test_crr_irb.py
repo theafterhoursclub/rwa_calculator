@@ -97,10 +97,15 @@ class TestAssetCorrelation:
         assert 0.03 <= corr <= 0.16
 
     def test_sme_correlation_adjustment(self) -> None:
-        """SME turnover should reduce corporate correlation."""
+        """SME turnover should reduce corporate correlation.
+
+        Note: turnover_m is in GBP, converted to EUR using eur_gbp_rate.
+        GBP 8.732m = EUR 10m at rate 0.8732
+        """
         base_corr = calculate_correlation(pd=0.01, exposure_class="CORPORATE")
+        # GBP 8.732m converts to EUR 10m at rate 0.8732
         sme_corr = calculate_correlation(
-            pd=0.01, exposure_class="CORPORATE", turnover_m=10.0
+            pd=0.01, exposure_class="CORPORATE", turnover_m=8.732, eur_gbp_rate=0.8732
         )
 
         # SME should have lower correlation
@@ -109,23 +114,70 @@ class TestAssetCorrelation:
         assert base_corr - sme_corr <= 0.04
 
     def test_sme_adjustment_at_floor(self) -> None:
-        """SME at turnover floor (EUR 5m) should get maximum adjustment."""
+        """SME at turnover floor (EUR 5m) should get maximum adjustment.
+
+        Note: turnover_m is in GBP, converted to EUR using eur_gbp_rate.
+        GBP 4.366m = EUR 5m at rate 0.8732
+        """
         base_corr = calculate_correlation(pd=0.01, exposure_class="CORPORATE")
+        # GBP 4.366m converts to EUR 5m at rate 0.8732
         min_sme_corr = calculate_correlation(
-            pd=0.01, exposure_class="CORPORATE", turnover_m=5.0
+            pd=0.01, exposure_class="CORPORATE", turnover_m=4.366, eur_gbp_rate=0.8732
         )
 
         # At EUR 5m, adjustment = 0.04 * (1 - 0) = 0.04
         assert base_corr - min_sme_corr == pytest.approx(0.04, rel=0.01)
 
     def test_large_corporate_no_adjustment(self) -> None:
-        """Large corporate (turnover >= EUR 50m) should get no adjustment."""
+        """Large corporate (turnover >= EUR 50m) should get no adjustment.
+
+        Note: turnover_m is in GBP, converted to EUR using eur_gbp_rate.
+        GBP 87.32m = EUR 100m at rate 0.8732
+        """
         base_corr = calculate_correlation(pd=0.01, exposure_class="CORPORATE")
+        # GBP 87.32m converts to EUR 100m at rate 0.8732
         large_corr = calculate_correlation(
-            pd=0.01, exposure_class="CORPORATE", turnover_m=100.0
+            pd=0.01, exposure_class="CORPORATE", turnover_m=87.32, eur_gbp_rate=0.8732
         )
 
         assert base_corr == pytest.approx(large_corr)
+
+    def test_sme_adjustment_eur_gbp_conversion(self) -> None:
+        """Test SME adjustment with EUR/GBP conversion (CORP_01 scenario).
+
+        CORP_01 example:
+        - Revenue: £21,082,040 → turnover_m = 21.08 GBP millions
+        - EUR/GBP rate: 0.8732
+        - EUR turnover: 21.08 / 0.8732 = 24.14 EUR millions
+        - s_clamped: 24.14 (between 5 and 50)
+        - SME adjustment: 0.04 × (1 - (24.14 - 5) / 45) = 0.04 × 0.5747 = 0.0230
+        """
+        # CORP_01 scenario: GBP 21.08m turnover
+        turnover_gbp = 21.08
+        eur_gbp_rate = 0.8732
+
+        # Calculate expected EUR turnover
+        turnover_eur = turnover_gbp / eur_gbp_rate  # ≈ 24.14
+
+        # Calculate correlation with EUR/GBP conversion
+        corr = calculate_correlation(
+            pd=0.01,
+            exposure_class="CORPORATE",
+            turnover_m=turnover_gbp,
+            eur_gbp_rate=eur_gbp_rate,
+        )
+
+        # Calculate base correlation (no SME adjustment)
+        base_corr = calculate_correlation(pd=0.01, exposure_class="CORPORATE")
+
+        # Expected SME adjustment = 0.04 × (1 - (turnover_eur - 5) / 45)
+        expected_sme_adj = 0.04 * (1 - (turnover_eur - 5) / 45)
+
+        # Verify correlation reduction
+        assert base_corr - corr == pytest.approx(expected_sme_adj, rel=0.01)
+
+        # Verify specific value (approximately 0.0230)
+        assert expected_sme_adj == pytest.approx(0.0230, rel=0.02)
 
 
 # =============================================================================

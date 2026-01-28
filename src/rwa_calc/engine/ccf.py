@@ -140,6 +140,9 @@ class CCFCalculator:
         # Select final CCF based on approach
         if has_approach:
             if has_ccf_modelled:
+                # Cast ccf_modelled to Float64 in case it's stored as String
+                ccf_modelled_expr = pl.col("ccf_modelled").cast(pl.Float64, strict=False)
+
                 # Full logic with A-IRB ccf_modelled support
                 exposures = exposures.with_columns([
                     pl.when(pl.col("nominal_amount") == 0)
@@ -147,7 +150,7 @@ class CCFCalculator:
                     .when(pl.col("approach") == ApproachType.AIRB.value)
                     .then(
                         # A-IRB: use ccf_modelled if provided, else fall back to SA
-                        pl.col("ccf_modelled").fill_null(pl.col("_sa_ccf_from_risk_type"))
+                        ccf_modelled_expr.fill_null(pl.col("_sa_ccf_from_risk_type"))
                     )
                     .when(pl.col("approach") == ApproachType.FIRB.value)
                     .then(pl.col("_firb_ccf_from_risk_type"))  # F-IRB: 75% rule

@@ -563,3 +563,156 @@ class TestCCFFromRiskType:
         for ref in ["SA_MLR_STANDARD", "SA_MLR_TRADE_LC"]:
             row = result.filter(pl.col("exposure_reference") == ref)
             assert row["ccf"][0] == pytest.approx(0.20), f"SA MLR should be 20% for {ref}"
+
+
+# =============================================================================
+# Facility Undrawn CCF Tests
+# =============================================================================
+
+
+class TestFacilityUndrawnCCF:
+    """Tests for CCF calculation on facility_undrawn exposures."""
+
+    def test_facility_undrawn_sa_ccf_from_risk_type(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Facility undrawn exposures should use CCF from risk_type under SA."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC001_UNDRAWN", "FAC002_UNDRAWN", "FAC003_UNDRAWN", "FAC004_UNDRAWN"],
+            "exposure_type": ["facility_undrawn"] * 4,
+            "drawn_amount": [0.0] * 4,
+            "undrawn_amount": [1000000.0] * 4,
+            "nominal_amount": [1000000.0] * 4,
+            "risk_type": ["MR", "MLR", "FR", "LR"],  # Different risk types
+            "approach": ["standardised"] * 4,
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        expected = {
+            "FAC001_UNDRAWN": (0.50, 500000.0),   # MR = 50%
+            "FAC002_UNDRAWN": (0.20, 200000.0),   # MLR = 20%
+            "FAC003_UNDRAWN": (1.00, 1000000.0),  # FR = 100%
+            "FAC004_UNDRAWN": (0.00, 0.0),        # LR = 0%
+        }
+
+        for ref, (expected_ccf, expected_ead) in expected.items():
+            row = result.filter(pl.col("exposure_reference") == ref)
+            assert row["ccf"][0] == pytest.approx(expected_ccf), f"CCF mismatch for {ref}"
+            assert row["ead_from_ccf"][0] == pytest.approx(expected_ead), f"EAD mismatch for {ref}"
+
+    def test_facility_undrawn_firb_ccf_75_percent(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Facility undrawn should get 75% CCF under F-IRB per Art. 166(8)."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC_FIRB_UNDRAWN"],
+            "exposure_type": ["facility_undrawn"],
+            "drawn_amount": [0.0],
+            "undrawn_amount": [500000.0],
+            "nominal_amount": [500000.0],
+            "risk_type": ["MR"],  # Would be 50% for SA
+            "approach": ["foundation_irb"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # F-IRB: MR should use 75% CCF
+        assert result["ccf"][0] == pytest.approx(0.75)
+        assert result["ead_from_ccf"][0] == pytest.approx(375000.0)
+
+    def test_facility_undrawn_airb_uses_modelled_ccf(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Facility undrawn should use ccf_modelled under A-IRB when provided."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC_AIRB_UNDRAWN"],
+            "exposure_type": ["facility_undrawn"],
+            "drawn_amount": [0.0],
+            "undrawn_amount": [200000.0],
+            "nominal_amount": [200000.0],
+            "risk_type": ["MR"],
+            "ccf_modelled": [0.80],  # Bank's modelled CCF
+            "approach": ["advanced_irb"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # A-IRB: should use the modelled CCF (80%)
+        assert result["ccf"][0] == pytest.approx(0.80)
+        assert result["ead_from_ccf"][0] == pytest.approx(160000.0)
+
+    def test_facility_undrawn_uncommitted_lr_zero_ccf(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Uncommitted facilities with LR risk type should get 0% CCF."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC_UNCOMMITTED_UNDRAWN"],
+            "exposure_type": ["facility_undrawn"],
+            "drawn_amount": [0.0],
+            "undrawn_amount": [1000000.0],
+            "nominal_amount": [1000000.0],
+            "risk_type": ["LR"],  # Low risk = unconditionally cancellable
+            "approach": ["standardised"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # LR = 0% CCF, so EAD from undrawn = 0
+        assert result["ccf"][0] == pytest.approx(0.0)
+        assert result["ead_from_ccf"][0] == pytest.approx(0.0)
+        assert result["ead_pre_crm"][0] == pytest.approx(0.0)
+
+    def test_facility_undrawn_trade_lc_firb_exception(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Facility undrawn trade LC should retain 20% under F-IRB per Art. 166(9)."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC_TRADE_LC_UNDRAWN"],
+            "exposure_type": ["facility_undrawn"],
+            "drawn_amount": [0.0],
+            "undrawn_amount": [500000.0],
+            "nominal_amount": [500000.0],
+            "risk_type": ["MLR"],
+            "is_short_term_trade_lc": [True],  # Art. 166(9) exception
+            "approach": ["foundation_irb"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # F-IRB with short-term trade LC should retain 20% CCF
+        assert result["ccf"][0] == pytest.approx(0.20)
+        assert result["ead_from_ccf"][0] == pytest.approx(100000.0)
+
+    def test_facility_undrawn_ead_calculation(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Facility undrawn EAD should be calculated correctly from nominal_amount."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["FAC_EAD_TEST"],
+            "exposure_type": ["facility_undrawn"],
+            "drawn_amount": [0.0],  # No drawn amount for undrawn exposure
+            "undrawn_amount": [750000.0],
+            "nominal_amount": [750000.0],
+            "risk_type": ["MR"],  # 50% CCF for SA
+            "approach": ["standardised"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # EAD = drawn (0) + (nominal * CCF) = 0 + (750k * 0.5) = 375k
+        assert result["ccf"][0] == pytest.approx(0.50)
+        assert result["ead_from_ccf"][0] == pytest.approx(375000.0)
+        assert result["ead_pre_crm"][0] == pytest.approx(375000.0)

@@ -158,8 +158,6 @@ def calculate_irb_rwa(
 
     Reference: CRR Art. 153-154
     """
-    is_retail = "RETAIL" in exposure_class.upper()
-
     return _base_calculate_irb_rwa(
         ead=ead,
         pd=pd,
@@ -169,7 +167,6 @@ def calculate_irb_rwa(
         pd_floor=float(CRR_PD_FLOOR) if apply_pd_floor_flag else 0.0,
         lgd_floor=None,  # CRR A-IRB has no LGD floors
         apply_maturity_adjustment=apply_maturity_adjustment,
-        is_retail=is_retail,
         apply_scaling_factor=True,  # CRR applies 1.06 scaling for non-retail
     )
 
@@ -183,6 +180,8 @@ def calculate_irb_rwa_with_turnover(
     turnover_m: float | None = None,
     apply_maturity_adjustment: bool = True,
     apply_pd_floor_flag: bool = True,
+    turnover_currency: str = "EUR",
+    eur_gbp_rate: float = 0.8732,
 ) -> dict:
     """
     Calculate RWA using CRR IRB approach with automatic correlation calculation.
@@ -196,9 +195,11 @@ def calculate_irb_rwa_with_turnover(
         lgd: Loss given default
         maturity: Effective maturity in years
         exposure_class: Exposure class
-        turnover_m: Annual turnover in millions EUR/GBP (for SME adjustment)
+        turnover_m: Annual turnover in millions (for SME adjustment)
         apply_maturity_adjustment: Whether to apply MA (False for retail)
         apply_pd_floor_flag: Whether to apply PD floor
+        turnover_currency: Currency of turnover ("EUR" or "GBP")
+        eur_gbp_rate: EUR/GBP exchange rate for converting GBP turnover to EUR
 
     Returns:
         Dictionary with calculation details including:
@@ -212,7 +213,7 @@ def calculate_irb_rwa_with_turnover(
     SME Firm Size Adjustment (CRR Art. 153(4)):
         For corporates with turnover < EUR 50m (GBP 44m):
         R_adjusted = R - 0.04 × (1 - (max(S, 5) - 5) / 45)
-        where S = annual turnover in millions
+        where S = annual turnover in EUR millions
 
         This reduces correlation (and thus RWA) for smaller firms.
 
@@ -224,21 +225,27 @@ def calculate_irb_rwa_with_turnover(
     pd_floored = apply_pd_floor(pd) if apply_pd_floor_flag else pd
 
     # Calculate correlation with SME adjustment if applicable
+    # The SME threshold is in EUR, so convert GBP turnover to EUR
     correlation = calculate_correlation(
         pd=pd_floored,
         exposure_class=exposure_class,
         turnover=turnover_m,
         sme_threshold=50.0,  # EUR 50m
+        eur_gbp_rate=eur_gbp_rate,
+        turnover_currency=turnover_currency,
     )
 
     # Track whether SME adjustment was applied
+    # Convert turnover to EUR for threshold comparison
+    turnover_eur = turnover_m
+    if turnover_m is not None and turnover_currency.upper() == "GBP":
+        turnover_eur = turnover_m / eur_gbp_rate
+
     sme_adjustment_applied = (
-        turnover_m is not None and
-        turnover_m < 50.0 and
+        turnover_eur is not None and
+        turnover_eur < 50.0 and
         exposure_class.upper() in ["CORPORATE", "CORPORATE_SME", "CORPORATES"]
     )
-
-    is_retail = "RETAIL" in exposure_class.upper()
 
     result = _base_calculate_irb_rwa(
         ead=ead,
@@ -249,7 +256,6 @@ def calculate_irb_rwa_with_turnover(
         pd_floor=float(CRR_PD_FLOOR) if apply_pd_floor_flag else 0.0,
         lgd_floor=None,  # CRR A-IRB has no LGD floors
         apply_maturity_adjustment=apply_maturity_adjustment,
-        is_retail=is_retail,
         apply_scaling_factor=True,  # CRR applies 1.06 scaling for non-retail
     )
 
