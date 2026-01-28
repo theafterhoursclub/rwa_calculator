@@ -1,0 +1,41 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.6"
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "ce4194fff5fe8b0eebb7a09769bc0473",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "XEMS",
+      "code_hash": "17f7fe783e026f28701c9196ca4e717a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "Could not determine dtype for column 8, falling back to string\nCould not determine dtype for column 9, falling back to string\nCould not determine dtype for column 9, falling back to string\nCould not determine dtype for column 10, falling back to string\nCould not determine dtype for column 15, falling back to string\nCould not determine dtype for column 16, falling back to string\nCould not determine dtype for column 5, falling back to string\n",
+          "mimetype": "text/plain"
+        }
+      ]
+    }
+  ]
+}
