@@ -287,12 +287,14 @@ class IRBCalculator:
             # F-IRB supervisory LGD
             lgd = lookup_firb_lgd(collateral_type, is_subordinated)
 
-        # Calculate correlation
+        # Calculate correlation (pass EUR/GBP rate for SME adjustment)
         turnover_float = float(turnover_m) if turnover_m else None
+        eur_gbp_rate = float(config.eur_gbp_rate)
         correlation = calculate_correlation(
             pd=float(pd),
             exposure_class=exposure_class,
             turnover_m=turnover_float,
+            eur_gbp_rate=eur_gbp_rate,
         )
 
         # Check if retail (no MA, no scaling)

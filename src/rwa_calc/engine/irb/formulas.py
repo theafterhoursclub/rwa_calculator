@@ -104,8 +104,10 @@ def apply_irb_formulas(
         )
 
     # Step 3: Calculate correlation using pure Polars expressions
+    # Pass EUR/GBP rate from config to convert GBP turnover to EUR for SME adjustment
+    eur_gbp_rate = float(config.eur_gbp_rate)
     exposures = exposures.with_columns(
-        _polars_correlation_expr().alias("correlation")
+        _polars_correlation_expr(eur_gbp_rate=eur_gbp_rate).alias("correlation")
     )
 
     # Step 4: Calculate K using pure Polars with polars-normal-stats
@@ -149,7 +151,10 @@ apply_irb_formulas_numpy = apply_irb_formulas
 # =============================================================================
 
 
-def _polars_correlation_expr(sme_threshold: float = 50.0) -> pl.Expr:
+def _polars_correlation_expr(
+    sme_threshold: float = 50.0,
+    eur_gbp_rate: float = 0.8732,
+) -> pl.Expr:
     """
     Pure Polars expression for correlation calculation.
 
@@ -160,8 +165,12 @@ def _polars_correlation_expr(sme_threshold: float = 50.0) -> pl.Expr:
     - Other retail: PD-dependent (decay=35)
 
     Includes:
-    - SME firm size adjustment for corporates
+    - SME firm size adjustment for corporates (turnover converted from GBP to EUR)
     - FI scalar (1.25x) for large/unregulated financial sector entities (CRR Art. 153(2))
+
+    Args:
+        sme_threshold: SME threshold in EUR millions (default 50.0)
+        eur_gbp_rate: EUR/GBP exchange rate for converting GBP turnover to EUR (default 0.8732)
     """
     pd = pl.col("pd_floored")
     exp_class = pl.col("exposure_class").cast(pl.String).fill_null("CORPORATE").str.to_uppercase()
@@ -184,19 +193,22 @@ def _polars_correlation_expr(sme_threshold: float = 50.0) -> pl.Expr:
     r_retail_other = 0.03 * f_pd_retail + 0.16 * (1.0 - f_pd_retail)
 
     # SME adjustment for corporates: reduce correlation based on turnover
-    # s_clamped = max(5, min(turnover, 50))
+    # The SME threshold is in EUR, but turnover_m is stored in GBP millions
+    # Convert GBP turnover to EUR: turnover_eur = turnover_gbp / eur_gbp_rate
+    # s_clamped = max(5, min(turnover_eur, 50))
     # adjustment = 0.04 × (1 - (s_clamped - 5) / 45)
-    # Cast to Float64 first to handle null dtype, then clip
+    # Cast to Float64 first to handle null dtype, then convert to EUR and clip
     turnover_float = turnover.cast(pl.Float64)
-    s_clamped = turnover_float.clip(5.0, sme_threshold)
+    turnover_eur = turnover_float / eur_gbp_rate
+    s_clamped = turnover_eur.clip(5.0, sme_threshold)
     sme_adjustment = 0.04 * (1.0 - (s_clamped - 5.0) / 45.0)
 
-    # Corporate with SME adjustment (when turnover < threshold and is corporate)
+    # Corporate with SME adjustment (when turnover_eur < threshold and is corporate)
     is_corporate = exp_class.str.contains("CORPORATE")
     # Use is_not_null() and is_finite() to check for valid turnover values
     # is_finite() returns false for NaN and infinities, handles null dtype gracefully
-    has_valid_turnover = turnover_float.is_not_null() & turnover_float.is_finite()
-    is_sme = has_valid_turnover & (turnover_float < sme_threshold)
+    has_valid_turnover = turnover_eur.is_not_null() & turnover_eur.is_finite()
+    is_sme = has_valid_turnover & (turnover_eur < sme_threshold)
 
     r_corporate_with_sme = (
         pl.when(is_corporate & is_sme)
@@ -362,7 +374,8 @@ def _run_scalar_via_vectorized(
 
     # Apply the appropriate expression based on output column
     if output_col == "correlation":
-        expr = _polars_correlation_expr()
+        eur_gbp_rate = inputs.get("eur_gbp_rate", 0.8732)
+        expr = _polars_correlation_expr(eur_gbp_rate=float(eur_gbp_rate))
     elif output_col == "k":
         expr = _polars_capital_k_expr()
     elif output_col == "maturity_adjustment":
@@ -410,6 +423,7 @@ def calculate_correlation(
     turnover_m: float | None = None,
     sme_threshold: float = 50.0,
     apply_fi_scalar: bool = False,
+    eur_gbp_rate: float = 0.8732,
 ) -> float:
     """
     Scalar correlation calculation.
@@ -420,10 +434,11 @@ def calculate_correlation(
     Args:
         pd: Probability of default
         exposure_class: Exposure class string
-        turnover_m: Turnover in millions (for SME adjustment)
-        sme_threshold: SME threshold in millions (default 50.0)
+        turnover_m: Turnover in GBP millions (for SME adjustment, will be converted to EUR)
+        sme_threshold: SME threshold in EUR millions (default 50.0)
         apply_fi_scalar: Whether to apply 1.25x FI scalar (CRR Art. 153(2))
                         for large/unregulated financial sector entities
+        eur_gbp_rate: EUR/GBP exchange rate for converting GBP turnover to EUR (default 0.8732)
 
     Returns:
         Asset correlation value
@@ -434,6 +449,7 @@ def calculate_correlation(
             "exposure_class": exposure_class,
             "turnover_m": turnover_m,
             "requires_fi_scalar": apply_fi_scalar,
+            "eur_gbp_rate": eur_gbp_rate,
         },
         "correlation",
     )

@@ -424,6 +424,7 @@ class TestUnifyExposures:
         exposures, errors = resolver._unify_exposures(
             simple_loans,
             simple_contingents,
+            None,  # No facilities for this test
             simple_facility_mappings,
             counterparty_lookup,
         )
@@ -459,6 +460,7 @@ class TestUnifyExposures:
         exposures, _ = resolver._unify_exposures(
             simple_loans,
             simple_contingents,
+            None,  # No facilities for this test
             simple_facility_mappings,
             counterparty_lookup,
         )
@@ -492,6 +494,7 @@ class TestUnifyExposures:
         exposures, _ = resolver._unify_exposures(
             simple_loans,
             simple_contingents,
+            None,  # No facilities for this test
             simple_facility_mappings,
             counterparty_lookup,
         )
@@ -575,6 +578,7 @@ class TestLendingGroupAggregation:
                 "ccf_modelled": pl.Float64,
                 "is_short_term_trade_lc": pl.Boolean,
             }),
+            None,  # No facilities for this test
             pl.LazyFrame(schema={
                 "parent_facility_reference": pl.String,
                 "child_reference": pl.String,
@@ -669,6 +673,7 @@ class TestLendingGroupAggregation:
                 "ccf_modelled": pl.Float64,
                 "is_short_term_trade_lc": pl.Boolean,
             }),
+            None,  # No facilities for this test
             pl.LazyFrame(schema={
                 "parent_facility_reference": pl.String,
                 "child_reference": pl.String,
@@ -904,3 +909,456 @@ class TestEdgeCases:
         # Should work without org hierarchy
         assert isinstance(result, ResolvedHierarchyBundle)
         assert result.counterparty_lookup.parent_mappings.collect().height == 0
+
+
+# =============================================================================
+# Facility Undrawn Calculation Tests
+# =============================================================================
+
+
+class TestFacilityUndrawnCalculation:
+    """Tests for _calculate_facility_undrawn method."""
+
+    @pytest.fixture
+    def facilities_with_undrawn(self) -> pl.LazyFrame:
+        """Facilities for testing undrawn calculation."""
+        return pl.DataFrame({
+            "facility_reference": ["FAC001", "FAC002", "FAC003", "FAC004", "FAC005"],
+            "product_type": ["RCF", "TERM", "OVERDRAFT", "RCF", "RCF"],
+            "book_code": ["CORP", "CORP", "CORP", "CORP", "CORP"],
+            "counterparty_reference": ["CP001", "CP002", "CP003", "CP004", "CP005"],
+            "value_date": [date(2023, 1, 1)] * 5,
+            "maturity_date": [date(2028, 1, 1)] * 5,
+            "currency": ["GBP"] * 5,
+            "limit": [5000000.0, 1000000.0, 500000.0, 1000000.0, 1000000.0],
+            "committed": [True, True, True, True, True],
+            "lgd": [0.45] * 5,
+            "beel": [0.01] * 5,
+            "is_revolving": [True, False, True, True, True],
+            "seniority": ["senior"] * 5,
+            "risk_type": ["MR", "MR", "MR", "MR", "LR"],  # MR=50% CCF, LR=0% CCF
+            "ccf_modelled": [None, None, None, 0.80, None],  # FAC004 has modelled CCF
+            "is_short_term_trade_lc": [False, False, False, False, False],
+        }).lazy()
+
+    @pytest.fixture
+    def loans_for_facilities(self) -> pl.LazyFrame:
+        """Loans linked to facilities."""
+        return pl.DataFrame({
+            "loan_reference": ["LOAN001", "LOAN002", "LOAN003", "LOAN004"],
+            "product_type": ["TERM_LOAN", "TERM_LOAN", "OVERDRAFT_DRAW", "TERM_LOAN"],
+            "book_code": ["CORP"] * 4,
+            "counterparty_reference": ["CP001", "CP001", "CP002", "CP003"],
+            "value_date": [date(2023, 6, 1)] * 4,
+            "maturity_date": [date(2028, 1, 1)] * 4,
+            "currency": ["GBP"] * 4,
+            "drawn_amount": [4000000.0, 500000.0, 1000000.0, 700000.0],
+            "lgd": [0.45] * 4,
+            "beel": [0.01] * 4,
+            "seniority": ["senior"] * 4,
+        }).lazy()
+
+    @pytest.fixture
+    def facility_loan_mappings(self) -> pl.LazyFrame:
+        """Mappings between facilities and loans."""
+        return pl.DataFrame({
+            "parent_facility_reference": ["FAC001", "FAC001", "FAC002", "FAC003"],
+            "child_reference": ["LOAN001", "LOAN002", "LOAN003", "LOAN004"],
+            "child_type": ["loan", "loan", "loan", "loan"],
+        }).lazy()
+
+    def test_normal_facility_undrawn_calculation(
+        self,
+        resolver: HierarchyResolver,
+        facilities_with_undrawn: pl.LazyFrame,
+        loans_for_facilities: pl.LazyFrame,
+        facility_loan_mappings: pl.LazyFrame,
+    ) -> None:
+        """Normal facility should have undrawn = limit - drawn."""
+        # FAC001: limit=5M, drawn=4.5M (LOAN001 + LOAN002), undrawn=500k
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities_with_undrawn,
+            loans_for_facilities,
+            facility_loan_mappings,
+        )
+        df = facility_undrawn.collect()
+
+        fac001 = df.filter(pl.col("exposure_reference") == "FAC001_UNDRAWN")
+        assert len(fac001) == 1
+        assert fac001["undrawn_amount"][0] == pytest.approx(500000.0)  # 5M - 4.5M = 500k
+        assert fac001["nominal_amount"][0] == pytest.approx(500000.0)
+        assert fac001["exposure_type"][0] == "facility_undrawn"
+        assert fac001["risk_type"][0] == "MR"
+
+    def test_fully_drawn_facility_not_included(
+        self,
+        resolver: HierarchyResolver,
+        facilities_with_undrawn: pl.LazyFrame,
+        loans_for_facilities: pl.LazyFrame,
+        facility_loan_mappings: pl.LazyFrame,
+    ) -> None:
+        """Fully drawn facility (undrawn=0) should not create exposure."""
+        # FAC002: limit=1M, drawn=1M (LOAN003), undrawn=0
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities_with_undrawn,
+            loans_for_facilities,
+            facility_loan_mappings,
+        )
+        df = facility_undrawn.collect()
+
+        # FAC002 should NOT be in the output since undrawn = 0
+        fac002 = df.filter(pl.col("exposure_reference") == "FAC002_UNDRAWN")
+        assert len(fac002) == 0
+
+    def test_facility_with_no_loans_100_percent_undrawn(
+        self,
+        resolver: HierarchyResolver,
+        facilities_with_undrawn: pl.LazyFrame,
+        loans_for_facilities: pl.LazyFrame,
+        facility_loan_mappings: pl.LazyFrame,
+    ) -> None:
+        """Facility with no linked loans should be 100% undrawn."""
+        # FAC004: limit=1M, no linked loans, undrawn=1M
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities_with_undrawn,
+            loans_for_facilities,
+            facility_loan_mappings,
+        )
+        df = facility_undrawn.collect()
+
+        fac004 = df.filter(pl.col("exposure_reference") == "FAC004_UNDRAWN")
+        assert len(fac004) == 1
+        assert fac004["undrawn_amount"][0] == pytest.approx(1000000.0)
+        # Should inherit ccf_modelled from facility
+        assert fac004["ccf_modelled"][0] == pytest.approx(0.80)
+
+    def test_overdrawn_facility_capped_at_zero(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Overdrawn facility (drawn > limit) should have undrawn capped at 0."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["OVERDRAWN_FAC"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["OVERDRAWN_LOAN"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [1200000.0],  # Drawn > limit
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        mappings = pl.DataFrame({
+            "parent_facility_reference": ["OVERDRAWN_FAC"],
+            "child_reference": ["OVERDRAWN_LOAN"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        # Should not create exposure since undrawn is capped at 0
+        assert len(df) == 0
+
+    def test_facility_uncommitted_lr_risk_type(
+        self,
+        resolver: HierarchyResolver,
+        facilities_with_undrawn: pl.LazyFrame,
+        loans_for_facilities: pl.LazyFrame,
+        facility_loan_mappings: pl.LazyFrame,
+    ) -> None:
+        """Uncommitted facility with LR risk type should create exposure with LR."""
+        # FAC005: limit=1M, no linked loans, risk_type=LR (0% CCF)
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities_with_undrawn,
+            loans_for_facilities,
+            facility_loan_mappings,
+        )
+        df = facility_undrawn.collect()
+
+        fac005 = df.filter(pl.col("exposure_reference") == "FAC005_UNDRAWN")
+        assert len(fac005) == 1
+        assert fac005["undrawn_amount"][0] == pytest.approx(1000000.0)
+        assert fac005["risk_type"][0] == "LR"  # Low risk = 0% CCF
+
+    def test_facility_partial_draw_calculation(
+        self,
+        resolver: HierarchyResolver,
+        facilities_with_undrawn: pl.LazyFrame,
+        loans_for_facilities: pl.LazyFrame,
+        facility_loan_mappings: pl.LazyFrame,
+    ) -> None:
+        """Partially drawn facility should have correct undrawn amount."""
+        # FAC003: limit=500k, drawn=700k (LOAN004), but loan is mapped to FAC003
+        # Wait - looking at the test data, LOAN004 (700k) is mapped to FAC003 (limit 500k)
+        # This would result in negative undrawn, which should be capped at 0
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities_with_undrawn,
+            loans_for_facilities,
+            facility_loan_mappings,
+        )
+        df = facility_undrawn.collect()
+
+        # FAC003 has limit 500k but drawn 700k, so undrawn is capped at 0
+        fac003 = df.filter(pl.col("exposure_reference") == "FAC003_UNDRAWN")
+        assert len(fac003) == 0
+
+    def test_facility_undrawn_inherits_ccf_fields(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Facility undrawn should inherit CCF-related fields from facility."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_CCF"],
+            "product_type": ["TRADE_LC"],
+            "book_code": ["TRADE"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2024, 6, 1)],
+            "currency": ["GBP"],
+            "limit": [500000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MLR"],  # Medium-low risk (20% SA, 75% F-IRB, or 20% if trade LC)
+            "ccf_modelled": [0.65],
+            "is_short_term_trade_lc": [True],  # Art. 166(9) exception
+        }).lazy()
+
+        loans = pl.LazyFrame(schema={
+            "loan_reference": pl.String,
+            "product_type": pl.String,
+            "book_code": pl.String,
+            "counterparty_reference": pl.String,
+            "value_date": pl.Date,
+            "maturity_date": pl.Date,
+            "currency": pl.String,
+            "drawn_amount": pl.Float64,
+            "lgd": pl.Float64,
+            "seniority": pl.String,
+        })
+
+        mappings = pl.LazyFrame(schema={
+            "parent_facility_reference": pl.String,
+            "child_reference": pl.String,
+            "child_type": pl.String,
+        })
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        assert len(df) == 1
+        assert df["exposure_reference"][0] == "FAC_CCF_UNDRAWN"
+        assert df["risk_type"][0] == "MLR"
+        assert df["ccf_modelled"][0] == pytest.approx(0.65)
+        assert df["is_short_term_trade_lc"][0] is True
+        assert df["nominal_amount"][0] == pytest.approx(500000.0)
+
+    def test_empty_facilities_returns_empty(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Empty facilities should return empty LazyFrame."""
+        facilities = pl.LazyFrame(schema={
+            "facility_reference": pl.String,
+            "limit": pl.Float64,
+        })
+
+        loans = pl.LazyFrame(schema={
+            "loan_reference": pl.String,
+            "drawn_amount": pl.Float64,
+        })
+
+        mappings = pl.LazyFrame(schema={
+            "parent_facility_reference": pl.String,
+            "child_reference": pl.String,
+            "child_type": pl.String,
+        })
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        assert len(df) == 0
+
+
+class TestFacilityUndrawnInUnifyExposures:
+    """Tests for facility undrawn integration in _unify_exposures."""
+
+    def test_unify_exposures_includes_facility_undrawn(
+        self,
+        resolver: HierarchyResolver,
+        simple_counterparties: pl.LazyFrame,
+        simple_org_mappings: pl.LazyFrame,
+        simple_ratings: pl.LazyFrame,
+    ) -> None:
+        """_unify_exposures should include facility_undrawn exposure type."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_UNIFY"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_UNIFY"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [600000.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        facility_mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_UNIFY"],
+            "child_reference": ["LOAN_UNIFY"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        counterparty_lookup, _ = resolver._build_counterparty_lookup(
+            simple_counterparties,
+            simple_org_mappings,
+            simple_ratings,
+        )
+
+        exposures, errors = resolver._unify_exposures(
+            loans,
+            None,  # No contingents
+            facilities,
+            facility_mappings,
+            counterparty_lookup,
+        )
+
+        df = exposures.collect()
+
+        # Should have loan + facility_undrawn
+        assert len(df) == 2
+
+        # Check exposure types
+        exposure_types = df["exposure_type"].to_list()
+        assert "loan" in exposure_types
+        assert "facility_undrawn" in exposure_types
+
+        # Check facility_undrawn record
+        facility_undrawn = df.filter(pl.col("exposure_type") == "facility_undrawn")
+        assert facility_undrawn["exposure_reference"][0] == "FAC_UNIFY_UNDRAWN"
+        assert facility_undrawn["undrawn_amount"][0] == pytest.approx(400000.0)  # 1M - 600k
+        assert facility_undrawn["nominal_amount"][0] == pytest.approx(400000.0)
+        assert facility_undrawn["risk_type"][0] == "MR"
+
+    def test_full_resolve_includes_facility_undrawn(
+        self,
+        resolver: HierarchyResolver,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Full resolve() should include facility_undrawn exposures."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_RESOLVE"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_RESOLVE"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [2000000.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_RESOLVE"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_RESOLVE"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [500000.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["CP_RESOLVE"],
+            "counterparty_name": ["Test Corp"],
+            "entity_type": ["corporate"],
+            "country_code": ["GB"],
+            "annual_revenue": [50000000.0],
+            "total_assets": [100000000.0],
+            "default_status": [False],
+            "sector_code": ["MANU"],
+            "is_regulated": [False],
+            "is_managed_as_retail": [False],
+        }).lazy()
+
+        facility_mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_RESOLVE"],
+            "child_reference": ["LOAN_RESOLVE"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        bundle = RawDataBundle(
+            facilities=facilities,
+            loans=loans,
+            contingents=None,
+            counterparties=counterparties,
+            collateral=None,
+            guarantees=None,
+            provisions=None,
+            ratings=None,
+            facility_mappings=facility_mappings,
+            org_mappings=None,
+            lending_mappings=pl.LazyFrame(schema={
+                "parent_counterparty_reference": pl.String,
+                "child_counterparty_reference": pl.String,
+            }),
+        )
+
+        result = resolver.resolve(bundle, crr_config)
+        df = result.exposures.collect()
+
+        # Should have loan + facility_undrawn
+        assert len(df) == 2
+
+        # Check exposure types
+        exposure_types = df["exposure_type"].unique().to_list()
+        assert "loan" in exposure_types
+        assert "facility_undrawn" in exposure_types
+
+        # Check facility_undrawn amounts
+        facility_undrawn = df.filter(pl.col("exposure_type") == "facility_undrawn")
+        assert facility_undrawn["undrawn_amount"][0] == pytest.approx(1500000.0)  # 2M - 500k

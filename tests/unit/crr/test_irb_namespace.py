@@ -75,7 +75,14 @@ def retail_lazyframe() -> pl.LazyFrame:
 
 @pytest.fixture
 def sme_lazyframe() -> pl.LazyFrame:
-    """Return a LazyFrame with SME exposures for correlation adjustment."""
+    """Return a LazyFrame with SME exposures for correlation adjustment.
+
+    Note: turnover_m is in GBP millions, converted to EUR using eur_gbp_rate (0.8732).
+    GBP values are chosen so they convert to nice EUR amounts:
+    - GBP 4.366m → EUR 5m (min SME threshold)
+    - GBP 21.83m → EUR 25m (mid SME)
+    - GBP 87.32m → EUR 100m (large corp, above 50m threshold)
+    """
     return pl.LazyFrame({
         "exposure_reference": ["EXP001", "EXP002", "EXP003"],
         "pd": [0.01, 0.01, 0.01],
@@ -83,7 +90,7 @@ def sme_lazyframe() -> pl.LazyFrame:
         "ead_final": [1_000_000.0, 1_000_000.0, 1_000_000.0],
         "exposure_class": ["CORPORATE", "CORPORATE", "CORPORATE"],
         "maturity": [2.5, 2.5, 2.5],
-        "turnover_m": [5.0, 25.0, 100.0],  # Min SME, mid SME, large corp
+        "turnover_m": [4.366, 21.83, 87.32],  # GBP values converting to EUR 5m, 25m, 100m
         "approach": ["foundation_irb", "foundation_irb", "foundation_irb"],
     })
 
