@@ -1458,3 +1458,483 @@ class TestFacilityUndrawnInUnifyExposures:
         assert facility_undrawn["undrawn_amount"][0] == pytest.approx(500.0)
         # Facility undrawn should have interest = 0
         assert facility_undrawn["interest"][0] == pytest.approx(0.0)
+
+
+# =============================================================================
+# Same Reference Tests (facility_reference = loan_reference)
+# =============================================================================
+
+
+class TestSameFacilityAndLoanReference:
+    """Tests for scenarios where facility_reference equals loan_reference.
+
+    In some source systems, the facility and loan share the same reference ID.
+    This is a valid business scenario that must be supported. The system
+    differentiates them by:
+    - exposure_type: "loan" vs "facility_undrawn"
+    - Facility undrawn gets "_UNDRAWN" suffix in exposure_reference
+    - Different tables (facilities vs loans) with different schemas
+    """
+
+    @pytest.fixture
+    def same_ref_facility(self) -> pl.LazyFrame:
+        """Facility with reference that matches its loan."""
+        return pl.DataFrame({
+            "facility_reference": ["REF001"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_SAME_REF"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "beel": [0.01],
+            "is_revolving": [True],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+            "ccf_modelled": [None],
+            "is_short_term_trade_lc": [False],
+        }).lazy()
+
+    @pytest.fixture
+    def same_ref_loan(self) -> pl.LazyFrame:
+        """Loan with reference that matches its parent facility."""
+        return pl.DataFrame({
+            "loan_reference": ["REF001"],  # Same as facility_reference
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_SAME_REF"],
+            "value_date": [date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [600000.0],
+            "interest": [5000.0],
+            "lgd": [0.45],
+            "beel": [0.01],
+            "seniority": ["senior"],
+        }).lazy()
+
+    @pytest.fixture
+    def same_ref_mapping(self) -> pl.LazyFrame:
+        """Facility mapping linking facility REF001 to loan REF001."""
+        return pl.DataFrame({
+            "parent_facility_reference": ["REF001"],
+            "child_reference": ["REF001"],  # Same reference for both
+            "child_type": ["loan"],
+        }).lazy()
+
+    @pytest.fixture
+    def same_ref_counterparty(self) -> pl.LazyFrame:
+        """Counterparty for same-reference test."""
+        return pl.DataFrame({
+            "counterparty_reference": ["CP_SAME_REF"],
+            "counterparty_name": ["Same Reference Corp"],
+            "entity_type": ["corporate"],
+            "country_code": ["GB"],
+            "annual_revenue": [50000000.0],
+            "total_assets": [100000000.0],
+            "default_status": [False],
+            "sector_code": ["MANU"],
+            "is_regulated": [False],
+            "is_managed_as_retail": [False],
+        }).lazy()
+
+    def test_undrawn_calculation_with_same_reference(
+        self,
+        resolver: HierarchyResolver,
+        same_ref_facility: pl.LazyFrame,
+        same_ref_loan: pl.LazyFrame,
+        same_ref_mapping: pl.LazyFrame,
+    ) -> None:
+        """Undrawn calculation should work when facility and loan share reference.
+
+        Facility REF001: limit=1M
+        Loan REF001: drawn=600k
+        Expected undrawn = 1M - 600k = 400k
+        """
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            same_ref_facility,
+            same_ref_loan,
+            same_ref_mapping,
+        )
+        df = facility_undrawn.collect()
+
+        # Should create one undrawn exposure with _UNDRAWN suffix
+        assert len(df) == 1
+        assert df["exposure_reference"][0] == "REF001_UNDRAWN"
+        assert df["undrawn_amount"][0] == pytest.approx(400000.0)
+        assert df["exposure_type"][0] == "facility_undrawn"
+
+    def test_unify_exposures_differentiates_same_reference(
+        self,
+        resolver: HierarchyResolver,
+        same_ref_facility: pl.LazyFrame,
+        same_ref_loan: pl.LazyFrame,
+        same_ref_mapping: pl.LazyFrame,
+        same_ref_counterparty: pl.LazyFrame,
+    ) -> None:
+        """Unified exposures should correctly differentiate loan from facility_undrawn.
+
+        Even though facility_reference = loan_reference = "REF001":
+        - Loan exposure: exposure_reference = "REF001", exposure_type = "loan"
+        - Facility undrawn: exposure_reference = "REF001_UNDRAWN", exposure_type = "facility_undrawn"
+        """
+        # Build counterparty lookup
+        enriched_counterparties = same_ref_counterparty.with_columns([
+            pl.lit(False).alias("counterparty_has_parent"),
+            pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
+            pl.lit(None).cast(pl.Int8).alias("cqs"),
+            pl.lit(None).cast(pl.Float64).alias("pd"),
+            pl.lit(None).cast(pl.String).alias("rating_value"),
+            pl.lit(None).cast(pl.String).alias("rating_agency"),
+            pl.lit(False).alias("rating_inherited"),
+            pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
+            pl.lit("unrated").alias("rating_inheritance_reason"),
+        ])
+
+        counterparty_lookup = CounterpartyLookup(
+            counterparties=enriched_counterparties,
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
+        )
+
+        exposures, errors = resolver._unify_exposures(
+            same_ref_loan,
+            None,  # No contingents
+            same_ref_facility,
+            same_ref_mapping,
+            counterparty_lookup,
+        )
+
+        df = exposures.collect()
+
+        # Should have 2 exposures: loan + facility_undrawn
+        assert len(df) == 2
+
+        # Check loan exposure
+        loan_exp = df.filter(pl.col("exposure_type") == "loan")
+        assert len(loan_exp) == 1
+        assert loan_exp["exposure_reference"][0] == "REF001"
+        assert loan_exp["drawn_amount"][0] == pytest.approx(600000.0)
+        assert loan_exp["interest"][0] == pytest.approx(5000.0)
+
+        # Check facility_undrawn exposure
+        undrawn_exp = df.filter(pl.col("exposure_type") == "facility_undrawn")
+        assert len(undrawn_exp) == 1
+        assert undrawn_exp["exposure_reference"][0] == "REF001_UNDRAWN"
+        assert undrawn_exp["undrawn_amount"][0] == pytest.approx(400000.0)
+
+    def test_loan_correctly_linked_to_parent_facility_with_same_reference(
+        self,
+        resolver: HierarchyResolver,
+        same_ref_facility: pl.LazyFrame,
+        same_ref_loan: pl.LazyFrame,
+        same_ref_mapping: pl.LazyFrame,
+        same_ref_counterparty: pl.LazyFrame,
+    ) -> None:
+        """Loan should be correctly linked to parent facility even with same reference.
+
+        The loan "REF001" should have parent_facility_reference = "REF001".
+        This is not a circular reference - they are different entity types.
+        """
+        # Build counterparty lookup
+        enriched_counterparties = same_ref_counterparty.with_columns([
+            pl.lit(False).alias("counterparty_has_parent"),
+            pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
+            pl.lit(None).cast(pl.Int8).alias("cqs"),
+            pl.lit(None).cast(pl.Float64).alias("pd"),
+            pl.lit(None).cast(pl.String).alias("rating_value"),
+            pl.lit(None).cast(pl.String).alias("rating_agency"),
+            pl.lit(False).alias("rating_inherited"),
+            pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
+            pl.lit("unrated").alias("rating_inheritance_reason"),
+        ])
+
+        counterparty_lookup = CounterpartyLookup(
+            counterparties=enriched_counterparties,
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
+        )
+
+        exposures, errors = resolver._unify_exposures(
+            same_ref_loan,
+            None,
+            same_ref_facility,
+            same_ref_mapping,
+            counterparty_lookup,
+        )
+
+        df = exposures.collect()
+
+        # Check loan has parent facility reference set
+        loan_exp = df.filter(pl.col("exposure_type") == "loan")
+        assert loan_exp["exposure_has_parent"][0] is True
+        assert loan_exp["parent_facility_reference"][0] == "REF001"
+
+        # Facility undrawn should NOT have a parent (it IS the facility)
+        undrawn_exp = df.filter(pl.col("exposure_type") == "facility_undrawn")
+        assert undrawn_exp["exposure_has_parent"][0] is False
+        assert undrawn_exp["parent_facility_reference"][0] is None
+
+    def test_full_resolve_with_same_reference(
+        self,
+        resolver: HierarchyResolver,
+        same_ref_facility: pl.LazyFrame,
+        same_ref_loan: pl.LazyFrame,
+        same_ref_mapping: pl.LazyFrame,
+        same_ref_counterparty: pl.LazyFrame,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Full resolve() should work correctly with same facility/loan reference."""
+        bundle = RawDataBundle(
+            facilities=same_ref_facility,
+            loans=same_ref_loan,
+            contingents=None,
+            counterparties=same_ref_counterparty,
+            collateral=None,
+            guarantees=None,
+            provisions=None,
+            ratings=None,
+            facility_mappings=same_ref_mapping,
+            org_mappings=None,
+            lending_mappings=pl.LazyFrame(schema={
+                "parent_counterparty_reference": pl.String,
+                "child_counterparty_reference": pl.String,
+            }),
+        )
+
+        result = resolver.resolve(bundle, crr_config)
+        df = result.exposures.collect()
+
+        # Should have 2 exposures
+        assert len(df) == 2
+
+        # Check both exposure types are present
+        exposure_types = set(df["exposure_type"].to_list())
+        assert exposure_types == {"loan", "facility_undrawn"}
+
+        # Verify loan details
+        loan_exp = df.filter(pl.col("exposure_type") == "loan")
+        assert loan_exp["exposure_reference"][0] == "REF001"
+        assert loan_exp["drawn_amount"][0] == pytest.approx(600000.0)
+        assert loan_exp["parent_facility_reference"][0] == "REF001"
+        assert loan_exp["exposure_has_parent"][0] is True
+
+        # Verify facility_undrawn details
+        undrawn_exp = df.filter(pl.col("exposure_type") == "facility_undrawn")
+        assert undrawn_exp["exposure_reference"][0] == "REF001_UNDRAWN"
+        assert undrawn_exp["undrawn_amount"][0] == pytest.approx(400000.0)
+        assert undrawn_exp["nominal_amount"][0] == pytest.approx(400000.0)
+
+    def test_multiple_loans_with_same_reference_pattern(
+        self,
+        resolver: HierarchyResolver,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Multiple facilities can each have loans with matching references.
+
+        This tests that the pattern works for multiple independent facility-loan pairs.
+        """
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_A", "FAC_B"],
+            "product_type": ["RCF", "TERM"],
+            "book_code": ["CORP", "CORP"],
+            "counterparty_reference": ["CP_A", "CP_B"],
+            "value_date": [date(2023, 1, 1)] * 2,
+            "maturity_date": [date(2028, 1, 1)] * 2,
+            "currency": ["GBP", "GBP"],
+            "limit": [500000.0, 800000.0],
+            "lgd": [0.45, 0.45],
+            "seniority": ["senior", "senior"],
+            "risk_type": ["MR", "MR"],
+        }).lazy()
+
+        # Loans with SAME references as their parent facilities
+        loans = pl.DataFrame({
+            "loan_reference": ["FAC_A", "FAC_B"],  # Same as facility references
+            "product_type": ["TERM_LOAN", "TERM_LOAN"],
+            "book_code": ["CORP", "CORP"],
+            "counterparty_reference": ["CP_A", "CP_B"],
+            "value_date": [date(2023, 6, 1)] * 2,
+            "maturity_date": [date(2028, 1, 1)] * 2,
+            "currency": ["GBP", "GBP"],
+            "drawn_amount": [300000.0, 500000.0],
+            "lgd": [0.45, 0.45],
+            "seniority": ["senior", "senior"],
+        }).lazy()
+
+        # Mappings where parent = child reference
+        facility_mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_A", "FAC_B"],
+            "child_reference": ["FAC_A", "FAC_B"],
+            "child_type": ["loan", "loan"],
+        }).lazy()
+
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["CP_A", "CP_B"],
+            "counterparty_name": ["Corp A", "Corp B"],
+            "entity_type": ["corporate", "corporate"],
+            "country_code": ["GB", "GB"],
+            "annual_revenue": [50000000.0, 60000000.0],
+            "total_assets": [100000000.0, 120000000.0],
+            "default_status": [False, False],
+            "sector_code": ["MANU", "MANU"],
+            "is_regulated": [False, False],
+            "is_managed_as_retail": [False, False],
+        }).lazy()
+
+        bundle = RawDataBundle(
+            facilities=facilities,
+            loans=loans,
+            contingents=None,
+            counterparties=counterparties,
+            collateral=None,
+            guarantees=None,
+            provisions=None,
+            ratings=None,
+            facility_mappings=facility_mappings,
+            org_mappings=None,
+            lending_mappings=pl.LazyFrame(schema={
+                "parent_counterparty_reference": pl.String,
+                "child_counterparty_reference": pl.String,
+            }),
+        )
+
+        result = resolver.resolve(bundle, crr_config)
+        df = result.exposures.collect()
+
+        # Should have 4 exposures: 2 loans + 2 facility_undrawn
+        assert len(df) == 4
+
+        # Check loan exposures
+        loans_df = df.filter(pl.col("exposure_type") == "loan").sort("exposure_reference")
+        assert loans_df["exposure_reference"].to_list() == ["FAC_A", "FAC_B"]
+        assert loans_df["parent_facility_reference"].to_list() == ["FAC_A", "FAC_B"]
+
+        # Check facility_undrawn exposures
+        undrawn_df = df.filter(pl.col("exposure_type") == "facility_undrawn").sort("exposure_reference")
+        assert undrawn_df["exposure_reference"].to_list() == ["FAC_A_UNDRAWN", "FAC_B_UNDRAWN"]
+
+        # Verify undrawn amounts
+        fac_a_undrawn = undrawn_df.filter(pl.col("exposure_reference") == "FAC_A_UNDRAWN")
+        assert fac_a_undrawn["undrawn_amount"][0] == pytest.approx(200000.0)  # 500k - 300k
+
+        fac_b_undrawn = undrawn_df.filter(pl.col("exposure_reference") == "FAC_B_UNDRAWN")
+        assert fac_b_undrawn["undrawn_amount"][0] == pytest.approx(300000.0)  # 800k - 500k
+
+    def test_same_reference_fully_drawn_no_undrawn_exposure(
+        self,
+        resolver: HierarchyResolver,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """When facility is fully drawn, only loan exposure should exist."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["FULL_DRAW"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_FULL"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [500000.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        # Loan with same reference, fully drawn
+        loans = pl.DataFrame({
+            "loan_reference": ["FULL_DRAW"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP_FULL"],
+            "value_date": [date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [500000.0],  # Fully drawn = limit
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        facility_mappings = pl.DataFrame({
+            "parent_facility_reference": ["FULL_DRAW"],
+            "child_reference": ["FULL_DRAW"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["CP_FULL"],
+            "counterparty_name": ["Fully Drawn Corp"],
+            "entity_type": ["corporate"],
+            "country_code": ["GB"],
+            "annual_revenue": [50000000.0],
+            "total_assets": [100000000.0],
+            "default_status": [False],
+            "sector_code": ["MANU"],
+            "is_regulated": [False],
+            "is_managed_as_retail": [False],
+        }).lazy()
+
+        bundle = RawDataBundle(
+            facilities=facilities,
+            loans=loans,
+            contingents=None,
+            counterparties=counterparties,
+            collateral=None,
+            guarantees=None,
+            provisions=None,
+            ratings=None,
+            facility_mappings=facility_mappings,
+            org_mappings=None,
+            lending_mappings=pl.LazyFrame(schema={
+                "parent_counterparty_reference": pl.String,
+                "child_counterparty_reference": pl.String,
+            }),
+        )
+
+        result = resolver.resolve(bundle, crr_config)
+        df = result.exposures.collect()
+
+        # Should have only 1 exposure: the loan (no undrawn since fully drawn)
+        assert len(df) == 1
+        assert df["exposure_type"][0] == "loan"
+        assert df["exposure_reference"][0] == "FULL_DRAW"
+        assert df["drawn_amount"][0] == pytest.approx(500000.0)

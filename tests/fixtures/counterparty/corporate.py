@@ -576,6 +576,23 @@ def create_corporate_counterparties() -> pl.DataFrame:
             "is_regulated": True,
             "is_managed_as_retail": False,
         },
+        # =============================================================================
+        # HIERARCHY TEST 4: Same Reference Pattern
+        # Tests scenario where facility_reference = loan_reference
+        # This is a valid business pattern when source systems use unified identifiers
+        # =============================================================================
+        {
+            "counterparty_reference": "CORP_SAME_REF",
+            "counterparty_name": "Same Reference Test Corp Ltd",
+            "entity_type": "corporate",
+            "country_code": "GB",
+            "annual_revenue": 75_000_000.0,  # Large corporate
+            "total_assets": 60_000_000.0,
+            "default_status": False,
+            "sector_code": "46.90",  # Non-specialised wholesale trade
+            "is_regulated": True,
+            "is_managed_as_retail": False,
+        },
     ]
 
     return pl.DataFrame(corporates, schema=COUNTERPARTY_SCHEMA)
