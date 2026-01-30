@@ -381,6 +381,40 @@ class IRBPermissions:
             }
         )
 
+    @classmethod
+    def retail_airb_corporate_firb(cls) -> IRBPermissions:
+        """
+        AIRB for retail, FIRB for corporate - hybrid approach.
+
+        Use when firm has:
+        - AIRB approval for retail exposures
+        - FIRB approval for corporate exposures
+        - Ability to reclassify qualifying corporates as regulatory retail
+
+        Corporates can be treated as retail (per CRR Art. 147(5)) if:
+        - Managed as part of retail pool (is_managed_as_retail=True)
+        - Aggregated exposure < EUR 1m
+        - Has internally modelled LGD
+
+        Reclassification target:
+        - With property collateral → RETAIL_MORTGAGE
+        - Without property collateral → RETAIL_OTHER
+        - NOT eligible for QRRE
+        """
+        return cls(
+            permissions={
+                ExposureClass.SOVEREIGN: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.INSTITUTION: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE_SME: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.RETAIL_MORTGAGE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_QRRE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_OTHER: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.SPECIALISED_LENDING: {ApproachType.SA, ApproachType.SLOTTING, ApproachType.FIRB},
+                ExposureClass.EQUITY: {ApproachType.SA},
+            }
+        )
+
 
 @dataclass(frozen=True)
 class CalculationConfig:

@@ -187,6 +187,13 @@ class ExposureClassifier:
             config,
         )
 
+        # Step 4a: Check and apply corporate → retail reclassification
+        # For qualifying SME corporates with modelled LGD under hybrid IRB permissions
+        classified = self._apply_corporate_to_retail_reclassification(
+            classified,
+            config,
+        )
+
         # Step 5: Identify defaulted exposures
         classified = self._identify_defaults(classified)
 
@@ -454,6 +461,100 @@ class ExposureClassifier:
 
         return exposures
 
+    def _apply_corporate_to_retail_reclassification(
+        self,
+        exposures: pl.LazyFrame,
+        config: CalculationConfig,
+    ) -> pl.LazyFrame:
+        """
+        Reclassify qualifying corporates to retail for AIRB treatment.
+
+        Per CRR Art. 147(5) / Basel CRE30.16-17, corporate exposures can be
+        treated as retail ("regulatory retail") if:
+        1. Managed as part of a retail pool (is_managed_as_retail=True)
+        2. Aggregated exposure < EUR 1m (qualifies_as_retail=True)
+        3. Has internally modelled LGD (lgd IS NOT NULL)
+
+        Reclassification target:
+        - With property collateral → RETAIL_MORTGAGE
+        - Without property collateral → RETAIL_OTHER
+        - NOT eligible for QRRE (even if revolving facility)
+
+        This enables AIRB treatment for small corporates when the firm has
+        AIRB approval for retail but only FIRB approval for corporates.
+        """
+        # Check if this reclassification is relevant
+        # Only applies when AIRB is permitted for retail but not for corporate
+        airb_for_retail = config.irb_permissions.is_permitted(
+            ExposureClass.RETAIL_OTHER, ApproachType.AIRB
+        )
+        airb_for_corporate = config.irb_permissions.is_permitted(
+            ExposureClass.CORPORATE, ApproachType.AIRB
+        )
+
+        # If AIRB is permitted for corporate, no need to reclassify
+        # If AIRB is not permitted for retail, can't reclassify to get AIRB
+        if airb_for_corporate or not airb_for_retail:
+            # Add placeholder columns for consistency
+            return exposures.with_columns([
+                pl.lit(False).alias("reclassified_to_retail"),
+                pl.lit(False).alias("has_property_collateral"),
+            ])
+
+        # Check schema for available columns
+        schema = exposures.collect_schema()
+
+        # Add flag for reclassification eligibility
+        # All conditions must be met: managed as retail, below threshold, has LGD
+        reclassification_expr = (
+            (pl.col("exposure_class").is_in([
+                ExposureClass.CORPORATE.value,
+                ExposureClass.CORPORATE_SME.value,
+            ])) &
+            (pl.col("cp_is_managed_as_retail") == True) &  # noqa: E712
+            (pl.col("qualifies_as_retail") == True) &  # noqa: E712
+            (pl.col("lgd").is_not_null())
+        )
+
+        exposures = exposures.with_columns([
+            pl.when(reclassification_expr)
+            .then(pl.lit(True))
+            .otherwise(pl.lit(False))
+            .alias("reclassified_to_retail"),
+        ])
+
+        # Determine if exposure has property collateral
+        # Check residential_collateral_value (from hierarchy) or collateral_type
+        has_property_expr = pl.lit(False)
+
+        if "residential_collateral_value" in schema.names():
+            has_property_expr = has_property_expr | (pl.col("residential_collateral_value") > 0)
+
+        if "collateral_type" in schema.names():
+            has_property_expr = has_property_expr | (
+                pl.col("collateral_type").is_in(["immovable", "residential", "commercial"])
+            )
+
+        exposures = exposures.with_columns([
+            has_property_expr.alias("has_property_collateral"),
+        ])
+
+        # Reclassify eligible corporates
+        # - With property collateral → RETAIL_MORTGAGE
+        # - Without property collateral → RETAIL_OTHER
+        exposures = exposures.with_columns([
+            pl.when(
+                (pl.col("reclassified_to_retail") == True) &  # noqa: E712
+                (pl.col("has_property_collateral") == True)  # noqa: E712
+            ).then(pl.lit(ExposureClass.RETAIL_MORTGAGE.value))
+            .when(pl.col("reclassified_to_retail") == True)  # noqa: E712
+            .then(pl.lit(ExposureClass.RETAIL_OTHER.value))
+            .otherwise(pl.col("exposure_class"))
+            .alias("exposure_class"),
+        ])
+
+        return exposures
+
     def _identify_defaults(
         self,
         exposures: pl.LazyFrame,
@@ -561,25 +662,98 @@ class ExposureClassifier:
         Determine calculation approach based on permissions.
 
         Logic:
-        1. Check if IRB is permitted for the exposure class
-        2. If F-IRB or A-IRB permitted, assign appropriate approach
-        3. Default to SA if no IRB permission
+        1. Check if IRB is permitted FOR EACH EXPOSURE CLASS
+        2. If F-IRB or A-IRB permitted for that class, assign appropriate approach
+        3. Default to SA if no IRB permission for the class
         4. Specialised lending uses slotting if permitted
         """
-        # Build approach mapping based on permissions
-        # For simplicity, we'll check each class against permissions
+        # Build per-exposure-class permission checks
+        # Check AIRB permissions per exposure class
+        airb_corporate = config.irb_permissions.is_permitted(
+            ExposureClass.CORPORATE, ApproachType.AIRB
+        )
+        airb_corporate_sme = config.irb_permissions.is_permitted(
+            ExposureClass.CORPORATE_SME, ApproachType.AIRB
+        )
+        airb_retail_mortgage = config.irb_permissions.is_permitted(
+            ExposureClass.RETAIL_MORTGAGE, ApproachType.AIRB
+        )
+        airb_retail_other = config.irb_permissions.is_permitted(
+            ExposureClass.RETAIL_OTHER, ApproachType.AIRB
+        )
+        airb_retail_qrre = config.irb_permissions.is_permitted(
+            ExposureClass.RETAIL_QRRE, ApproachType.AIRB
+        )
+        airb_institution = config.irb_permissions.is_permitted(
+            ExposureClass.INSTITUTION, ApproachType.AIRB
+        )
+        airb_sovereign = config.irb_permissions.is_permitted(
+            ExposureClass.SOVEREIGN, ApproachType.AIRB
+        )
+
+        # Check FIRB permissions per exposure class
+        firb_corporate = config.irb_permissions.is_permitted(
+            ExposureClass.CORPORATE, ApproachType.FIRB
+        )
+        firb_corporate_sme = config.irb_permissions.is_permitted(
+            ExposureClass.CORPORATE_SME, ApproachType.FIRB
+        )
+        firb_institution = config.irb_permissions.is_permitted(
+            ExposureClass.INSTITUTION, ApproachType.FIRB
+        )
+        firb_sovereign = config.irb_permissions.is_permitted(
+            ExposureClass.SOVEREIGN, ApproachType.FIRB
+        )
 
         return exposures.with_columns([
-            # Determine if F-IRB permitted
+            # Determine if F-IRB permitted for this exposure class
             pl.when(
-                self._check_firb_permitted(config)
+                (pl.col("exposure_class") == ExposureClass.CORPORATE.value) &
+                pl.lit(firb_corporate)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.CORPORATE_SME.value) &
+                pl.lit(firb_corporate_sme)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.INSTITUTION.value) &
+                pl.lit(firb_institution)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.SOVEREIGN.value) &
+                pl.lit(firb_sovereign)
             ).then(pl.lit(True))
             .otherwise(pl.lit(False))
             .alias("firb_permitted"),
 
-            # Determine if A-IRB permitted
+            # Determine if A-IRB permitted for this exposure class
             pl.when(
-                self._check_airb_permitted(config)
+                (pl.col("exposure_class") == ExposureClass.CORPORATE.value) &
+                pl.lit(airb_corporate)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.CORPORATE_SME.value) &
+                pl.lit(airb_corporate_sme)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.RETAIL_MORTGAGE.value) &
+                pl.lit(airb_retail_mortgage)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.RETAIL_OTHER.value) &
+                pl.lit(airb_retail_other)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.RETAIL_QRRE.value) &
+                pl.lit(airb_retail_qrre)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.INSTITUTION.value) &
+                pl.lit(airb_institution)
+            ).then(pl.lit(True))
+            .when(
+                (pl.col("exposure_class") == ExposureClass.SOVEREIGN.value) &
+                pl.lit(airb_sovereign)
             ).then(pl.lit(True))
             .otherwise(pl.lit(False))
             .alias("airb_permitted"),
@@ -606,7 +780,7 @@ class ExposureClassifier:
                 (pl.col("airb_permitted") == True)  # noqa: E712
             ).then(pl.lit(ApproachType.AIRB.value))
             .when(
-                # A-IRB for corporates if permitted
+                # A-IRB for corporates if permitted FOR THAT CLASS
                 (pl.col("exposure_class").is_in([
                     ExposureClass.CORPORATE.value,
                     ExposureClass.CORPORATE_SME.value,
@@ -614,15 +788,14 @@ class ExposureClassifier:
                 (pl.col("airb_permitted") == True)  # noqa: E712
             ).then(pl.lit(ApproachType.AIRB.value))
             .when(
-                # F-IRB for corporates/institutions/sovereigns if A-IRB not permitted
+                # F-IRB for corporates/institutions/sovereigns if permitted
                 (pl.col("exposure_class").is_in([
                     ExposureClass.CORPORATE.value,
                     ExposureClass.CORPORATE_SME.value,
                     ExposureClass.INSTITUTION.value,
                     ExposureClass.SOVEREIGN.value,
                 ])) &
-                (pl.col("firb_permitted") == True) &  # noqa: E712
-                (pl.col("airb_permitted") == False)  # noqa: E712
+                (pl.col("firb_permitted") == True)  # noqa: E712
             ).then(pl.lit(ApproachType.FIRB.value))
             .otherwise(pl.lit(ApproachType.SA.value))
             .alias("approach"),
@@ -685,6 +858,8 @@ class ExposureClassifier:
                 pl.col("requires_fi_scalar").cast(pl.String),
                 pl.lit("; qualifies_as_retail="),
                 pl.col("qualifies_as_retail").cast(pl.String),
+                pl.lit("; reclassified_to_retail="),
+                pl.col("reclassified_to_retail").cast(pl.String),
             ]).alias("classification_reason"),
         ])
 
@@ -801,6 +976,7 @@ class ExposureClassifier:
             pl.col("retail_threshold_exclusion_applied"),
             pl.col("residential_collateral_value"),
             pl.col("lending_group_adjusted_exposure"),
+            pl.col("reclassified_to_retail"),
             pl.col("classification_reason"),
         ])
 

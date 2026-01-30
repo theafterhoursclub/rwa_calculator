@@ -35,10 +35,11 @@ class TestIRBApproachOptionEnum:
         assert IRBApproachOption.FIRB.value == "firb"
         assert IRBApproachOption.AIRB.value == "airb"
         assert IRBApproachOption.FULL_IRB.value == "full_irb"
+        assert IRBApproachOption.RETAIL_AIRB_CORPORATE_FIRB.value == "retail_airb_corporate_firb"
 
     def test_enum_is_complete(self) -> None:
-        """IRBApproachOption should have exactly 4 values."""
-        assert len(IRBApproachOption) == 4
+        """IRBApproachOption should have exactly 5 values."""
+        assert len(IRBApproachOption) == 5
 
 
 # =============================================================================

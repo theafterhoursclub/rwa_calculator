@@ -333,9 +333,18 @@ class IRBApproachOption(Enum):
             - Specialised lending uses slotting (AIRB not permitted)
         FULL_IRB: Both FIRB and AIRB permitted
             - AIRB takes precedence when both are permitted
+        RETAIL_AIRB_CORPORATE_FIRB: Hybrid approach for firms with:
+            - AIRB approval for retail exposures
+            - FIRB approval for corporate exposures
+            Corporates can be reclassified to retail if:
+            - Managed as part of retail pool (is_managed_as_retail=True)
+            - Aggregated exposure < EUR 1m
+            - Has internally modelled LGD
+            With property collateral → RETAIL_MORTGAGE, otherwise → RETAIL_OTHER
     """
 
     SA_ONLY = "sa_only"
     FIRB = "firb"
     AIRB = "airb"
     FULL_IRB = "full_irb"
+    RETAIL_AIRB_CORPORATE_FIRB = "retail_airb_corporate_firb"

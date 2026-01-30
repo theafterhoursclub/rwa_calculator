@@ -289,3 +289,94 @@ class TestPermissionsComparison:
         # AIRB: SA, SLOTTING (no AIRB for SL, no FIRB)
         assert ApproachType.FIRB not in airb_sl
         assert ApproachType.AIRB not in airb_sl
+
+
+# =============================================================================
+# Retail AIRB / Corporate FIRB (Hybrid) Tests
+# =============================================================================
+
+
+class TestRetailAIRBCorporateFIRBPermissions:
+    """Tests for IRBPermissions.retail_airb_corporate_firb() factory method."""
+
+    def test_airb_permitted_for_retail_classes(self) -> None:
+        """Hybrid should allow AIRB for all retail classes."""
+        permissions = IRBPermissions.retail_airb_corporate_firb()
+
+        retail_classes = [
+            ExposureClass.RETAIL_MORTGAGE,
+            ExposureClass.RETAIL_QRRE,
+            ExposureClass.RETAIL_OTHER,
+        ]
+
+        for exposure_class in retail_classes:
+            assert permissions.is_permitted(exposure_class, ApproachType.SA)
+            assert permissions.is_permitted(exposure_class, ApproachType.AIRB)
+            # FIRB not permitted for retail
+            assert not permissions.is_permitted(exposure_class, ApproachType.FIRB)
+
+    def test_firb_permitted_for_corporate_classes(self) -> None:
+        """Hybrid should allow FIRB (not AIRB) for corporate classes."""
+        permissions = IRBPermissions.retail_airb_corporate_firb()
+
+        corporate_classes = [
+            ExposureClass.CORPORATE,
+            ExposureClass.CORPORATE_SME,
+        ]
+
+        for exposure_class in corporate_classes:
+            assert permissions.is_permitted(exposure_class, ApproachType.SA)
+            assert permissions.is_permitted(exposure_class, ApproachType.FIRB)
+            # AIRB not permitted for corporate in hybrid mode
+            assert not permissions.is_permitted(exposure_class, ApproachType.AIRB)
+
+    def test_firb_permitted_for_sovereign_and_institution(self) -> None:
+        """Hybrid should allow FIRB for sovereign and institution."""
+        permissions = IRBPermissions.retail_airb_corporate_firb()
+
+        for exposure_class in [ExposureClass.SOVEREIGN, ExposureClass.INSTITUTION]:
+            assert permissions.is_permitted(exposure_class, ApproachType.SA)
+            assert permissions.is_permitted(exposure_class, ApproachType.FIRB)
+            assert not permissions.is_permitted(exposure_class, ApproachType.AIRB)
+
+    def test_specialised_lending_has_firb_and_slotting(self) -> None:
+        """Hybrid should allow FIRB and slotting for specialised lending."""
+        permissions = IRBPermissions.retail_airb_corporate_firb()
+
+        permitted = permissions.get_permitted_approaches(ExposureClass.SPECIALISED_LENDING)
+        assert ApproachType.SA in permitted
+        assert ApproachType.FIRB in permitted
+        assert ApproachType.SLOTTING in permitted
+        assert ApproachType.AIRB not in permitted
+
+    def test_equity_sa_only(self) -> None:
+        """Hybrid should have equity using SA only."""
+        permissions = IRBPermissions.retail_airb_corporate_firb()
+
+        permitted = permissions.get_permitted_approaches(ExposureClass.EQUITY)
+        assert permitted == {ApproachType.SA}
+
+    def test_hybrid_vs_full_irb_corporate_difference(self) -> None:
+        """Hybrid should NOT have AIRB for corporate while full_irb does."""
+        hybrid = IRBPermissions.retail_airb_corporate_firb()
+        full = IRBPermissions.full_irb()
+
+        # Hybrid: corporate has FIRB only
+        assert hybrid.is_permitted(ExposureClass.CORPORATE, ApproachType.FIRB)
+        assert not hybrid.is_permitted(ExposureClass.CORPORATE, ApproachType.AIRB)
+
+        # Full: corporate has both
+        assert full.is_permitted(ExposureClass.CORPORATE, ApproachType.FIRB)
+        assert full.is_permitted(ExposureClass.CORPORATE, ApproachType.AIRB)
+
+    def test_hybrid_vs_firb_only_retail_difference(self) -> None:
+        """Hybrid should have AIRB for retail while FIRB-only has SA only."""
+        hybrid = IRBPermissions.retail_airb_corporate_firb()
+        firb = IRBPermissions.firb_only()
+
+        # Hybrid: retail has AIRB
+        assert hybrid.is_permitted(ExposureClass.RETAIL_OTHER, ApproachType.AIRB)
+
+        # FIRB-only: retail has SA only
+        assert not firb.is_permitted(ExposureClass.RETAIL_OTHER, ApproachType.AIRB)
+        assert firb.get_permitted_approaches(ExposureClass.RETAIL_OTHER) == {ApproachType.SA}

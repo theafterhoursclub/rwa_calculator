@@ -118,6 +118,7 @@ def _(mo):
             "Foundation IRB (F-IRB)": "firb",
             "Advanced IRB (A-IRB)": "airb",
             "Full IRB (A-IRB preferred)": "full_irb",
+            "Retail A-IRB / Corporate F-IRB": "retail_airb_corporate_firb",
         },
         value="SA Only (No IRB)",
         label="IRB Approach",

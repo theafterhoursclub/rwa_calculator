@@ -214,6 +214,8 @@ class RWAService:
                 irb_permissions = IRBPermissions.firb_only()
             elif request.irb_approach == "airb":
                 irb_permissions = IRBPermissions.airb_only()
+            elif request.irb_approach == "retail_airb_corporate_firb":
+                irb_permissions = IRBPermissions.retail_airb_corporate_firb()
             else:  # full_irb
                 irb_permissions = IRBPermissions.full_irb()
         elif request.enable_irb:
