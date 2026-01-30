@@ -205,9 +205,22 @@ class RWAService:
         """
         from rwa_calc.contracts.config import CalculationConfig, IRBPermissions
 
-        irb_permissions = (
-            IRBPermissions.full_irb() if request.enable_irb else IRBPermissions.sa_only()
-        )
+        # Determine IRB permissions from request
+        # New irb_approach field takes precedence over legacy enable_irb
+        if request.irb_approach is not None:
+            if request.irb_approach == "sa_only":
+                irb_permissions = IRBPermissions.sa_only()
+            elif request.irb_approach == "firb":
+                irb_permissions = IRBPermissions.firb_only()
+            elif request.irb_approach == "airb":
+                irb_permissions = IRBPermissions.airb_only()
+            else:  # full_irb
+                irb_permissions = IRBPermissions.full_irb()
+        elif request.enable_irb:
+            # Legacy: enable_irb=True means full_irb (backward compatible)
+            irb_permissions = IRBPermissions.full_irb()
+        else:
+            irb_permissions = IRBPermissions.sa_only()
 
         if request.framework == "CRR":
             return CalculationConfig.crr(

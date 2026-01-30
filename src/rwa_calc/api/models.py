@@ -40,7 +40,12 @@ class CalculationRequest:
         framework: Regulatory framework ("CRR" or "BASEL_3_1")
         reporting_date: As-of date for the calculation
         base_currency: Currency for reporting (default GBP)
-        enable_irb: Whether IRB approaches are permitted
+        enable_irb: Whether IRB approaches are permitted (legacy, use irb_approach)
+        irb_approach: Explicit IRB approach selection (takes precedence over enable_irb)
+            - "sa_only": Standardised only, no IRB
+            - "firb": Foundation IRB where permitted
+            - "airb": Advanced IRB where permitted
+            - "full_irb": Both FIRB and AIRB permitted (AIRB preferred)
         data_format: Format of input files ("parquet" or "csv")
         eur_gbp_rate: EUR/GBP exchange rate for threshold conversion
     """
@@ -49,7 +54,8 @@ class CalculationRequest:
     framework: Literal["CRR", "BASEL_3_1"]
     reporting_date: date
     base_currency: str = "GBP"
-    enable_irb: bool = False
+    enable_irb: bool = False  # Legacy field for backward compatibility
+    irb_approach: Literal["sa_only", "firb", "airb", "full_irb"] | None = None
     data_format: Literal["parquet", "csv"] = "parquet"
     eur_gbp_rate: Decimal = field(default_factory=lambda: Decimal("0.8732"))
 

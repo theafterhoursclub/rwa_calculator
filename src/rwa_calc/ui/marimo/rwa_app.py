@@ -112,19 +112,25 @@ def _(mo):
         label="Data Format",
     )
 
-    irb_toggle = mo.ui.switch(
-        value=False,
-        label="Enable IRB Approaches",
+    irb_approach_dropdown = mo.ui.dropdown(
+        options={
+            "SA Only (No IRB)": "sa_only",
+            "Foundation IRB (F-IRB)": "firb",
+            "Advanced IRB (A-IRB)": "airb",
+            "Full IRB (A-IRB preferred)": "full_irb",
+        },
+        value="SA Only (No IRB)",
+        label="IRB Approach",
     )
 
     mo.output.replace(
         mo.hstack([
             framework_dropdown,
             format_dropdown,
-            irb_toggle,
+            irb_approach_dropdown,
         ], justify="start", gap=2)
     )
-    return format_dropdown, framework_dropdown, irb_toggle
+    return (format_dropdown, framework_dropdown, irb_approach_dropdown)
 
 
 @app.cell
@@ -203,7 +209,7 @@ def _(
     data_path_input,
     format_dropdown,
     framework_dropdown,
-    irb_toggle,
+    irb_approach_dropdown,
     mo,
     reporting_date_input,
     run_button,
@@ -227,7 +233,7 @@ def _(
                 data_path=data_path_input.value,
                 framework=framework_dropdown.value,
                 reporting_date=rd,
-                enable_irb=irb_toggle.value,
+                irb_approach=irb_approach_dropdown.value,
                 data_format=format_dropdown.value,
             )
 

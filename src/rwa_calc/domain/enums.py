@@ -315,3 +315,27 @@ class RiskType(Enum):
     MR = "medium_risk"
     MLR = "medium_low_risk"
     LR = "low_risk"
+
+
+class IRBApproachOption(Enum):
+    """
+    User-selectable IRB approach options.
+
+    Determines which IRB approaches are permitted for the calculation.
+    Used by the API and UI for explicit approach selection.
+
+    Values:
+        SA_ONLY: Standardised Approach only - no IRB permissions
+        FIRB: Foundation IRB permitted (where regulatory allowed)
+            - Retail classes fall back to SA (FIRB not permitted for retail)
+            - Specialised lending can use FIRB or slotting
+        AIRB: Advanced IRB permitted (where regulatory allowed)
+            - Specialised lending uses slotting (AIRB not permitted)
+        FULL_IRB: Both FIRB and AIRB permitted
+            - AIRB takes precedence when both are permitted
+    """
+
+    SA_ONLY = "sa_only"
+    FIRB = "firb"
+    AIRB = "airb"
+    FULL_IRB = "full_irb"
