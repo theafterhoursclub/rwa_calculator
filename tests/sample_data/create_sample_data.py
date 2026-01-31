@@ -25,7 +25,6 @@ def _(pl):
     for folder, file_name in files:
         df = pl.read_excel(r"C:\Users\philm\PycharmProjects\rwa_calculator\tests\sample_data\sample_data.xlsx", sheet_name=file_name)
         df.write_parquet(rf"C:\Users\philm\PycharmProjects\rwa_calculator\tests\sample_data\{folder}\{file_name}.parquet")
-
     return
 
 
