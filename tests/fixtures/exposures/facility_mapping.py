@@ -103,6 +103,7 @@ def _hierarchy_test_mappings() -> list[FacilityMapping]:
         - Multiple loans under single facility (H1 scenario)
         - Multi-level facility hierarchy (parent -> sub-facility -> loan)
         - Lending group facilities
+        - Same reference pattern (facility_reference = loan_reference)
     """
     return [
         # =============================================================================
@@ -131,6 +132,12 @@ def _hierarchy_test_mappings() -> list[FacilityMapping]:
         # =============================================================================
         FacilityMapping("FAC_LG2_OWNER", "LOAN_LG2_OWNER", "loan"),
         FacilityMapping("FAC_LG2_COMPANY", "LOAN_LG2_COMPANY", "loan"),
+        # =============================================================================
+        # HIERARCHY TEST 4: Same reference pattern
+        # Facility and loan share the same reference ID - valid business pattern
+        # when source systems use unified identifiers
+        # =============================================================================
+        FacilityMapping("SAME_REF_001", "SAME_REF_001", "loan"),
     ]
 
 

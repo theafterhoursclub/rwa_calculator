@@ -10,5 +10,8 @@
       "Bash(python:*)",
       "WebFetch(domain:www.eba.europa.eu)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "polars-mcp"
+  ]
 }

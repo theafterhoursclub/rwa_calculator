@@ -315,3 +315,36 @@ class RiskType(Enum):
     MR = "medium_risk"
     MLR = "medium_low_risk"
     LR = "low_risk"
+
+
+class IRBApproachOption(Enum):
+    """
+    User-selectable IRB approach options.
+
+    Determines which IRB approaches are permitted for the calculation.
+    Used by the API and UI for explicit approach selection.
+
+    Values:
+        SA_ONLY: Standardised Approach only - no IRB permissions
+        FIRB: Foundation IRB permitted (where regulatory allowed)
+            - Retail classes fall back to SA (FIRB not permitted for retail)
+            - Specialised lending can use FIRB or slotting
+        AIRB: Advanced IRB permitted (where regulatory allowed)
+            - Specialised lending uses slotting (AIRB not permitted)
+        FULL_IRB: Both FIRB and AIRB permitted
+            - AIRB takes precedence when both are permitted
+        RETAIL_AIRB_CORPORATE_FIRB: Hybrid approach for firms with:
+            - AIRB approval for retail exposures
+            - FIRB approval for corporate exposures
+            Corporates can be reclassified to retail if:
+            - Managed as part of retail pool (is_managed_as_retail=True)
+            - Aggregated exposure < EUR 1m
+            - Has internally modelled LGD
+            With property collateral → RETAIL_MORTGAGE, otherwise → RETAIL_OTHER
+    """
+
+    SA_ONLY = "sa_only"
+    FIRB = "firb"
+    AIRB = "airb"
+    FULL_IRB = "full_irb"
+    RETAIL_AIRB_CORPORATE_FIRB = "retail_airb_corporate_firb"

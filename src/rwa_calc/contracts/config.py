@@ -333,6 +333,88 @@ class IRBPermissions:
             }
         )
 
+    @classmethod
+    def firb_only(cls) -> IRBPermissions:
+        """
+        Foundation IRB only - no AIRB permissions.
+
+        Regulatory constraints per exposure class:
+        - FIRB not permitted for retail (CRE30.1) - falls back to SA
+        - Specialised lending can use FIRB or slotting (CRE33)
+        - Equity uses SA only (IRB removed under Basel 3.1)
+        """
+        return cls(
+            permissions={
+                ExposureClass.SOVEREIGN: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.INSTITUTION: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE_SME: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.RETAIL_MORTGAGE: {ApproachType.SA},  # FIRB not permitted for retail
+                ExposureClass.RETAIL_QRRE: {ApproachType.SA},  # FIRB not permitted for retail
+                ExposureClass.RETAIL_OTHER: {ApproachType.SA},  # FIRB not permitted for retail
+                ExposureClass.SPECIALISED_LENDING: {ApproachType.SA, ApproachType.SLOTTING, ApproachType.FIRB},
+                ExposureClass.EQUITY: {ApproachType.SA},
+            }
+        )
+
+    @classmethod
+    def airb_only(cls) -> IRBPermissions:
+        """
+        Advanced IRB only - no FIRB permissions.
+
+        Regulatory constraints per exposure class:
+        - AIRB permitted for all non-equity classes except specialised lending
+        - Specialised lending uses slotting (no AIRB - CRE33.5)
+        - Equity uses SA only (IRB removed under Basel 3.1)
+        """
+        return cls(
+            permissions={
+                ExposureClass.SOVEREIGN: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.INSTITUTION: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.CORPORATE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.CORPORATE_SME: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_MORTGAGE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_QRRE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_OTHER: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.SPECIALISED_LENDING: {ApproachType.SA, ApproachType.SLOTTING},  # No AIRB for SL
+                ExposureClass.EQUITY: {ApproachType.SA},
+            }
+        )
+
+    @classmethod
+    def retail_airb_corporate_firb(cls) -> IRBPermissions:
+        """
+        AIRB for retail, FIRB for corporate - hybrid approach.
+
+        Use when firm has:
+        - AIRB approval for retail exposures
+        - FIRB approval for corporate exposures
+        - Ability to reclassify qualifying corporates as regulatory retail
+
+        Corporates can be treated as retail (per CRR Art. 147(5)) if:
+        - Managed as part of retail pool (is_managed_as_retail=True)
+        - Aggregated exposure < EUR 1m
+        - Has internally modelled LGD
+
+        Reclassification target:
+        - With property collateral → RETAIL_MORTGAGE
+        - Without property collateral → RETAIL_OTHER
+        - NOT eligible for QRRE
+        """
+        return cls(
+            permissions={
+                ExposureClass.SOVEREIGN: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.INSTITUTION: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.CORPORATE_SME: {ApproachType.SA, ApproachType.FIRB},
+                ExposureClass.RETAIL_MORTGAGE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_QRRE: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.RETAIL_OTHER: {ApproachType.SA, ApproachType.AIRB},
+                ExposureClass.SPECIALISED_LENDING: {ApproachType.SA, ApproachType.SLOTTING, ApproachType.FIRB},
+                ExposureClass.EQUITY: {ApproachType.SA},
+            }
+        )
+
 
 @dataclass(frozen=True)
 class CalculationConfig:

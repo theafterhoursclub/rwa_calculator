@@ -563,6 +563,7 @@ def _hierarchy_test_loans() -> list[Loan]:
     Loans specifically for exposure hierarchy testing.
 
     Scenario H1: Facility with multiple loans - £5m facility, 3 loans drawn
+    Scenario H4: Same reference pattern - facility and loan share reference ID
     """
     return [
         # =============================================================================
@@ -672,6 +673,26 @@ def _hierarchy_test_loans() -> list[Loan]:
             currency="GBP",
             drawn_amount=350_000.0,
             interest=0.0,
+            lgd=0.45,
+            beel=0.0,
+            seniority="senior",
+        ),
+        # =============================================================================
+        # HIERARCHY TEST 4: Same reference pattern
+        # Loan shares the same reference ID (SAME_REF_001) as its parent facility
+        # This is a valid business pattern when source systems use unified identifiers
+        # Facility limit: £1m, Drawn: £600k, Expected undrawn: £400k
+        # =============================================================================
+        Loan(
+            loan_reference="SAME_REF_001",  # Same as facility_reference
+            product_type="RCF_DRAWING",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SAME_REF",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            drawn_amount=600_000.0,
+            interest=5_000.0,
             lgd=0.45,
             beel=0.0,
             seniority="senior",

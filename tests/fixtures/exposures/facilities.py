@@ -326,6 +326,7 @@ def _hierarchy_test_facilities() -> list[Facility]:
         - Facility with multiple loans (H1 scenario)
         - Parent facility with sub-facilities
         - Facilities for lending group counterparties
+        - Same reference pattern (facility_reference = loan_reference)
     """
     return [
         # =============================================================================
@@ -429,6 +430,28 @@ def _hierarchy_test_facilities() -> list[Facility]:
             maturity_date=date(2028, 6, 30),
             currency="GBP",
             limit=400_000.0,
+            committed=True,
+            lgd=0.45,
+            beel=0.0,
+            is_revolving=True,
+            seniority="senior",
+            risk_type="MR",  # Medium risk - committed undrawn
+        ),
+        # =============================================================================
+        # HIERARCHY TEST 4: Same reference pattern
+        # Facility and loan share the same reference ID (SAME_REF_001)
+        # This is a valid business pattern when source systems use unified identifiers
+        # Limit: £1m, expected drawn: £600k, expected undrawn: £400k
+        # =============================================================================
+        Facility(
+            facility_reference="SAME_REF_001",
+            product_type="RCF",
+            book_code="CORP_LENDING",
+            counterparty_reference="CORP_SAME_REF",
+            value_date=VALUE_DATE,
+            maturity_date=date(2029, 12, 31),
+            currency="GBP",
+            limit=1_000_000.0,
             committed=True,
             lgd=0.45,
             beel=0.0,
