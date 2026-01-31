@@ -579,13 +579,15 @@ class HierarchyResolver:
             )
 
             # Sum drawn amounts by parent facility
+            # Clamp negative drawn amounts to 0 before summing - negative balances
+            # should not increase available undrawn headroom
             loan_drawn_totals = loans.join(
                 loan_mappings,
                 left_on="loan_reference",
                 right_on="child_reference",
                 how="inner",
             ).group_by("parent_facility_reference").agg([
-                pl.col("drawn_amount").sum().alias("total_drawn"),
+                pl.col("drawn_amount").clip(lower_bound=0.0).sum().alias("total_drawn"),
             ])
 
         # Join with facilities to calculate undrawn
