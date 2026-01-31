@@ -23,6 +23,8 @@ from rwa_calc.engine.loader import (
     DataSourceConfig,
     ParquetLoader,
     create_test_loader,
+    enforce_schema,
+    normalize_columns,
 )
 
 if TYPE_CHECKING:
@@ -713,6 +715,179 @@ class TestHeaderNormalization:
 
 
 # =============================================================================
+# Schema Enforcement Tests
+# =============================================================================
+
+
+class TestEnforceSchema:
+    """Tests for schema enforcement during data loading."""
+
+    def test_enforce_schema_casts_string_to_float64(self) -> None:
+        """String columns should be cast to Float64 when specified."""
+        lf = pl.LazyFrame({
+            "amount": ["100.50", "200.75", "300.00"],
+            "name": ["a", "b", "c"],
+        })
+        schema = {"amount": pl.Float64}
+
+        result = enforce_schema(lf, schema).collect()
+
+        assert result["amount"].dtype == pl.Float64
+        assert result["amount"].to_list() == [100.50, 200.75, 300.00]
+        # name should remain unchanged
+        assert result["name"].dtype == pl.String
+
+    def test_enforce_schema_casts_int_to_string(self) -> None:
+        """Int columns should be cast to String when specified."""
+        lf = pl.LazyFrame({
+            "book_code": [123, 456, 789],
+            "amount": [100.0, 200.0, 300.0],
+        })
+        schema = {"book_code": pl.String}
+
+        result = enforce_schema(lf, schema).collect()
+
+        assert result["book_code"].dtype == pl.String
+        assert result["book_code"].to_list() == ["123", "456", "789"]
+
+    def test_enforce_schema_casts_int_to_boolean(self) -> None:
+        """Int columns (0/1) should be cast to Boolean when specified."""
+        lf = pl.LazyFrame({
+            "is_active": [1, 0, 1],
+            "count": [10, 20, 30],
+        })
+        schema = {"is_active": pl.Boolean}
+
+        result = enforce_schema(lf, schema).collect()
+
+        assert result["is_active"].dtype == pl.Boolean
+        assert result["is_active"].to_list() == [True, False, True]
+
+    def test_enforce_schema_casts_int_to_float64(self) -> None:
+        """Int columns should be cast to Float64 when specified."""
+        lf = pl.LazyFrame({
+            "limit": [1000, 2000, 3000],  # Int64
+        })
+        schema = {"limit": pl.Float64}
+
+        result = enforce_schema(lf, schema).collect()
+
+        assert result["limit"].dtype == pl.Float64
+        assert result["limit"].to_list() == [1000.0, 2000.0, 3000.0]
+
+    def test_enforce_schema_skips_missing_columns(self) -> None:
+        """Schema columns not in data should be silently skipped."""
+        lf = pl.LazyFrame({
+            "amount": [100.0],
+        })
+        schema = {
+            "amount": pl.Float64,
+            "missing_column": pl.String,  # Not in data
+        }
+
+        # Should not raise error
+        result = enforce_schema(lf, schema).collect()
+
+        assert "amount" in result.columns
+        assert "missing_column" not in result.columns
+
+    def test_enforce_schema_skips_already_correct_types(self) -> None:
+        """Columns already matching the schema type should not be modified."""
+        lf = pl.LazyFrame({
+            "amount": [100.0, 200.0],  # Already Float64
+        })
+        schema = {"amount": pl.Float64}
+
+        result = enforce_schema(lf, schema).collect()
+
+        assert result["amount"].dtype == pl.Float64
+        assert result["amount"].to_list() == [100.0, 200.0]
+
+    def test_enforce_schema_invalid_value_becomes_null_non_strict(self) -> None:
+        """Invalid cast values become null in non-strict mode."""
+        lf = pl.LazyFrame({
+            "amount": ["100.0", "not_a_number", "300.0"],
+        })
+        schema = {"amount": pl.Float64}
+
+        result = enforce_schema(lf, schema, strict=False).collect()
+
+        assert result["amount"].dtype == pl.Float64
+        assert result["amount"].to_list()[0] == 100.0
+        assert result["amount"].to_list()[1] is None  # Invalid value becomes null
+        assert result["amount"].to_list()[2] == 300.0
+
+
+class TestSchemaEnforcementInLoaders:
+    """Tests for schema enforcement in ParquetLoader and CSVLoader."""
+
+    def test_parquet_loader_enforces_schema_by_default(self, tmp_path: Path) -> None:
+        """ParquetLoader should enforce schemas by default."""
+        (tmp_path / "exposures").mkdir()
+
+        # Create parquet with wrong types (interest as String)
+        df = pl.DataFrame({
+            "loan_reference": ["L001"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": [123],  # Int64, should be String
+            "counterparty_reference": ["CORP001"],
+            "value_date": [None],
+            "maturity_date": [None],
+            "currency": ["GBP"],
+            "drawn_amount": [1000.0],
+            "interest": ["50.5"],  # String, should be Float64
+            "lgd": [0.45],
+            "beel": [0.0],
+            "seniority": ["senior"],
+        })
+        df.write_parquet(tmp_path / "exposures" / "loans.parquet")
+
+        loader = ParquetLoader(tmp_path)
+        from rwa_calc.data.schemas import LOAN_SCHEMA
+        result = loader._load_parquet("exposures/loans.parquet", LOAN_SCHEMA).collect()
+
+        # Types should be corrected
+        assert result["book_code"].dtype == pl.String
+        assert result["interest"].dtype == pl.Float64
+        assert result["interest"][0] == 50.5
+
+    def test_parquet_loader_can_disable_schema_enforcement(self, tmp_path: Path) -> None:
+        """ParquetLoader should preserve original types when enforce_schemas=False."""
+        (tmp_path / "exposures").mkdir()
+
+        # Create parquet with wrong types
+        df = pl.DataFrame({
+            "loan_reference": ["L001"],
+            "interest": ["50.5"],  # String
+        })
+        df.write_parquet(tmp_path / "exposures" / "loans.parquet")
+
+        loader = ParquetLoader(tmp_path, enforce_schemas=False)
+        from rwa_calc.data.schemas import LOAN_SCHEMA
+        result = loader._load_parquet("exposures/loans.parquet", LOAN_SCHEMA).collect()
+
+        # Types should remain original
+        assert result["interest"].dtype == pl.String
+
+    def test_csv_loader_enforces_schema_by_default(self, tmp_path: Path) -> None:
+        """CSVLoader should enforce schemas by default."""
+        (tmp_path / "exposures").mkdir()
+
+        # Create CSV with data that needs casting
+        csv_content = "loan_reference,book_code,interest\nL001,123,50.5\n"
+        (tmp_path / "exposures" / "loans.csv").write_text(csv_content)
+
+        loader = CSVLoader(tmp_path, config=DataSourceConfig(
+            loans_file="exposures/loans.csv"
+        ))
+        from rwa_calc.data.schemas import LOAN_SCHEMA
+        result = loader._load_csv("exposures/loans.csv", LOAN_SCHEMA).collect()
+
+        # book_code should be cast to String
+        assert result["book_code"].dtype == pl.String
+
+
+# =============================================================================
 # Edge Case Tests
 # =============================================================================
 
@@ -748,11 +923,12 @@ class TestEdgeCases:
         assert len(df) == 1
         assert df["counterparty_type"][0] == "SOVEREIGN"
 
-    def test_corrupted_parquet_file_raises_error_at_collect(self, tmp_path: Path) -> None:
-        """Corrupted parquet file should raise error when collected.
+    def test_corrupted_parquet_file_raises_error_during_load(self, tmp_path: Path) -> None:
+        """Corrupted parquet file should raise DataLoadError during loading.
 
-        Note: scan_parquet is lazy, so errors occur at collect time, not scan time.
-        This is expected Polars behavior for lazy evaluation.
+        With schema enforcement enabled (default), corrupted files are detected
+        during loading when collect_schema() is called. This provides early
+        error detection rather than waiting until collect time.
         """
         (tmp_path / "counterparty").mkdir()
 
@@ -760,7 +936,26 @@ class TestEdgeCases:
         (tmp_path / "counterparty" / "sovereign.parquet").write_text("not parquet data")
 
         loader = ParquetLoader(tmp_path)
-        # scan_parquet succeeds (lazy)
+
+        # Error occurs during loading due to schema enforcement
+        with pytest.raises(DataLoadError):
+            loader._load_and_combine_counterparties()
+
+    def test_corrupted_parquet_file_raises_error_at_collect_without_schema_enforcement(
+        self, tmp_path: Path
+    ) -> None:
+        """Corrupted parquet file raises error at collect time when schema enforcement is off.
+
+        With schema enforcement disabled, errors occur at collect time (lazy).
+        This is the original Polars behavior for lazy evaluation.
+        """
+        (tmp_path / "counterparty").mkdir()
+
+        # Create a file that's not valid parquet
+        (tmp_path / "counterparty" / "sovereign.parquet").write_text("not parquet data")
+
+        loader = ParquetLoader(tmp_path, enforce_schemas=False)
+        # scan_parquet succeeds (lazy) when schema enforcement is off
         lf = loader._load_and_combine_counterparties()
 
         # Error occurs at collect time

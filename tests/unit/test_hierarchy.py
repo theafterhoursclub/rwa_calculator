@@ -1079,6 +1079,164 @@ class TestFacilityUndrawnCalculation:
         # Should not create exposure since undrawn is capped at 0
         assert len(df) == 0
 
+    def test_negative_drawn_amount_treated_as_zero(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Negative drawn amount should be treated as zero for undrawn calculation.
+
+        If a loan has a negative drawn amount (e.g., credit balance), it should
+        not increase the facility's undrawn headroom beyond the limit.
+        Formula: undrawn = max(0, limit - max(0, drawn))
+        """
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_NEG"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_NEG"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [-50000.0],  # Negative drawn (credit balance)
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_NEG"],
+            "child_reference": ["LOAN_NEG"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        # Undrawn should be exactly the limit (1M), not limit + |negative| (1.05M)
+        fac = df.filter(pl.col("exposure_reference") == "FAC_NEG_UNDRAWN")
+        assert len(fac) == 1
+        assert fac["undrawn_amount"][0] == pytest.approx(1000000.0)
+
+    def test_mixed_positive_negative_drawn_amounts(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Mixed positive and negative drawn amounts - negatives treated as zero.
+
+        When multiple loans are linked to a facility, only positive drawn amounts
+        should count towards the total drawn. Negative amounts are floored at 0.
+        """
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_MIX"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        # Two loans: one positive (400k), one negative (-100k)
+        # Total drawn should be 400k (not 300k), undrawn = 600k
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_POS", "LOAN_NEG"],
+            "product_type": ["TERM_LOAN", "TERM_LOAN"],
+            "book_code": ["CORP", "CORP"],
+            "counterparty_reference": ["CP001", "CP001"],
+            "value_date": [date(2023, 6, 1), date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1), date(2028, 1, 1)],
+            "currency": ["GBP", "GBP"],
+            "drawn_amount": [400000.0, -100000.0],
+            "lgd": [0.45, 0.45],
+            "seniority": ["senior", "senior"],
+        }).lazy()
+
+        mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_MIX", "FAC_MIX"],
+            "child_reference": ["LOAN_POS", "LOAN_NEG"],
+            "child_type": ["loan", "loan"],
+        }).lazy()
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        # Undrawn = 1M - 400k = 600k (NOT 1M - 300k = 700k)
+        fac = df.filter(pl.col("exposure_reference") == "FAC_MIX_UNDRAWN")
+        assert len(fac) == 1
+        assert fac["undrawn_amount"][0] == pytest.approx(600000.0)
+
+    def test_all_negative_drawn_amounts(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """All negative drawn amounts should result in full limit as undrawn."""
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_ALL_NEG"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [500000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_NEG1", "LOAN_NEG2"],
+            "product_type": ["TERM_LOAN", "TERM_LOAN"],
+            "book_code": ["CORP", "CORP"],
+            "counterparty_reference": ["CP001", "CP001"],
+            "value_date": [date(2023, 6, 1), date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1), date(2028, 1, 1)],
+            "currency": ["GBP", "GBP"],
+            "drawn_amount": [-25000.0, -75000.0],  # Both negative
+            "lgd": [0.45, 0.45],
+            "seniority": ["senior", "senior"],
+        }).lazy()
+
+        mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_ALL_NEG", "FAC_ALL_NEG"],
+            "child_reference": ["LOAN_NEG1", "LOAN_NEG2"],
+            "child_type": ["loan", "loan"],
+        }).lazy()
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, mappings
+        )
+        df = facility_undrawn.collect()
+
+        # Both loans are negative, so total_drawn = 0, undrawn = full limit
+        fac = df.filter(pl.col("exposure_reference") == "FAC_ALL_NEG_UNDRAWN")
+        assert len(fac) == 1
+        assert fac["undrawn_amount"][0] == pytest.approx(500000.0)
+
     def test_facility_uncommitted_lr_risk_type(
         self,
         resolver: HierarchyResolver,
