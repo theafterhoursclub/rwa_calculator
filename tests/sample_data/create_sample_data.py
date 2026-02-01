@@ -22,6 +22,8 @@ def _(Path, pl):
         ('mapping', 'lending_mapping'),
         ('ratings', 'ratings'),
         ('collateral', 'collateral'),
+        ('counterparty', 'sovereign'),
+        ('guarantee', 'guarantee'),
     ]
 
     for folder, file_name in files:
