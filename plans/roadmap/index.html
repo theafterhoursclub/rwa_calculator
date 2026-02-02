@@ -3346,6 +3346,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-completions-v0112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Completions (v0.1.12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#upcoming-work" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3760,6 +3771,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-completions-v0112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Completions (v0.1.12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#upcoming-work" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4084,6 +4106,13 @@
 <td>-</td>
 </tr>
 <tr>
+<td><strong>Equity Calculator</strong></td>
+<td><code>engine/equity/calculator.py</code></td>
+<td><strong>Complete</strong></td>
+<td>N/A</td>
+<td>-</td>
+</tr>
+<tr>
 <td>Supporting Factors</td>
 <td><code>engine/sa/supporting_factors.py</code></td>
 <td>Complete</td>
@@ -4120,6 +4149,8 @@
 <li><strong>Supporting Factors</strong>: CRR SME tiered factor (0.7619/0.85) and infrastructure factor (0.75)</li>
 <li><strong>Summary Generation</strong>: RWA aggregation by exposure class and calculation approach</li>
 <li><strong>Pipeline Orchestrator</strong>: Complete pipeline wiring with error accumulation and audit trail</li>
+<li><strong>Equity Calculator</strong>: Article 133 (SA) and Article 155 (IRB Simple) risk weight methods with diversified portfolio treatment</li>
+<li><strong>Pre/Post CRM Tracking</strong>: Full tracking of guarantee impact on RWA with covered/uncovered portions</li>
 </ul>
 <hr />
 <h2 id="phase-4-acceptance-testing">Phase 4: Acceptance Testing<a class="headerlink" href="#phase-4-acceptance-testing" title="Permanent link">&para;</a></h2>
@@ -4317,6 +4348,14 @@
 <p>Run all tests:
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-v
 </span></code></pre></div></p>
+<hr />
+<h2 id="recent-completions-v0112">Recent Completions (v0.1.12)<a class="headerlink" href="#recent-completions-v0112" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[x] <strong>Equity Calculator</strong>: Article 133 (SA) and Article 155 (IRB Simple) risk weight methods</li>
+<li>[x] <strong>Equity Namespace</strong>: Polars LazyFrame namespace (<code>lf.equity</code>) for fluent calculations</li>
+<li>[x] <strong>Pre/Post CRM Tracking</strong>: Guarantee impact tracking with <code>rwa_pre_crm</code>, <code>rwa_post_crm</code>, <code>guarantee_rwa_benefit</code></li>
+<li>[x] <strong>Equity Risk Weight Tables</strong>: <code>crr_equity_rw.py</code> with SA and IRB Simple lookups</li>
+</ul>
 <hr />
 <h2 id="upcoming-work">Upcoming Work<a class="headerlink" href="#upcoming-work" title="Permanent link">&para;</a></h2>
 <h3 id="basel-31-implementation">Basel 3.1 Implementation<a class="headerlink" href="#basel-31-implementation" title="Permanent link">&para;</a></h3>
