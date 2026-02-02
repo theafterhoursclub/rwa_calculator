@@ -32,8 +32,20 @@ from rwa_calc.contracts.bundles import (
 from rwa_calc.contracts.errors import LazyFrameResult
 from rwa_calc.domain.enums import ApproachType, ExposureClass
 from rwa_calc.engine.ccf import CCFCalculator
+from rwa_calc.engine.classifier import ENTITY_TYPE_TO_SA_CLASS
 from rwa_calc.engine.crm.haircuts import HaircutCalculator
 from rwa_calc.data.tables.crr_firb_lgd import get_firb_lgd_table
+
+# Transient columns used during guarantee processing but dropped from output
+# These values can be obtained via joins on guarantor_reference
+TRANSIENT_GUARANTEE_COLUMNS = [
+    "guarantor_entity_type",
+    "guarantor_cqs",
+    "guarantor_pd",
+    "guarantor_rating_type",
+    "guarantor_rating_source",
+    "guarantor_exposure_class",
+]
 
 if TYPE_CHECKING:
     from rwa_calc.contracts.config import CalculationConfig
@@ -234,15 +246,24 @@ class CRMProcessor:
         exposures: pl.LazyFrame,
     ) -> pl.LazyFrame:
         """
-        Initialize EAD columns.
+        Initialize EAD columns and preserve pre-CRM attributes.
 
         Sets up the EAD waterfall:
         - ead_gross: drawn + CCF-adjusted undrawn
         - ead_after_collateral: EAD after collateral
         - ead_after_guarantee: EAD after guarantee substitution
         - ead_after_provision: Final EAD after provision deduction
+
+        Also captures pre-CRM state for regulatory reporting:
+        - pre_crm_counterparty_reference: Original borrower reference
+        - pre_crm_exposure_class: Original exposure class before substitution
         """
         return exposures.with_columns([
+            # Pre-CRM attributes for regulatory reporting
+            # These capture the original (pre-CRM) state before any substitution
+            pl.col("counterparty_reference").alias("pre_crm_counterparty_reference"),
+            pl.col("exposure_class").alias("pre_crm_exposure_class"),
+
             # Gross EAD = drawn + CCF-adjusted contingent
             pl.col("ead_pre_crm").alias("ead_gross"),
 
@@ -267,6 +288,17 @@ class CRMProcessor:
             # LGD for IRB (may be adjusted by collateral)
             pl.col("lgd").fill_null(0.45).alias("lgd_pre_crm"),
             pl.col("lgd").fill_null(0.45).alias("lgd_post_crm"),
+
+            # Initialize guarantee tracking columns
+            pl.lit(False).alias("is_guaranteed"),
+            pl.lit(0.0).alias("guaranteed_portion"),
+            pl.lit(0.0).alias("unguaranteed_portion"),
+
+            # Initialize post-CRM columns (will be updated by apply_guarantees if called)
+            # For exposures without guarantees, post-CRM = pre-CRM
+            pl.col("counterparty_reference").alias("post_crm_counterparty_guaranteed"),
+            pl.col("exposure_class").alias("post_crm_exposure_class_guaranteed"),
+            pl.lit("").alias("guarantor_exposure_class"),
         ])
 
     def _finalize_ead(
@@ -853,6 +885,41 @@ class CRMProcessor:
             pl.col("guarantor_entity_type").fill_null("").alias("guarantor_entity_type"),
         ])
 
+        # Derive guarantor's exposure class from their entity type
+        # This is needed for post-CRM reporting where the guaranteed portion
+        # is reported under the guarantor's exposure class
+        exposures = exposures.with_columns([
+            pl.col("guarantor_entity_type")
+            .replace_strict(ENTITY_TYPE_TO_SA_CLASS, default="")
+            .alias("guarantor_exposure_class"),
+        ])
+
+        # Add post-CRM composite attributes for regulatory reporting
+        # For the guaranteed portion, the post-CRM counterparty is the guarantor
+        exposures = exposures.with_columns([
+            # Post-CRM counterparty for guaranteed portion (guarantor or original)
+            pl.when(pl.col("guaranteed_portion") > 0)
+            .then(pl.col("guarantor_reference"))
+            .otherwise(pl.col("counterparty_reference"))
+            .alias("post_crm_counterparty_guaranteed"),
+
+            # Post-CRM exposure class for guaranteed portion (guarantor's class or original)
+            pl.when(
+                (pl.col("guaranteed_portion") > 0) &
+                (pl.col("guarantor_exposure_class") != "")
+            )
+            .then(pl.col("guarantor_exposure_class"))
+            .otherwise(pl.col("exposure_class"))
+            .alias("post_crm_exposure_class_guaranteed"),
+
+            # Flag indicating whether exposure has an effective guarantee
+            (pl.col("guaranteed_portion") > 0).alias("is_guaranteed"),
+        ])
+
+        # Note: Transient columns (guarantor_entity_type, guarantor_cqs, etc.) are kept
+        # because downstream SA/IRB calculators need them for risk weight substitution.
+        # They can be dropped in the final output aggregation if needed.
+
         return exposures
 
     def apply_provisions(
@@ -945,6 +1012,15 @@ class CRMProcessor:
             pl.col("lgd_pre_crm"),
             pl.col("lgd_post_crm"),
             pl.col("crm_calculation"),
+            # Pre/Post CRM tracking columns
+            pl.col("pre_crm_counterparty_reference"),
+            pl.col("pre_crm_exposure_class"),
+            pl.col("post_crm_counterparty_guaranteed"),
+            pl.col("post_crm_exposure_class_guaranteed"),
+            pl.col("is_guaranteed"),
+            pl.col("guaranteed_portion"),
+            pl.col("unguaranteed_portion"),
+            pl.col("guarantor_reference"),
         ])
 
 

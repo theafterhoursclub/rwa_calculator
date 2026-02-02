@@ -838,7 +838,10 @@ class TestApplyGuaranteeSubstitution:
         assert result["rwa"][0] == pytest.approx(100_000.0)
 
     def test_sovereign_cqs2_guarantee_gives_20_percent_rw(self, crr_config: CalculationConfig) -> None:
-        """Sovereign CQS 2 guarantor should result in 20% risk weight for guaranteed portion."""
+        """Sovereign CQS 2 guarantor should result in 20% risk weight for guaranteed portion.
+
+        Guarantee is only applied if beneficial (guarantor RW < borrower RW).
+        """
         lf = pl.LazyFrame({
             "exposure_reference": ["EXP001"],
             "pd": [0.01],
@@ -846,8 +849,8 @@ class TestApplyGuaranteeSubstitution:
             "ead_final": [1_000_000.0],
             "maturity": [2.5],
             "exposure_class": ["CORPORATE"],
-            "rwa": [100_000.0],
-            "risk_weight": [0.10],
+            "rwa": [500_000.0],  # IRB RWA = 50% RW (higher than guarantor's 20%)
+            "risk_weight": [0.50],  # Borrower IRB RW = 50%
             "guaranteed_portion": [1_000_000.0],  # Fully guaranteed
             "unguaranteed_portion": [0.0],
             "guarantor_entity_type": ["sovereign"],
@@ -857,11 +860,16 @@ class TestApplyGuaranteeSubstitution:
         result = lf.irb.apply_guarantee_substitution(crr_config).collect()
 
         # With 100% sovereign CQS 2 guarantee: RWA = 1m * 0.20 = 200k
+        # Guarantee is beneficial (20% < 50%), so it IS applied
         assert result["rwa"][0] == pytest.approx(200_000.0)
         assert result["guarantor_rw"][0] == pytest.approx(0.20)
+        assert result["is_guarantee_beneficial"][0] is True
 
     def test_institution_cqs1_guarantee_gives_20_percent_rw(self, crr_config: CalculationConfig) -> None:
-        """Institution CQS 1 guarantor should result in 20% risk weight."""
+        """Institution CQS 1 guarantor should result in 20% risk weight.
+
+        Guarantee is only applied if beneficial (guarantor RW < borrower RW).
+        """
         lf = pl.LazyFrame({
             "exposure_reference": ["EXP001"],
             "pd": [0.01],
@@ -869,8 +877,8 @@ class TestApplyGuaranteeSubstitution:
             "ead_final": [1_000_000.0],
             "maturity": [2.5],
             "exposure_class": ["CORPORATE"],
-            "rwa": [100_000.0],
-            "risk_weight": [0.10],
+            "rwa": [500_000.0],  # IRB RWA = 50% RW (higher than guarantor's 20%)
+            "risk_weight": [0.50],  # Borrower IRB RW = 50%
             "guaranteed_portion": [1_000_000.0],
             "unguaranteed_portion": [0.0],
             "guarantor_entity_type": ["institution"],
@@ -879,11 +887,16 @@ class TestApplyGuaranteeSubstitution:
 
         result = lf.irb.apply_guarantee_substitution(crr_config).collect()
 
+        # Guarantee is beneficial (20% < 50%), so it IS applied
         assert result["rwa"][0] == pytest.approx(200_000.0)
         assert result["guarantor_rw"][0] == pytest.approx(0.20)
+        assert result["is_guarantee_beneficial"][0] is True
 
     def test_uk_deviation_institution_cqs2_gives_30_percent(self, crr_config: CalculationConfig) -> None:
-        """Under UK deviation, institution CQS 2 should get 30% RW (not 50%)."""
+        """Under UK deviation, institution CQS 2 should get 30% RW (not 50%).
+
+        Guarantee is only applied if beneficial (guarantor RW < borrower RW).
+        """
         lf = pl.LazyFrame({
             "exposure_reference": ["EXP001"],
             "pd": [0.01],
@@ -891,8 +904,8 @@ class TestApplyGuaranteeSubstitution:
             "ead_final": [1_000_000.0],
             "maturity": [2.5],
             "exposure_class": ["CORPORATE"],
-            "rwa": [100_000.0],
-            "risk_weight": [0.10],
+            "rwa": [500_000.0],  # IRB RWA = 50% RW (higher than guarantor's 30%)
+            "risk_weight": [0.50],  # Borrower IRB RW = 50%
             "guaranteed_portion": [1_000_000.0],
             "unguaranteed_portion": [0.0],
             "guarantor_entity_type": ["institution"],
@@ -902,8 +915,10 @@ class TestApplyGuaranteeSubstitution:
         result = lf.irb.apply_guarantee_substitution(crr_config).collect()
 
         # CRR config has GBP base currency, so UK deviation applies: 30% for institution CQS 2
+        # Guarantee is beneficial (30% < 50%), so it IS applied
         assert result["rwa"][0] == pytest.approx(300_000.0)
         assert result["guarantor_rw"][0] == pytest.approx(0.30)
+        assert result["is_guarantee_beneficial"][0] is True
 
     def test_missing_guarantee_columns_returns_unchanged(self, crr_config: CalculationConfig) -> None:
         """Without guarantee columns, should return data unchanged."""

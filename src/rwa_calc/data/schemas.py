@@ -490,6 +490,38 @@ CRM_ADJUSTED_SCHEMA = {
     "lgd_floored": pl.Float64,  # max(lgd_value, lgd_floor)
 }
 
+# Pre/Post CRM columns for regulatory reporting
+# These columns support dual-view reporting per COREP requirements:
+# - Pre-CRM: Original exposure under borrower's risk class
+# - Post-CRM: Split exposure between borrower (unguaranteed) and guarantor (guaranteed)
+CRM_PRE_POST_COLUMNS = {
+    # Pre-CRM attributes (original exposure before CRM substitution)
+    "pre_crm_counterparty_reference": pl.String,  # Original borrower reference
+    "pre_crm_exposure_class": pl.String,  # Original exposure class before substitution
+
+    # Post-CRM attributes (for guaranteed portion)
+    "post_crm_counterparty_guaranteed": pl.String,  # = guarantor_reference for guaranteed exposures
+    "post_crm_exposure_class_guaranteed": pl.String,  # Derived from guarantor's entity_type
+
+    # CRM impact indicators
+    "is_guaranteed": pl.Boolean,  # Whether exposure has effective guarantee
+    "guaranteed_portion": pl.Float64,  # EAD covered by guarantee
+    "unguaranteed_portion": pl.Float64,  # EAD not covered by guarantee
+    "guarantor_reference": pl.String,  # Foreign key to get guarantor attributes via joins
+
+    # Risk weight tracking (populated by calculators)
+    "pre_crm_risk_weight": pl.Float64,  # Borrower's RW before guarantee substitution
+    "guarantor_rw": pl.Float64,  # Guarantor's RW (SA lookup or IRB-calculated)
+    "guarantee_benefit_rw": pl.Float64,  # RW reduction from guarantee
+
+    # IRB-specific pre/post CRM tracking
+    "rwa_irb_original": pl.Float64,  # IRB RWA before guarantee substitution
+    "risk_weight_irb_original": pl.Float64,  # IRB RW before guarantee substitution
+    "guarantee_method_used": pl.String,  # "SA_RW_SUBSTITUTION", "PD_SUBSTITUTION", or "NO_GUARANTEE"
+    "is_guarantee_beneficial": pl.Boolean,  # Whether guarantee reduces RWA
+    "guarantee_status": pl.String,  # "NO_GUARANTEE", "SA_RW_SUBSTITUTION", "PD_SUBSTITUTION", "GUARANTEE_NOT_APPLIED_NON_BENEFICIAL"
+}
+
 # Schema for SA calculation results
 SA_RESULT_SCHEMA = {
     "exposure_reference": pl.String,
@@ -668,6 +700,33 @@ CALCULATION_OUTPUT_SCHEMA = {
     "guaranteed_amount": pl.Float64,  # Amount covered by guarantee
     "guarantor_risk_weight": pl.Float64,  # RW of guarantor (for substitution)
     "guarantee_benefit": pl.Float64,  # RWA reduction from guarantee
+
+    # -------------------------------------------------------------------------
+    # PRE/POST CRM COUNTERPARTY TRACKING (Regulatory reporting)
+    # -------------------------------------------------------------------------
+    # Pre-CRM attributes (original exposure before CRM substitution)
+    "pre_crm_counterparty_reference": pl.String,  # Original borrower reference
+    "pre_crm_exposure_class": pl.String,  # Original exposure class before substitution
+
+    # Post-CRM attributes (for guaranteed portion)
+    "post_crm_counterparty_guaranteed": pl.String,  # = guarantor_reference for guaranteed
+    "post_crm_exposure_class_guaranteed": pl.String,  # Derived from guarantor's entity_type
+    "guarantor_reference": pl.String,  # Foreign key to guarantor data
+
+    # CRM split tracking
+    "is_guaranteed": pl.Boolean,  # Whether exposure has effective guarantee
+    "guaranteed_portion": pl.Float64,  # EAD covered by guarantee
+    "unguaranteed_portion": pl.Float64,  # EAD not covered by guarantee
+
+    # Risk weight tracking for pre/post CRM reporting
+    "pre_crm_risk_weight": pl.Float64,  # Borrower's RW before guarantee substitution
+    "guarantee_benefit_rw": pl.Float64,  # RW reduction from guarantee (pre_crm_rw - post_crm_rw)
+
+    # IRB-specific tracking
+    "rwa_irb_original": pl.Float64,  # IRB RWA before guarantee substitution
+    "risk_weight_irb_original": pl.Float64,  # IRB RW before guarantee substitution
+    "guarantee_method_used": pl.String,  # "SA_RW_SUBSTITUTION", "PD_SUBSTITUTION", or "NO_GUARANTEE"
+    "guarantee_status": pl.String,  # Detailed status including non-beneficial flag
 
     # -------------------------------------------------------------------------
     # CRM - PROVISION IMPACT
