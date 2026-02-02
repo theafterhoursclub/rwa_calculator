@@ -320,6 +320,12 @@ class SACalculator:
             # No guarantee data, return as-is
             return exposures
 
+        # Preserve pre-CRM risk weight before any guarantee substitution
+        # This is needed for regulatory reporting (pre-CRM vs post-CRM views)
+        exposures = exposures.with_columns([
+            pl.col("risk_weight").alias("pre_crm_risk_weight"),
+        ])
+
         # Calculate guarantor's risk weight based on entity type and CQS
         # Use UK deviation for institutions (30% for CQS 2 instead of 50%)
         use_uk_deviation = config.base_currency == "GBP"
@@ -365,25 +371,56 @@ class SACalculator:
             .alias("guarantor_rw"),
         ])
 
+        # Check if guarantee is beneficial (guarantor RW < borrower RW)
+        # Non-beneficial guarantees should NOT be applied per CRR Art. 213
+        exposures = exposures.with_columns([
+            pl.when(
+                (pl.col("guaranteed_portion") > 0) &
+                (pl.col("guarantor_rw").is_not_null()) &
+                (pl.col("guarantor_rw") < pl.col("pre_crm_risk_weight"))
+            )
+            .then(pl.lit(True))
+            .otherwise(pl.lit(False))
+            .alias("is_guarantee_beneficial"),
+        ])
+
         # Calculate blended risk weight using substitution approach
+        # Only apply if guarantee is beneficial
         # RWA = (unguaranteed_portion * borrower_rw + guaranteed_portion * guarantor_rw) / ead_final
         ead_col = "ead_final" if "ead_final" in cols else "ead"
 
         exposures = exposures.with_columns([
-            # Blended risk weight when guarantee exists
+            # Blended risk weight when guarantee exists AND is beneficial
             pl.when(
                 (pl.col("guaranteed_portion") > 0) &
-                (pl.col("guarantor_rw").is_not_null())
+                (pl.col("guarantor_rw").is_not_null()) &
+                (pl.col("is_guarantee_beneficial"))
             ).then(
                 # weighted average of borrower and guarantor risk weights
                 (
-                    pl.col("unguaranteed_portion") * pl.col("risk_weight") +
+                    pl.col("unguaranteed_portion") * pl.col("pre_crm_risk_weight") +
                     pl.col("guaranteed_portion") * pl.col("guarantor_rw")
                 ) / pl.col(ead_col)
             )
-            # No guarantee or no guarantor RW - use original risk weight
-            .otherwise(pl.col("risk_weight"))
+            # No guarantee, no guarantor RW, or non-beneficial - use original risk weight
+            .otherwise(pl.col("pre_crm_risk_weight"))
             .alias("risk_weight"),
+        ])
+
+        # Track guarantee status for reporting
+        exposures = exposures.with_columns([
+            pl.when(pl.col("guaranteed_portion") <= 0)
+            .then(pl.lit("NO_GUARANTEE"))
+            .when(~pl.col("is_guarantee_beneficial"))
+            .then(pl.lit("GUARANTEE_NOT_APPLIED_NON_BENEFICIAL"))
+            .otherwise(pl.lit("SA_RW_SUBSTITUTION"))
+            .alias("guarantee_status"),
+
+            # Calculate RW benefit from guarantee (positive = RW reduced)
+            pl.when(pl.col("is_guarantee_beneficial"))
+            .then(pl.col("pre_crm_risk_weight") - pl.col("risk_weight"))
+            .otherwise(pl.lit(0.0))
+            .alias("guarantee_benefit_rw"),
         ])
 
         return exposures

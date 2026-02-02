@@ -170,6 +170,11 @@ class OutputAggregator:
         summary_by_class = self._generate_summary_by_class(combined)
         summary_by_approach = self._generate_summary_by_approach(combined)
 
+        # Generate pre/post CRM summaries for regulatory reporting
+        pre_crm_summary = self._generate_pre_crm_summary(combined)
+        post_crm_detailed = self._generate_post_crm_detailed(combined)
+        post_crm_summary = self._generate_post_crm_summary(post_crm_detailed)
+
         # Collect all errors
         all_errors = list(errors)
         if sa_bundle:
@@ -188,6 +193,9 @@ class OutputAggregator:
             supporting_factor_impact=supporting_factor_impact,
             summary_by_class=summary_by_class,
             summary_by_approach=summary_by_approach,
+            pre_crm_summary=pre_crm_summary,
+            post_crm_detailed=post_crm_detailed,
+            post_crm_summary=post_crm_summary,
             errors=all_errors,
         )
 
@@ -638,6 +646,209 @@ class OutputAggregator:
             ])
 
         return summary
+
+    # =========================================================================
+    # Private Methods - Pre/Post CRM Reporting
+    # =========================================================================
+
+    def _generate_pre_crm_summary(
+        self,
+        results: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Generate summary grouped by pre-CRM exposure class.
+
+        Shows exposures under their ORIGINAL risk class (before guarantee substitution).
+        This is the "gross" regulatory view.
+
+        Args:
+            results: Final calculation results
+
+        Returns:
+            LazyFrame with pre-CRM summary by original exposure class
+        """
+        schema = results.collect_schema()
+        cols = schema.names()
+
+        # Check if pre-CRM columns exist
+        if "pre_crm_exposure_class" not in cols:
+            # No pre-CRM data, return empty
+            return pl.LazyFrame({
+                "pre_crm_exposure_class": pl.Series([], dtype=pl.String),
+                "total_ead": pl.Series([], dtype=pl.Float64),
+                "total_rwa_blended": pl.Series([], dtype=pl.Float64),
+                "exposure_count": pl.Series([], dtype=pl.UInt32),
+            })
+
+        ead_col = "ead_final" if "ead_final" in cols else "ead"
+        rwa_col = "rwa_final" if "rwa_final" in cols else "rwa"
+
+        # Build aggregation expressions
+        agg_exprs = [
+            pl.col(ead_col).sum().alias("total_ead"),
+            pl.col(rwa_col).sum().alias("total_rwa_blended"),
+            pl.len().alias("exposure_count"),
+        ]
+
+        # Add pre-CRM RWA if available (what RWA would be without guarantees)
+        if "pre_crm_risk_weight" in cols:
+            agg_exprs.append(
+                (pl.col(ead_col) * pl.col("pre_crm_risk_weight")).sum().alias("total_rwa_pre_crm"),
+            )
+
+        # Add guaranteed exposure counts
+        if "is_guaranteed" in cols:
+            agg_exprs.append(
+                pl.col("is_guaranteed").sum().cast(pl.UInt32).alias("guaranteed_count"),
+            )
+
+        return results.group_by("pre_crm_exposure_class").agg(agg_exprs)
+
+    def _generate_post_crm_detailed(
+        self,
+        results: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Generate detailed view with guaranteed exposures split into two rows.
+
+        For each guaranteed exposure:
+          Row 1: Unguaranteed portion -> original counterparty, original exposure class
+          Row 2: Guaranteed portion -> guarantor counterparty, guarantor exposure class
+
+        For non-guaranteed exposures:
+          Single row -> original counterparty, original exposure class
+
+        Args:
+            results: Final calculation results
+
+        Returns:
+            LazyFrame with split rows for guaranteed exposures
+        """
+        schema = results.collect_schema()
+        cols = schema.names()
+
+        # Determine column names with fallbacks
+        ead_col = "ead_final" if "ead_final" in cols else ("ead" if "ead" in cols else None)
+        counterparty_col = "counterparty_reference" if "counterparty_reference" in cols else None
+        exposure_class_col = "exposure_class" if "exposure_class" in cols else None
+        rw_col = "risk_weight" if "risk_weight" in cols else None
+
+        # Check if minimum required columns exist
+        if not ead_col or not exposure_class_col:
+            # Cannot generate detailed view without basic columns
+            return pl.LazyFrame({
+                "reporting_counterparty": pl.Series([], dtype=pl.String),
+                "reporting_exposure_class": pl.Series([], dtype=pl.String),
+                "reporting_ead": pl.Series([], dtype=pl.Float64),
+                "reporting_rw": pl.Series([], dtype=pl.Float64),
+                "crm_portion_type": pl.Series([], dtype=pl.String),
+            })
+
+        # Check if guarantee columns exist
+        required_cols = ["is_guaranteed", "guaranteed_portion", "unguaranteed_portion"]
+        has_guarantee_data = all(col in cols for col in required_cols)
+
+        if not has_guarantee_data:
+            # No guarantee data, return simplified results with reporting columns
+            counterparty_expr = pl.col(counterparty_col) if counterparty_col else pl.lit(None).cast(pl.String)
+            rw_expr = pl.col(rw_col) if rw_col else pl.lit(1.0)
+
+            return results.with_columns([
+                counterparty_expr.alias("reporting_counterparty"),
+                pl.col(exposure_class_col).alias("reporting_exposure_class"),
+                pl.col(ead_col).alias("reporting_ead"),
+                rw_expr.alias("reporting_rw"),
+                pl.lit("original").alias("crm_portion_type"),
+            ])
+
+        # Get pre-CRM risk weight column (fallback to risk_weight for non-guaranteed)
+        pre_crm_rw_col = "pre_crm_risk_weight" if "pre_crm_risk_weight" in cols else (rw_col if rw_col else None)
+        guarantor_rw_col = "guarantor_rw" if "guarantor_rw" in cols else (rw_col if rw_col else None)
+
+        # Build expressions with fallbacks
+        counterparty_expr = pl.col(counterparty_col) if counterparty_col else pl.lit(None).cast(pl.String)
+        rw_expr = pl.col(rw_col) if rw_col else pl.lit(1.0)
+        pre_crm_rw_expr = pl.col(pre_crm_rw_col) if pre_crm_rw_col else pl.lit(1.0)
+        guarantor_rw_expr = pl.col(guarantor_rw_col) if guarantor_rw_col else pl.lit(1.0)
+
+        # Non-guaranteed exposures (single row)
+        non_guaranteed = results.filter(
+            ~pl.col("is_guaranteed")
+        ).with_columns([
+            counterparty_expr.alias("reporting_counterparty"),
+            pl.col(exposure_class_col).alias("reporting_exposure_class"),
+            pl.col(ead_col).alias("reporting_ead"),
+            rw_expr.alias("reporting_rw"),
+            pl.lit("original").alias("crm_portion_type"),
+        ])
+
+        # Guaranteed exposures - unguaranteed portion
+        pre_crm_class_col = "pre_crm_exposure_class" if "pre_crm_exposure_class" in cols else exposure_class_col
+        guar_unguar_portion = results.filter(
+            pl.col("is_guaranteed")
+        ).with_columns([
+            counterparty_expr.alias("reporting_counterparty"),
+            pl.col(pre_crm_class_col).alias("reporting_exposure_class"),
+            pl.col("unguaranteed_portion").alias("reporting_ead"),
+            pre_crm_rw_expr.alias("reporting_rw"),
+            pl.lit("unguaranteed").alias("crm_portion_type"),
+        ])
+
+        # Guaranteed exposures - guaranteed portion
+        guarantor_ref_col = "guarantor_reference" if "guarantor_reference" in cols else counterparty_col
+        post_crm_class_col = "post_crm_exposure_class_guaranteed" if "post_crm_exposure_class_guaranteed" in cols else exposure_class_col
+
+        guarantor_ref_expr = pl.col(guarantor_ref_col) if guarantor_ref_col else pl.lit(None).cast(pl.String)
+
+        guar_guar_portion = results.filter(
+            pl.col("is_guaranteed")
+        ).with_columns([
+            guarantor_ref_expr.alias("reporting_counterparty"),
+            pl.col(post_crm_class_col).alias("reporting_exposure_class"),
+            pl.col("guaranteed_portion").alias("reporting_ead"),
+            guarantor_rw_expr.alias("reporting_rw"),
+            pl.lit("guaranteed").alias("crm_portion_type"),
+        ])
+
+        # Combine all rows
+        return pl.concat([non_guaranteed, guar_unguar_portion, guar_guar_portion], how="diagonal_relaxed")
+
+    def _generate_post_crm_summary(
+        self,
+        detailed: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """
+        Aggregate post-CRM detailed view by exposure class.
+
+        Shows RWA under POST-CRM exposure classes where guaranteed portions
+        are reported under the guarantor's exposure class.
+
+        Args:
+            detailed: Post-CRM detailed LazyFrame from _generate_post_crm_detailed
+
+        Returns:
+            LazyFrame with post-CRM summary by effective exposure class
+        """
+        schema = detailed.collect_schema()
+        cols = schema.names()
+
+        # Check if required columns exist
+        if "reporting_exposure_class" not in cols:
+            return pl.LazyFrame({
+                "reporting_exposure_class": pl.Series([], dtype=pl.String),
+                "total_ead": pl.Series([], dtype=pl.Float64),
+                "total_rwa": pl.Series([], dtype=pl.Float64),
+                "exposure_count": pl.Series([], dtype=pl.UInt32),
+            })
+
+        return detailed.group_by("reporting_exposure_class").agg([
+            pl.col("reporting_ead").sum().alias("total_ead"),
+            (pl.col("reporting_ead") * pl.col("reporting_rw")).sum().alias("total_rwa"),
+            pl.len().alias("exposure_count"),
+            pl.col("crm_portion_type").filter(
+                pl.col("crm_portion_type") == "guaranteed"
+            ).len().alias("guaranteed_portions"),
+        ])
 
 
 # =============================================================================
