@@ -902,6 +902,211 @@ result = (
 result = specialised_lending.slotting.apply_all(config).collect()
 ```
 
+## Equity Calculator
+
+### Module: `rwa_calc.engine.equity.calculator`
+
+```python
+class EquityCalculator:
+    """
+    Calculate RWA for equity exposures.
+
+    Supports two approaches under CRR:
+    - Article 133: Standardised Approach (100%/250%/400% RW)
+    - Article 155: IRB Simple Risk Weight (190%/290%/370% RW)
+
+    The approach is determined by config.irb_approach_option:
+    - SA_ONLY: Uses Article 133
+    - FIRB/AIRB: Uses Article 155
+    """
+
+    def calculate(
+        self,
+        data: CRMAdjustedBundle,
+        config: CalculationConfig,
+    ) -> LazyFrameResult:
+        """
+        Calculate RWA for equity exposures.
+
+        Args:
+            data: CRM-adjusted exposures (uses equity_exposures field).
+            config: Calculation configuration.
+
+        Returns:
+            LazyFrameResult with equity RWA calculations.
+        """
+
+    def get_equity_result_bundle(
+        self,
+        data: CRMAdjustedBundle,
+        config: CalculationConfig,
+    ) -> EquityResultBundle:
+        """
+        Calculate equity RWA and return as a bundle.
+
+        Args:
+            data: CRM-adjusted exposures.
+            config: Calculation configuration.
+
+        Returns:
+            EquityResultBundle with results and audit trail.
+        """
+
+    def calculate_single_exposure(
+        self,
+        ead: Decimal,
+        equity_type: str,
+        is_diversified: bool = False,
+        is_speculative: bool = False,
+        is_exchange_traded: bool = False,
+        is_government_supported: bool = False,
+        config: CalculationConfig | None = None,
+    ) -> dict:
+        """
+        Calculate RWA for a single equity exposure (convenience method).
+
+        Args:
+            ead: Exposure at default.
+            equity_type: Type of equity exposure.
+            is_diversified: Whether in diversified portfolio (for PE).
+            is_speculative: Whether speculative unlisted.
+            is_exchange_traded: Whether exchange traded.
+            is_government_supported: Whether government supported.
+            config: Calculation configuration (defaults to CRR SA).
+
+        Returns:
+            Dictionary with calculation results.
+
+        Example:
+            >>> calculator = EquityCalculator()
+            >>> result = calculator.calculate_single_exposure(
+            ...     ead=Decimal("1000000"),
+            ...     equity_type="private_equity",
+            ...     is_diversified=True,
+            ... )
+            >>> print(f"RWA: {result['rwa']:,.0f}")
+        """
+```
+
+### Module: `rwa_calc.engine.equity.namespace`
+
+The Equity module provides Polars namespace extensions for fluent equity calculations.
+
+#### EquityLazyFrame Namespace
+
+```python
+@pl.api.register_lazyframe_namespace("equity")
+class EquityLazyFrame:
+    """LazyFrame namespace for equity calculations."""
+
+    def prepare_columns(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Ensure all required columns exist with defaults.
+
+        Adds/normalizes:
+        - ead_final: Exposure at default (from fair_value/carrying_value)
+        - equity_type: Type of equity exposure
+        - is_diversified_portfolio: Whether in diversified portfolio
+        - is_speculative: Whether speculative unlisted
+        - is_exchange_traded: Whether exchange traded
+        - is_government_supported: Whether government supported
+        """
+
+    def apply_equity_weights_sa(self) -> pl.LazyFrame:
+        """
+        Apply Article 133 (SA) equity risk weights.
+
+        Risk weights:
+        - Central bank: 0%
+        - Listed/Exchange-traded/Government-supported: 100%
+        - Unlisted/Private equity: 250%
+        - Speculative: 400%
+        """
+
+    def apply_equity_weights_irb_simple(self) -> pl.LazyFrame:
+        """
+        Apply Article 155 (IRB Simple) equity risk weights.
+
+        Risk weights:
+        - Central bank: 0%
+        - Private equity (diversified portfolio): 190%
+        - Government-supported: 190%
+        - Exchange-traded/Listed: 290%
+        - Other equity: 370%
+        """
+
+    def calculate_rwa(self) -> pl.LazyFrame:
+        """Calculate RWA = EAD × Risk Weight."""
+
+    def apply_all_sa(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Apply full equity SA calculation pipeline.
+
+        Chains: prepare_columns -> apply_equity_weights_sa -> calculate_rwa
+        """
+
+    def apply_all_irb_simple(self, config: CalculationConfig) -> pl.LazyFrame:
+        """
+        Apply full equity IRB Simple calculation pipeline.
+
+        Chains: prepare_columns -> apply_equity_weights_irb_simple -> calculate_rwa
+        """
+
+    def build_audit(self, approach: str = "sa") -> pl.LazyFrame:
+        """
+        Build equity calculation audit trail.
+
+        Format: Equity (Art. 133 SA): Type={type}, RW={rw}%, RWA={rwa}
+        """
+```
+
+#### EquityExpr Namespace
+
+```python
+@pl.api.register_expr_namespace("equity")
+class EquityExpr:
+    """Expression namespace for column-level equity operations."""
+
+    def lookup_rw(self, approach: str = "sa") -> pl.Expr:
+        """
+        Look up risk weight based on equity type.
+
+        Args:
+            approach: "sa" for Article 133, "irb_simple" for Article 155
+
+        Returns:
+            Expression with risk weight
+        """
+```
+
+**Usage Example:**
+
+```python
+import polars as pl
+from datetime import date
+from rwa_calc.contracts.config import CalculationConfig
+import rwa_calc.engine.equity.namespace  # Registers namespace
+
+config = CalculationConfig.crr(reporting_date=date(2026, 12, 31))
+
+# Fluent equity calculation (SA)
+result = (
+    equity_exposures
+    .equity.prepare_columns(config)
+    .equity.apply_equity_weights_sa()
+    .equity.calculate_rwa()
+    .collect()
+)
+
+# Or use the convenience method for IRB Simple
+result = equity_exposures.equity.apply_all_irb_simple(config).collect()
+
+# Use expression namespace for lookups
+df = df.with_columns(
+    pl.col("equity_type").equity.lookup_rw(approach="sa").alias("risk_weight"),
+)
+```
+
 ## Aggregator
 
 ### Module: `rwa_calc.engine.aggregator`

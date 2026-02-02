@@ -61,6 +61,7 @@ Interfaces and contracts between RWA calculator components have been implemented
 | SA Calculator | `engine/sa/calculator.py` | Complete | Complete | - |
 | IRB Calculator | `engine/irb/calculator.py` | Complete | Complete | - |
 | Slotting Calculator | `engine/slotting/calculator.py` | Complete | Complete | - |
+| **Equity Calculator** | `engine/equity/calculator.py` | **Complete** | N/A | - |
 | Supporting Factors | `engine/sa/supporting_factors.py` | Complete | N/A | - |
 | Output Aggregator | `engine/aggregator.py` | Complete | Complete | 21 |
 | Output floor | `engine/aggregator.py` | N/A | Complete | - |
@@ -73,6 +74,8 @@ Interfaces and contracts between RWA calculator components have been implemented
 - **Supporting Factors**: CRR SME tiered factor (0.7619/0.85) and infrastructure factor (0.75)
 - **Summary Generation**: RWA aggregation by exposure class and calculation approach
 - **Pipeline Orchestrator**: Complete pipeline wiring with error accumulation and audit trail
+- **Equity Calculator**: Article 133 (SA) and Article 155 (IRB Simple) risk weight methods with diversified portfolio treatment
+- **Pre/Post CRM Tracking**: Full tracking of guarantee impact on RWA with covered/uncovered portions
 
 ---
 
@@ -139,6 +142,15 @@ Run all tests:
 ```bash
 uv run pytest -v
 ```
+
+---
+
+## Recent Completions (v0.1.12)
+
+- [x] **Equity Calculator**: Article 133 (SA) and Article 155 (IRB Simple) risk weight methods
+- [x] **Equity Namespace**: Polars LazyFrame namespace (`lf.equity`) for fluent calculations
+- [x] **Pre/Post CRM Tracking**: Guarantee impact tracking with `rwa_pre_crm`, `rwa_post_crm`, `guarantee_rwa_benefit`
+- [x] **Equity Risk Weight Tables**: `crr_equity_rw.py` with SA and IRB Simple lookups
 
 ---
 

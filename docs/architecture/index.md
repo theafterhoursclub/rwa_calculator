@@ -117,7 +117,14 @@ materialized = result.collect()
 
 ```
 src/rwa_calc/
-├── config/                 # Configuration (FX rates)
+├── api/                    # API layer
+│   ├── models.py          # API request/response models
+│   ├── service.py         # Service layer
+│   ├── validation.py      # API validation
+│   └── formatters.py      # Output formatting
+├── config/                 # Configuration
+│   ├── fx_rates.py        # FX rate configuration
+│   └── ...
 ├── contracts/              # Interfaces and data contracts
 │   ├── bundles.py         # Data transfer objects
 │   ├── config.py          # Configuration classes
@@ -126,9 +133,11 @@ src/rwa_calc/
 │   └── validation.py      # Schema validation
 ├── data/                   # Schemas and regulatory tables
 │   ├── schemas.py         # Polars schemas
-│   └── tables/            # Lookup tables
+│   └── tables/            # Lookup tables (risk weights, CCFs, haircuts)
 ├── domain/                 # Core domain
 │   └── enums.py           # Enumerations
+├── ui/                     # User interface
+│   └── marimo/            # Marimo web applications
 └── engine/                 # Calculation engine
     ├── pipeline.py        # Pipeline orchestration
     ├── loader.py          # Data loading
@@ -136,10 +145,12 @@ src/rwa_calc/
     ├── classifier.py      # Exposure classification
     ├── ccf.py             # Credit conversion factors
     ├── aggregator.py      # Result aggregation
+    ├── fx_converter.py    # FX conversion
     ├── crm/               # Credit risk mitigation
     ├── sa/                # Standardised approach
     ├── irb/               # IRB approach
-    └── slotting/          # Slotting approach
+    ├── slotting/          # Slotting approach
+    └── equity/            # Equity approach
 ```
 
 ## Key Patterns

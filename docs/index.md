@@ -1,6 +1,9 @@
 # UK Credit Risk RWA Calculator
 
-Welcome to the documentation for the **UK Credit Risk RWA Calculator** - a high-performance, production-ready system for calculating Risk-Weighted Assets (RWA) for UK credit risk exposures.
+Welcome to the documentation for the **UK Credit Risk RWA Calculator** - a high-performance system for calculating Risk-Weighted Assets (RWA) for UK credit risk exposures.
+
+!!! warning "Development Status"
+    This package is still in development and is not yet production ready. APIs may change between versions.
 
 **Documentation:** [https://OpenAfterHours.github.io/rwa_calculator/](https://OpenAfterHours.github.io/rwa_calculator/)
 

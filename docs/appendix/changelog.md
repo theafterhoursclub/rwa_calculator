@@ -17,8 +17,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.12] - 2026-02-02
 
+### Added
+
+#### Equity Exposure Calculator
+Complete equity exposure RWA calculation supporting two regulatory approaches:
+
+**Article 133 - Standardised Approach (SA):**
+| Equity Type | Risk Weight |
+|-------------|-------------|
+| Central bank | 0% |
+| Listed/Exchange-traded/Government-supported | 100% |
+| Unlisted/Private equity | 250% |
+| Speculative | 400% |
+
+**Article 155 - IRB Simple Risk Weight Method:**
+| Equity Type | Risk Weight |
+|-------------|-------------|
+| Central bank | 0% |
+| Private equity (diversified portfolio) | 190% |
+| Government-supported | 190% |
+| Exchange-traded/Listed | 290% |
+| Other equity | 370% |
+
+**New Components:**
+- `EquityCalculator` class (`src/rwa_calc/engine/equity/calculator.py`)
+- `EquityLazyFrame` namespace (`lf.equity`) for fluent calculations
+- `EquityExpr` namespace (`expr.equity`) for column-level operations
+- `EquityResultBundle` for equity calculation results
+- `crr_equity_rw.py` lookup tables
+
+**Features:**
+- Automatic approach determination based on IRB permissions
+- Diversified portfolio treatment for private equity (190% vs 370%)
+- Full audit trail generation
+- Single exposure calculation convenience method
+
+#### Pre/Post CRM Tracking for Guarantees
+Enhanced guarantee processing with full tracking of exposure amounts before and after CRM application:
+- `rwa_pre_crm`: RWA calculated on original exposure before guarantee
+- `rwa_post_crm`: RWA calculated after guarantee substitution
+- `guarantee_rwa_benefit`: Reduction in RWA from guarantee protection
+- Supports both covered and uncovered portion tracking
+
 ### Changed
-- Version bump for PyPI release
+- Pipeline now includes equity calculator between CRM and aggregator
+- `CRMAdjustedBundle` extended with `equity_exposures` field
 
 ## [0.1.11] - 2026-01-28
 
