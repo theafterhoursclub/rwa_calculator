@@ -45,27 +45,8 @@ if TYPE_CHECKING:
 # ENTITY TYPE TO EXPOSURE CLASS MAPPINGS
 # =============================================================================
 
-# Valid entity_type values for validation
-VALID_ENTITY_TYPES: set[str] = {
-    "sovereign",
-    "central_bank",
-    "rgla_sovereign",
-    "rgla_institution",
-    "pse_sovereign",
-    "pse_institution",
-    "mdb",
-    "international_org",
-    "institution",
-    "bank",
-    "ccp",
-    "financial_institution",
-    "corporate",
-    "company",
-    "individual",
-    "retail",
-    "specialised_lending",
-    "equity",
-}
+# Valid entity_type values for validation — canonical source in schemas.py
+from rwa_calc.data.schemas import VALID_ENTITY_TYPES
 
 # entity_type → SA exposure class (for risk weight lookup)
 ENTITY_TYPE_TO_SA_CLASS: dict[str, str] = {

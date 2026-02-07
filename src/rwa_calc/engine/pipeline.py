@@ -217,6 +217,9 @@ class PipelineOrchestrator:
         # Ensure components are initialized
         self._ensure_components_initialized()
 
+        # Validate input data values
+        self._validate_input_data(data)
+
         # Stage 2: Resolve hierarchies
         resolved = self._run_hierarchy_resolver(data, config)
         if resolved is None:
@@ -302,6 +305,25 @@ class PipelineOrchestrator:
     # =========================================================================
     # Private Methods - Stage Execution
     # =========================================================================
+
+    def _validate_input_data(self, data: RawDataBundle) -> None:
+        """Validate input data values against column constraints."""
+        try:
+            from rwa_calc.contracts.validation import validate_bundle_values
+
+            validation_errors = validate_bundle_values(data)
+            for error in validation_errors:
+                self._errors.append(PipelineError(
+                    stage="input_validation",
+                    error_type="invalid_value",
+                    message=error.message,
+                ))
+        except Exception as e:
+            self._errors.append(PipelineError(
+                stage="input_validation",
+                error_type="validation_error",
+                message=f"Value validation failed: {e}",
+            ))
 
     def _run_hierarchy_resolver(
         self,

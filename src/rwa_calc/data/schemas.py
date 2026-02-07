@@ -3,6 +3,9 @@ This module contains all the schemas for all data inputs for the rwa_calc.
 
 Supports both UK CRR (Basel 3.0, until Dec 2026) and PRA PS9/24 (Basel 3.1, from Jan 2027).
 
+Also defines COLUMN_VALUE_CONSTRAINTS — valid value sets for categorical columns,
+used by validate_bundle_values to catch invalid input values early.
+
 Key Data Inputs:
 - Loan                      # Drawn exposures (leaf nodes in exposure hierarchy)
 - Facility                  # Committed credit limits (parent nodes) with seniority, risk_type
@@ -346,6 +349,99 @@ CORRELATION_PARAMETER_SCHEMA = {
     "r_max": pl.Float64,  # Maximum correlation
     "fixed_correlation": pl.Float64,  # For fixed types (e.g., mortgage 15%, QRRE 4%)
     "decay_factor": pl.Float64,  # For PD-dependent formula (50 for corp, 35 for retail)
+}
+
+
+# =============================================================================
+# COLUMN VALUE CONSTRAINTS
+# =============================================================================
+# Valid value sets for categorical input columns.
+# Used by validate_bundle_values() to catch invalid values at input time.
+
+VALID_ENTITY_TYPES = {
+    "sovereign", "central_bank", "rgla_sovereign", "rgla_institution",
+    "pse_sovereign", "pse_institution", "mdb", "international_org",
+    "institution", "bank", "ccp", "financial_institution",
+    "corporate", "company", "individual", "retail",
+    "specialised_lending", "equity",
+}
+
+VALID_SENIORITY = {"senior", "subordinated"}
+
+VALID_COLLATERAL_TYPES = {
+    "cash", "gold", "equity", "bond", "real_estate",
+    "receivables", "other_physical",
+}
+
+VALID_PROPERTY_TYPES = {"residential", "commercial"}
+
+VALID_ISSUER_TYPES = {"sovereign", "pse", "corporate", "securitisation"}
+
+VALID_VALUATION_TYPES = {"market", "indexed", "independent"}
+
+VALID_PROVISION_TYPES = {"scra", "gcra"}
+
+VALID_RATING_TYPES = {"internal", "external"}
+
+VALID_SL_TYPES = {
+    "project_finance", "object_finance", "commodities_finance",
+    "ipre", "hvcre",
+}
+
+VALID_SLOTTING_CATEGORIES = {"strong", "good", "satisfactory", "weak", "default"}
+
+VALID_EQUITY_TYPES = {
+    "central_bank", "listed", "exchange_traded", "government_supported",
+    "unlisted", "speculative", "private_equity", "private_equity_diversified",
+    "ciu", "other",
+}
+
+VALID_BENEFICIARY_TYPES = {"counterparty", "loan", "facility", "contingent"}
+
+VALID_CHILD_TYPES = {"facility", "loan", "contingent"}
+
+# Registry: maps table_name -> {column_name -> valid_values_set}
+# Used by validate_bundle_values() for input validation.
+COLUMN_VALUE_CONSTRAINTS: dict[str, dict[str, set[str]]] = {
+    "facilities": {
+        "seniority": VALID_SENIORITY,
+    },
+    "loans": {
+        "seniority": VALID_SENIORITY,
+    },
+    "contingents": {
+        "seniority": VALID_SENIORITY,
+    },
+    "counterparties": {
+        "entity_type": VALID_ENTITY_TYPES,
+    },
+    "collateral": {
+        "collateral_type": VALID_COLLATERAL_TYPES,
+        "property_type": VALID_PROPERTY_TYPES,
+        "issuer_type": VALID_ISSUER_TYPES,
+        "valuation_type": VALID_VALUATION_TYPES,
+        "beneficiary_type": VALID_BENEFICIARY_TYPES,
+    },
+    "provisions": {
+        "provision_type": VALID_PROVISION_TYPES,
+        "beneficiary_type": VALID_BENEFICIARY_TYPES,
+    },
+    "ratings": {
+        "rating_type": VALID_RATING_TYPES,
+    },
+    "specialised_lending": {
+        "sl_type": VALID_SL_TYPES,
+        "slotting_category": VALID_SLOTTING_CATEGORIES,
+    },
+    "equity_exposures": {
+        "equity_type": VALID_EQUITY_TYPES,
+    },
+    "guarantees": {
+        "beneficiary_type": VALID_BENEFICIARY_TYPES,
+    },
+    "facility_mappings": {
+        "child_type": VALID_CHILD_TYPES,
+    },
 }
 
 

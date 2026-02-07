@@ -7,9 +7,12 @@ against expected definitions.
 import polars as pl
 import pytest
 
+from rwa_calc.contracts.bundles import RawDataBundle
 from rwa_calc.contracts.validation import (
     normalize_risk_type,
+    validate_bundle_values,
     validate_ccf_modelled,
+    validate_column_values,
     validate_lgd_range,
     validate_non_negative_amounts,
     validate_pd_range,
@@ -408,3 +411,162 @@ class TestNormalizeRiskType:
 
         assert "other_column" in df.columns
         assert "risk_type" not in df.columns
+
+
+class TestValidateColumnValues:
+    """Tests for validate_column_values function."""
+
+    def test_all_valid_returns_empty(self):
+        """All valid values should return no errors."""
+        lf = pl.LazyFrame({"entity_type": ["sovereign", "corporate", "retail"]})
+        valid = {"sovereign", "corporate", "retail"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="counterparties")
+
+        assert errors == []
+
+    def test_invalid_values_detected(self):
+        """Invalid values should produce errors."""
+        lf = pl.LazyFrame({"entity_type": ["sovereign", "INVALID", "corporate"]})
+        valid = {"sovereign", "corporate", "retail"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="counterparties")
+
+        assert len(errors) == 1
+        assert errors[0].code == "DQ006"
+        assert errors[0].category == ErrorCategory.DATA_QUALITY
+        assert "INVALID" in errors[0].message
+        assert errors[0].field_name == "entity_type"
+
+    def test_case_insensitive(self):
+        """Validation should be case insensitive."""
+        lf = pl.LazyFrame({"entity_type": ["Sovereign", "CORPORATE", "Retail"]})
+        valid = {"sovereign", "corporate", "retail"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="counterparties")
+
+        assert errors == []
+
+    def test_null_values_skipped(self):
+        """Null values should be skipped (not treated as invalid)."""
+        lf = pl.LazyFrame({"seniority": ["senior", None, "subordinated", None]})
+        valid = {"senior", "subordinated"}
+
+        errors = validate_column_values(lf, "seniority", valid, context="facilities")
+
+        assert errors == []
+
+    def test_missing_column_returns_empty(self):
+        """Missing column should return no errors."""
+        lf = pl.LazyFrame({"other_col": ["a", "b"]})
+        valid = {"senior", "subordinated"}
+
+        errors = validate_column_values(lf, "seniority", valid, context="facilities")
+
+        assert errors == []
+
+    def test_multiple_invalid_values(self):
+        """Multiple distinct invalid values should each produce an error."""
+        lf = pl.LazyFrame({"entity_type": ["bad1", "bad2", "sovereign", "bad1"]})
+        valid = {"sovereign", "corporate"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="counterparties")
+
+        assert len(errors) == 2
+        messages = {e.actual_value for e in errors}
+        assert "bad1" in messages
+        assert "bad2" in messages
+
+    def test_error_includes_row_count(self):
+        """Error message should include the count of invalid rows."""
+        lf = pl.LazyFrame({"entity_type": ["bad", "bad", "bad"]})
+        valid = {"sovereign"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="test")
+
+        assert len(errors) == 1
+        assert "3 row(s)" in errors[0].message
+
+    def test_empty_frame_returns_empty(self):
+        """Empty LazyFrame should return no errors."""
+        lf = pl.LazyFrame({"entity_type": pl.Series([], dtype=pl.String)})
+        valid = {"sovereign"}
+
+        errors = validate_column_values(lf, "entity_type", valid, context="test")
+
+        assert errors == []
+
+
+class TestValidateBundleValues:
+    """Tests for validate_bundle_values function."""
+
+    def _make_bundle(self, **overrides) -> RawDataBundle:
+        """Create a minimal RawDataBundle with overrides."""
+        defaults = {
+            "facilities": pl.LazyFrame({"facility_reference": pl.Series([], dtype=pl.String)}),
+            "loans": pl.LazyFrame({"loan_reference": pl.Series([], dtype=pl.String)}),
+            "counterparties": pl.LazyFrame({"counterparty_reference": pl.Series([], dtype=pl.String)}),
+            "facility_mappings": pl.LazyFrame({"parent_facility_reference": pl.Series([], dtype=pl.String)}),
+            "lending_mappings": pl.LazyFrame({"parent_counterparty_reference": pl.Series([], dtype=pl.String)}),
+        }
+        defaults.update(overrides)
+        return RawDataBundle(**defaults)
+
+    def test_valid_bundle_returns_empty(self):
+        """Bundle with all valid values should return no errors."""
+        bundle = self._make_bundle(
+            counterparties=pl.LazyFrame({"entity_type": ["sovereign", "corporate"]}),
+        )
+
+        errors = validate_bundle_values(bundle)
+
+        assert errors == []
+
+    def test_invalid_entity_type_detected(self):
+        """Invalid entity_type should produce error."""
+        bundle = self._make_bundle(
+            counterparties=pl.LazyFrame({"entity_type": ["sovereign", "INVALID_TYPE"]}),
+        )
+
+        errors = validate_bundle_values(bundle)
+
+        assert len(errors) == 1
+        assert "entity_type" in errors[0].field_name
+        assert "INVALID_TYPE" in errors[0].message
+
+    def test_none_tables_skipped(self):
+        """Optional None tables should be skipped without error."""
+        bundle = self._make_bundle(
+            collateral=None,
+            guarantees=None,
+            provisions=None,
+        )
+
+        errors = validate_bundle_values(bundle)
+
+        assert errors == []
+
+    def test_multiple_table_errors(self):
+        """Errors from multiple tables should all be collected."""
+        bundle = self._make_bundle(
+            counterparties=pl.LazyFrame({"entity_type": ["BAD"]}),
+            facilities=pl.LazyFrame({"seniority": ["WRONG"]}),
+        )
+
+        errors = validate_bundle_values(bundle)
+
+        assert len(errors) == 2
+        tables = {e.message.split("]")[0].strip("[") for e in errors}
+        assert "counterparties" in tables
+        assert "facilities" in tables
+
+    def test_custom_constraints(self):
+        """Should accept custom constraints dict."""
+        bundle = self._make_bundle(
+            counterparties=pl.LazyFrame({"entity_type": ["alien"]}),
+        )
+        custom = {"counterparties": {"entity_type": {"alien", "robot"}}}
+
+        errors = validate_bundle_values(bundle, constraints=custom)
+
+        assert errors == []

@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from rwa_calc.contracts.errors import (
+    ERROR_INVALID_COLUMN_VALUE,
     ERROR_MISSING_FIELD,
     ERROR_TYPE_MISMATCH,
     CalculationError,
@@ -548,3 +549,117 @@ def normalize_risk_type(
         .replace(RISK_TYPE_CODE_TO_VALUE)
         .alias(column)
     )
+
+
+# =============================================================================
+# COLUMN VALUE VALIDATORS
+# =============================================================================
+
+
+def validate_column_values(
+    lf: pl.LazyFrame,
+    column: str,
+    valid_values: set[str],
+    context: str = "",
+) -> list[CalculationError]:
+    """
+    Validate that all non-null values in a column are in the valid set.
+
+    Case-insensitive comparison. Null values are skipped (treated as
+    missing data, not invalid values).
+
+    Args:
+        lf: LazyFrame to validate
+        column: Column name to check
+        valid_values: Set of allowed lowercase string values
+        context: Context string for error messages (e.g. table name)
+
+    Returns:
+        List of CalculationError objects for invalid values found
+    """
+    schema = lf.collect_schema()
+    if column not in schema.names():
+        return []
+
+    # Find distinct invalid values with counts
+    invalid_df = (
+        lf.filter(pl.col(column).is_not_null())
+        .filter(~pl.col(column).str.to_lowercase().is_in(valid_values))
+        .group_by(column)
+        .len()
+        .collect()
+    )
+
+    if invalid_df.height == 0:
+        return []
+
+    errors: list[CalculationError] = []
+    for row in invalid_df.iter_rows(named=True):
+        bad_value = row[column]
+        count = row["len"]
+        sorted_valid = sorted(valid_values)
+        errors.append(
+            CalculationError(
+                code=ERROR_INVALID_COLUMN_VALUE,
+                message=(
+                    f"[{context}] Invalid value '{bad_value}' for column '{column}' "
+                    f"({count} row(s)). "
+                    f"Valid values: {sorted_valid}"
+                ),
+                severity=ErrorSeverity.WARNING,
+                category=ErrorCategory.DATA_QUALITY,
+                field_name=column,
+                expected_value=", ".join(sorted_valid),
+                actual_value=str(bad_value),
+            )
+        )
+
+    return errors
+
+
+def validate_bundle_values(
+    bundle: RawDataBundle,
+    constraints: dict[str, dict[str, set[str]]] | None = None,
+) -> list[CalculationError]:
+    """
+    Validate all categorical column values in a RawDataBundle.
+
+    Iterates over all tables in the bundle and checks column values
+    against the constraints registry.
+
+    Args:
+        bundle: RawDataBundle to validate
+        constraints: Override constraints dict; defaults to COLUMN_VALUE_CONSTRAINTS
+
+    Returns:
+        List of CalculationError objects for any invalid values found
+    """
+    if constraints is None:
+        from rwa_calc.data.schemas import COLUMN_VALUE_CONSTRAINTS
+        constraints = COLUMN_VALUE_CONSTRAINTS
+
+    frame_mapping: dict[str, pl.LazyFrame | None] = {
+        "facilities": bundle.facilities,
+        "loans": bundle.loans,
+        "contingents": bundle.contingents,
+        "counterparties": bundle.counterparties,
+        "collateral": bundle.collateral,
+        "guarantees": bundle.guarantees,
+        "provisions": bundle.provisions,
+        "ratings": bundle.ratings,
+        "specialised_lending": bundle.specialised_lending,
+        "equity_exposures": bundle.equity_exposures,
+        "facility_mappings": bundle.facility_mappings,
+    }
+
+    all_errors: list[CalculationError] = []
+
+    for table_name, lf in frame_mapping.items():
+        if lf is None:
+            continue
+        table_constraints = constraints.get(table_name, {})
+        for col_name, valid_values in table_constraints.items():
+            errors = validate_column_values(lf, col_name, valid_values, context=table_name)
+            all_errors.extend(errors)
+
+    return all_errors
