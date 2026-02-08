@@ -344,15 +344,30 @@ class OutputAggregator:
     def _prepare_irb_results(self, irb_results: pl.LazyFrame) -> pl.LazyFrame:
         """Prepare IRB results with standard columns."""
         schema = irb_results.collect_schema()
+        cols = schema.names()
 
-        # Determine approach column
-        if "approach" in schema.names():
-            approach_expr = pl.col("approach")
+        # Determine base approach expression
+        if "approach" in cols:
+            base_approach_expr = pl.col("approach")
         else:
-            approach_expr = pl.lit("FIRB")
+            base_approach_expr = pl.lit("FIRB")
+
+        # Post-CRM approach: fully SA-guaranteed IRB exposures report as "standardised"
+        has_guarantee_cols = "guarantor_approach" in cols and "guarantee_ratio" in cols
+        if has_guarantee_cols:
+            approach_expr = (
+                pl.when(
+                    (pl.col("guarantor_approach") == "sa")
+                    & (pl.col("guarantee_ratio") >= 1.0)
+                )
+                .then(pl.lit("standardised"))
+                .otherwise(base_approach_expr)
+            )
+        else:
+            approach_expr = base_approach_expr
 
         # Determine RWA column
-        rwa_col = "rwa" if "rwa" in schema.names() else "rwa_post_factor"
+        rwa_col = "rwa" if "rwa" in cols else "rwa_post_factor"
 
         return irb_results.with_columns([
             approach_expr.alias("approach_applied"),
@@ -773,6 +788,7 @@ class OutputAggregator:
                 "reporting_exposure_class": pl.Series([], dtype=pl.String),
                 "reporting_ead": pl.Series([], dtype=pl.Float64),
                 "reporting_rw": pl.Series([], dtype=pl.Float64),
+                "reporting_approach": pl.Series([], dtype=pl.String),
                 "crm_portion_type": pl.Series([], dtype=pl.String),
             })
 
@@ -784,12 +800,14 @@ class OutputAggregator:
             # No guarantee data, return simplified results with reporting columns
             counterparty_expr = pl.col(counterparty_col) if counterparty_col else pl.lit(None).cast(pl.String)
             rw_expr = pl.col(rw_col) if rw_col else pl.lit(1.0)
+            approach_expr = pl.col("approach_applied") if "approach_applied" in cols else pl.lit(None).cast(pl.String)
 
             return results.with_columns([
                 counterparty_expr.alias("reporting_counterparty"),
                 pl.col(exposure_class_col).alias("reporting_exposure_class"),
                 pl.col(ead_col).alias("reporting_ead"),
                 rw_expr.alias("reporting_rw"),
+                approach_expr.alias("reporting_approach"),
                 pl.lit("original").alias("crm_portion_type"),
             ])
 
@@ -803,6 +821,21 @@ class OutputAggregator:
         pre_crm_rw_expr = pl.col(pre_crm_rw_col) if pre_crm_rw_col else pl.lit(1.0)
         guarantor_rw_expr = pl.col(guarantor_rw_col) if guarantor_rw_col else pl.lit(1.0)
 
+        # Approach expression for reporting
+        has_approach = "approach_applied" in cols
+        approach_expr = pl.col("approach_applied") if has_approach else pl.lit(None).cast(pl.String)
+        has_guarantor_approach = "guarantor_approach" in cols
+
+        # For guaranteed portion: use "standardised" when guarantor is SA, else original
+        if has_guarantor_approach and has_approach:
+            guaranteed_approach_expr = (
+                pl.when(pl.col("guarantor_approach") == "sa")
+                .then(pl.lit("standardised"))
+                .otherwise(pl.col("approach_applied"))
+            )
+        else:
+            guaranteed_approach_expr = approach_expr
+
         # Non-guaranteed exposures (single row)
         non_guaranteed = results.filter(
             ~pl.col("is_guaranteed")
@@ -811,6 +844,7 @@ class OutputAggregator:
             pl.col(exposure_class_col).alias("reporting_exposure_class"),
             pl.col(ead_col).alias("reporting_ead"),
             rw_expr.alias("reporting_rw"),
+            approach_expr.alias("reporting_approach"),
             pl.lit("original").alias("crm_portion_type"),
         ])
 
@@ -823,6 +857,7 @@ class OutputAggregator:
             pl.col(pre_crm_class_col).alias("reporting_exposure_class"),
             pl.col("unguaranteed_portion").alias("reporting_ead"),
             pre_crm_rw_expr.alias("reporting_rw"),
+            approach_expr.alias("reporting_approach"),
             pl.lit("unguaranteed").alias("crm_portion_type"),
         ])
 
@@ -839,6 +874,7 @@ class OutputAggregator:
             pl.col(post_crm_class_col).alias("reporting_exposure_class"),
             pl.col("guaranteed_portion").alias("reporting_ead"),
             guarantor_rw_expr.alias("reporting_rw"),
+            guaranteed_approach_expr.alias("reporting_approach"),
             pl.lit("guaranteed").alias("crm_portion_type"),
         ])
 
