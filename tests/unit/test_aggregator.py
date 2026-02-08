@@ -572,6 +572,136 @@ class TestSummaryGeneration:
         assert sa_row["exposure_count"][0] == 3
 
 
+class TestSummaryPostCRMBasis:
+    """Tests verifying summaries are based on post-CRM split rows."""
+
+    def test_summary_by_class_splits_guaranteed_exposure(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """
+        Partially guaranteed exposure should split EAD across classes in summary.
+
+        FIRB corporate exposure (EAD=1M) 60% guaranteed by retail guarantor:
+        - 400k unguaranteed → CORPORATE
+        - 600k guaranteed → RETAIL (guarantor's class)
+        """
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+            "is_guaranteed": [True],
+            "guaranteed_portion": [600000.0],
+            "unguaranteed_portion": [400000.0],
+            "counterparty_reference": ["BORROWER01"],
+            "guarantor_reference": ["GUARANTOR01"],
+            "pre_crm_exposure_class": ["CORPORATE"],
+            "post_crm_exposure_class_guaranteed": ["RETAIL"],
+            "pre_crm_risk_weight": [0.5],
+            "guarantor_rw": [0.75],
+        })
+
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=None,
+            irb_bundle=IRBResultBundle(results=irb_results, errors=[]),
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_class.collect()
+        classes = summary["exposure_class"].to_list()
+
+        # Both classes should appear
+        assert "CORPORATE" in classes
+        assert "RETAIL" in classes
+
+        corp_row = summary.filter(pl.col("exposure_class") == "CORPORATE")
+        retail_row = summary.filter(pl.col("exposure_class") == "RETAIL")
+
+        # Unguaranteed 400k goes to CORPORATE
+        assert corp_row["total_ead"][0] == pytest.approx(400000.0, rel=0.01)
+        # Guaranteed 600k goes to RETAIL
+        assert retail_row["total_ead"][0] == pytest.approx(600000.0, rel=0.01)
+
+    def test_summary_by_approach_splits_guaranteed_exposure(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """
+        Partially guaranteed IRB exposure with SA guarantor:
+        unguaranteed portion → FIRB, guaranteed portion → standardised.
+        """
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+            "is_guaranteed": [True],
+            "guaranteed_portion": [600000.0],
+            "unguaranteed_portion": [400000.0],
+            "counterparty_reference": ["BORROWER01"],
+            "guarantor_reference": ["GUARANTOR01"],
+            "pre_crm_exposure_class": ["CORPORATE"],
+            "post_crm_exposure_class_guaranteed": ["RETAIL"],
+            "pre_crm_risk_weight": [0.5],
+            "guarantor_rw": [0.75],
+        })
+
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=None,
+            irb_bundle=IRBResultBundle(results=irb_results, errors=[]),
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_approach.collect()
+        approaches = summary["approach_applied"].to_list()
+
+        # Both approaches should appear
+        assert "FIRB" in approaches
+        assert "standardised" in approaches
+
+        firb_row = summary.filter(pl.col("approach_applied") == "FIRB")
+        sa_row = summary.filter(pl.col("approach_applied") == "standardised")
+
+        # Unguaranteed 400k under FIRB
+        assert firb_row["total_ead"][0] == pytest.approx(400000.0, rel=0.01)
+        # Guaranteed 600k under standardised
+        assert sa_row["total_ead"][0] == pytest.approx(600000.0, rel=0.01)
+
+    def test_summary_non_guaranteed_unchanged(
+        self,
+        aggregator: OutputAggregator,
+        sa_bundle: SAResultBundle,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Non-guaranteed exposures should produce identical summaries as before."""
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=sa_bundle,
+            irb_bundle=None,
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_approach.collect()
+        sa_row = summary.filter(pl.col("approach_applied") == "SA")
+
+        # Total EAD = 1M + 500k + 2M = 3.5M (same as before)
+        assert sa_row["total_ead"][0] == pytest.approx(3500000.0, rel=0.01)
+        assert sa_row["exposure_count"][0] == 3
+
+
 # =============================================================================
 # Edge Cases Tests
 # =============================================================================

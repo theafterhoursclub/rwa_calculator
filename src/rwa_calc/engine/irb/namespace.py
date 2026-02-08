@@ -491,15 +491,22 @@ class IRBLazyFrame:
             # No guarantee data, return as-is
             return self._lf
 
-        # Store original IRB RWA before substitution (pre-CRM values)
+        # Check if expected_loss column exists (may not be present in all pipelines)
+        has_expected_loss = "expected_loss" in cols
+
+        # Store original IRB values before substitution (pre-CRM values)
         # These are needed for regulatory reporting (pre-CRM vs post-CRM views)
-        lf = self._lf.with_columns([
+        store_originals = [
             pl.col("rwa").alias("rwa_irb_original"),
             pl.col("risk_weight").alias("risk_weight_irb_original"),
             # Consistent naming for pre-CRM reporting
             pl.col("risk_weight").alias("pre_crm_risk_weight"),
             pl.col("rwa").alias("pre_crm_rwa"),
-        ])
+        ]
+        if has_expected_loss:
+            store_originals.append(pl.col("expected_loss").alias("expected_loss_irb_original"))
+
+        lf = self._lf.with_columns(store_originals)
 
         # Calculate guarantor's risk weight based on entity type and CQS
         # Using SA risk weights for substitution (per CRR Art. 215-217)
@@ -584,6 +591,26 @@ class IRBLazyFrame:
         lf = lf.with_columns([
             (pl.col("rwa") / pl.col(ead_col)).fill_null(0.0).alias("risk_weight"),
         ])
+
+        # Adjust expected loss for SA-guaranteed portion
+        # SA has no EL concept (CRR Art. 158-159), so only unguaranteed portion retains IRB EL
+        # For IRB guarantors, EL unchanged (PD substitution not yet implemented)
+        if has_expected_loss:
+            lf = lf.with_columns([
+                pl.when(
+                    (pl.col("guaranteed_portion").fill_null(0) > 0) &
+                    (pl.col("guarantor_rw").is_not_null()) &
+                    (pl.col("is_guarantee_beneficial")) &
+                    (pl.col("guarantor_approach").fill_null("") == "sa")
+                ).then(
+                    # SA portion has no EL — only unguaranteed portion retains IRB EL
+                    pl.col("expected_loss_irb_original") * (
+                        pl.col("unguaranteed_portion") / pl.col(ead_col)
+                    ).fill_null(1.0)
+                )
+                .otherwise(pl.col("expected_loss_irb_original"))
+                .alias("expected_loss"),
+            ])
 
         # Track guarantee status for reporting
         lf = lf.with_columns([
@@ -705,6 +732,7 @@ class IRBLazyFrame:
             "risk_weight",
             "rwa",
             "expected_loss",
+            "expected_loss_irb_original",
         ]
 
         for col in optional_cols:
