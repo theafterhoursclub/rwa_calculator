@@ -572,6 +572,136 @@ class TestSummaryGeneration:
         assert sa_row["exposure_count"][0] == 3
 
 
+class TestSummaryPostCRMBasis:
+    """Tests verifying summaries are based on post-CRM split rows."""
+
+    def test_summary_by_class_splits_guaranteed_exposure(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """
+        Partially guaranteed exposure should split EAD across classes in summary.
+
+        FIRB corporate exposure (EAD=1M) 60% guaranteed by retail guarantor:
+        - 400k unguaranteed → CORPORATE
+        - 600k guaranteed → RETAIL (guarantor's class)
+        """
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+            "is_guaranteed": [True],
+            "guaranteed_portion": [600000.0],
+            "unguaranteed_portion": [400000.0],
+            "counterparty_reference": ["BORROWER01"],
+            "guarantor_reference": ["GUARANTOR01"],
+            "pre_crm_exposure_class": ["CORPORATE"],
+            "post_crm_exposure_class_guaranteed": ["RETAIL"],
+            "pre_crm_risk_weight": [0.5],
+            "guarantor_rw": [0.75],
+        })
+
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=None,
+            irb_bundle=IRBResultBundle(results=irb_results, errors=[]),
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_class.collect()
+        classes = summary["exposure_class"].to_list()
+
+        # Both classes should appear
+        assert "CORPORATE" in classes
+        assert "RETAIL" in classes
+
+        corp_row = summary.filter(pl.col("exposure_class") == "CORPORATE")
+        retail_row = summary.filter(pl.col("exposure_class") == "RETAIL")
+
+        # Unguaranteed 400k goes to CORPORATE
+        assert corp_row["total_ead"][0] == pytest.approx(400000.0, rel=0.01)
+        # Guaranteed 600k goes to RETAIL
+        assert retail_row["total_ead"][0] == pytest.approx(600000.0, rel=0.01)
+
+    def test_summary_by_approach_splits_guaranteed_exposure(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """
+        Partially guaranteed IRB exposure with SA guarantor:
+        unguaranteed portion → FIRB, guaranteed portion → standardised.
+        """
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+            "is_guaranteed": [True],
+            "guaranteed_portion": [600000.0],
+            "unguaranteed_portion": [400000.0],
+            "counterparty_reference": ["BORROWER01"],
+            "guarantor_reference": ["GUARANTOR01"],
+            "pre_crm_exposure_class": ["CORPORATE"],
+            "post_crm_exposure_class_guaranteed": ["RETAIL"],
+            "pre_crm_risk_weight": [0.5],
+            "guarantor_rw": [0.75],
+        })
+
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=None,
+            irb_bundle=IRBResultBundle(results=irb_results, errors=[]),
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_approach.collect()
+        approaches = summary["approach_applied"].to_list()
+
+        # Both approaches should appear
+        assert "FIRB" in approaches
+        assert "standardised" in approaches
+
+        firb_row = summary.filter(pl.col("approach_applied") == "FIRB")
+        sa_row = summary.filter(pl.col("approach_applied") == "standardised")
+
+        # Unguaranteed 400k under FIRB
+        assert firb_row["total_ead"][0] == pytest.approx(400000.0, rel=0.01)
+        # Guaranteed 600k under standardised
+        assert sa_row["total_ead"][0] == pytest.approx(600000.0, rel=0.01)
+
+    def test_summary_non_guaranteed_unchanged(
+        self,
+        aggregator: OutputAggregator,
+        sa_bundle: SAResultBundle,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Non-guaranteed exposures should produce identical summaries as before."""
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=sa_bundle,
+            irb_bundle=None,
+            slotting_bundle=None,
+            config=crr_config,
+        )
+
+        summary = result.summary_by_approach.collect()
+        sa_row = summary.filter(pl.col("approach_applied") == "SA")
+
+        # Total EAD = 1M + 500k + 2M = 3.5M (same as before)
+        assert sa_row["total_ead"][0] == pytest.approx(3500000.0, rel=0.01)
+        assert sa_row["exposure_count"][0] == 3
+
+
 # =============================================================================
 # Edge Cases Tests
 # =============================================================================
@@ -713,3 +843,194 @@ class TestApplyOutputFloorMethod:
         assert df["rwa"][0] == pytest.approx(50000000.0, rel=0.01)
         # Should not have floor columns
         assert "rwa_final" not in df.columns
+
+
+# =============================================================================
+# Post-CRM Approach Applied Tests
+# =============================================================================
+
+
+class TestPostCRMApproachApplied:
+    """Tests for approach_applied reflecting post-CRM guarantee substitution."""
+
+    def test_fully_sa_guaranteed_irb_becomes_standardised(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """IRB exposure 100% guaranteed by SA guarantor → approach_applied = 'standardised'."""
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.0],
+            "rwa": [0.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [1.0],
+        })
+
+        result = aggregator._prepare_irb_results(irb_results).collect()
+        assert result["approach_applied"][0] == "standardised"
+
+    def test_partially_sa_guaranteed_irb_keeps_original(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """IRB exposure partially guaranteed by SA guarantor → keeps original approach."""
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+        })
+
+        result = aggregator._prepare_irb_results(irb_results).collect()
+        assert result["approach_applied"][0] == "FIRB"
+
+    def test_fully_irb_guaranteed_keeps_original(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """IRB exposure 100% guaranteed by IRB guarantor → keeps original approach."""
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["irb"],
+            "guarantee_ratio": [1.0],
+        })
+
+        result = aggregator._prepare_irb_results(irb_results).collect()
+        assert result["approach_applied"][0] == "FIRB"
+
+    def test_sa_exposure_unchanged(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """SA exposure with SA guarantor → approach_applied stays 'SA'."""
+        sa_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "ead_final": [1000000.0],
+            "risk_weight": [1.0],
+            "rwa_post_factor": [1000000.0],
+        })
+
+        result = aggregator._prepare_sa_results(sa_results).collect()
+        assert result["approach_applied"][0] == "SA"
+
+    def test_non_guaranteed_irb_unchanged(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Non-guaranteed IRB exposure → approach_applied stays as original approach."""
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+        })
+
+        result = aggregator._prepare_irb_results(irb_results).collect()
+        assert result["approach_applied"][0] == "FIRB"
+
+    def test_fully_sa_guaranteed_excluded_from_output_floor(
+        self,
+        aggregator: OutputAggregator,
+        basel31_config: CalculationConfig,
+    ) -> None:
+        """
+        100% SA-guaranteed IRB exposure → approach_applied = 'standardised'.
+        Output floor should NOT apply (it only applies to IRB approaches).
+        """
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP_IRB"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.0],
+            "rwa": [0.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [1.0],
+        })
+        sa_results = pl.LazyFrame({
+            "exposure_reference": ["EXP_SA"],
+            "exposure_class": ["CORPORATE"],
+            "ead_final": [1000000.0],
+            "risk_weight": [1.0],
+            "rwa_post_factor": [1000000.0],
+        })
+
+        result = aggregator.aggregate_with_audit(
+            sa_bundle=SAResultBundle(results=sa_results, errors=[]),
+            irb_bundle=IRBResultBundle(results=irb_results, errors=[]),
+            slotting_bundle=None,
+            config=basel31_config,
+        )
+
+        df = result.results.collect()
+        irb_row = df.filter(pl.col("exposure_reference") == "EXP_IRB")
+
+        # Should be "standardised", not "FIRB"
+        assert irb_row["approach_applied"][0] == "standardised"
+
+        # Floor should not be binding (standardised is excluded from floor)
+        if "is_floor_binding" in irb_row.columns:
+            assert irb_row["is_floor_binding"][0] is False
+
+
+class TestPostCRMDetailedReportingApproach:
+    """Tests for reporting_approach in post-CRM detailed view."""
+
+    def test_reporting_approach_in_detailed_view(
+        self,
+        aggregator: OutputAggregator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Post-CRM detailed view should include reporting_approach column."""
+        irb_results = pl.LazyFrame({
+            "exposure_reference": ["EXP001"],
+            "exposure_class": ["CORPORATE"],
+            "approach": ["FIRB"],
+            "ead_final": [1000000.0],
+            "risk_weight": [0.5],
+            "rwa": [500000.0],
+            "guarantor_approach": ["sa"],
+            "guarantee_ratio": [0.6],
+            "is_guaranteed": [True],
+            "guaranteed_portion": [600000.0],
+            "unguaranteed_portion": [400000.0],
+            "counterparty_reference": ["BORROWER01"],
+            "guarantor_reference": ["GUARANTOR01"],
+            "pre_crm_exposure_class": ["CORPORATE"],
+            "post_crm_exposure_class_guaranteed": ["RETAIL"],
+        })
+
+        # Prepare IRB results (sets approach_applied)
+        prepared = aggregator._prepare_irb_results(irb_results)
+        detailed = aggregator._generate_post_crm_detailed(prepared)
+        df = detailed.collect()
+
+        assert "reporting_approach" in df.columns
+
+        # Unguaranteed portion keeps original approach
+        unguar = df.filter(pl.col("crm_portion_type") == "unguaranteed")
+        assert unguar["reporting_approach"][0] == "FIRB"
+
+        # Guaranteed portion with SA guarantor → "standardised"
+        guar = df.filter(pl.col("crm_portion_type") == "guaranteed")
+        assert guar["reporting_approach"][0] == "standardised"

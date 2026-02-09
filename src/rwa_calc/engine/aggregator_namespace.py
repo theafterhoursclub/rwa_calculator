@@ -97,16 +97,32 @@ class AggregatorLazyFrame:
         if irb is not None:
             irb_prepared = irb
             irb_schema = irb_prepared.collect_schema()
+            irb_cols = irb_schema.names()
             # Set approach if not present
-            if "approach_applied" not in irb_schema.names():
-                if "approach" in irb_schema.names():
-                    irb_prepared = irb_prepared.with_columns([
-                        pl.col("approach").alias("approach_applied"),
-                    ])
+            if "approach_applied" not in irb_cols:
+                # Determine base approach expression
+                if "approach" in irb_cols:
+                    base_approach_expr = pl.col("approach")
                 else:
-                    irb_prepared = irb_prepared.with_columns([
-                        pl.lit("FIRB").alias("approach_applied"),
-                    ])
+                    base_approach_expr = pl.lit("FIRB")
+
+                # Post-CRM: fully SA-guaranteed IRB exposures report as "standardised"
+                has_guarantee_cols = "guarantor_approach" in irb_cols and "guarantee_ratio" in irb_cols
+                if has_guarantee_cols:
+                    approach_expr = (
+                        pl.when(
+                            (pl.col("guarantor_approach") == "sa")
+                            & (pl.col("guarantee_ratio") >= 1.0)
+                        )
+                        .then(pl.lit("standardised"))
+                        .otherwise(base_approach_expr)
+                    )
+                else:
+                    approach_expr = base_approach_expr
+
+                irb_prepared = irb_prepared.with_columns([
+                    approach_expr.alias("approach_applied"),
+                ])
             # Normalize RWA column
             if "rwa_final" not in irb_schema.names():
                 if "rwa" in irb_schema.names():
