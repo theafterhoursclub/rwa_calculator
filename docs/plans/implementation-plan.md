@@ -296,20 +296,30 @@ tests/fixtures/
 
 ## Next Steps
 
-### Upcoming Work
+### Completed Fixture Work
 
-**Fixture Completion** (to enable remaining acceptance tests):
-- [ ] IRB exposures with PD values (for CRR-B, CRR-C)
-- [ ] CRM scenario exposures with collateral/guarantees (for CRR-D)
-- [ ] Specialised lending exposures with slotting categories (for CRR-E)
-- [ ] Supporting factor scenario exposures (for CRR-F)
-- [ ] Provision scenario exposures with EL data (for CRR-G)
-- [ ] Complex/combined scenario exposures (for CRR-H)
+The majority of fixture data has been completed, enabling 62 of 65 acceptance tests to pass:
 
-**Basel 3.1 Extension**:
+- [x] IRB exposures with PD values (CRR-B: 7/7 pass)
+- [x] CRM scenario exposures with collateral/guarantees (CRR-D: 6/6 pass)
+- [x] Specialised lending exposures with slotting categories (CRR-E: 4/4 pass)
+- [x] Supporting factor scenario exposures (CRR-F: 7/7 pass)
+- [x] Provision scenario exposures with EL data (CRR-G: 3/3 pass)
+- [x] Complex/combined scenario exposures (CRR-H: 4/4 pass)
+
+### Remaining Fixture Work
+
+- [ ] Commercial RE low LTV fixture data (CRR-A7)
+- [ ] Off-balance sheet commitment CCF fixture data (CRR-A8)
+- [ ] Specialised lending A-IRB fixture data (CRR-C3)
+
+### Basel 3.1 Extension
+
 - [ ] Basel 3.1 expected outputs
 - [ ] Basel 3.1 acceptance tests
-- [ ] Updated risk weight tables
+- [ ] Updated risk weight tables (LTV-based real estate)
+- [ ] Differentiated PD floors
+- [ ] A-IRB LGD floors
 - [ ] Output floor phase-in validation
 
 ---

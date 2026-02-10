@@ -1,5 +1,9 @@
 # Plan: Corporate-to-Retail Reclassification with Hybrid IRB Permissions
 
+> **Status: Implemented** (v0.1.11) — All components below have been built and are wired end-to-end: enum (`IRBApproachOption.RETAIL_AIRB_CORPORATE_FIRB`), config factory (`IRBPermissions.retail_airb_corporate_firb()`), classifier reclassification logic, API model, service layer, and Marimo UI dropdown. See `tests/unit/test_corporate_to_retail_reclassification.py` and `tests/unit/test_irb_permissions.py` for test coverage.
+
+---
+
 ## Problem Statement
 
 A firm has the following IRB approvals:

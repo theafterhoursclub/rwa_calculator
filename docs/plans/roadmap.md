@@ -19,7 +19,7 @@ This page tracks the development status and progress of the RWA Calculator acros
 |-----------|--------|---------|
 | Test Data Fixtures | Complete | 15 fixture types covering all counterparty, exposure, CRM, and mapping scenarios |
 | CRR Expected Outputs | Complete | 45 scenarios across 8 groups (SA, F-IRB, A-IRB, CRM, Slotting, Supporting Factors, Provisions, Complex) |
-| CRR Acceptance Tests | Complete | 83 tests (38 validation, 45 implementation stubs) |
+| CRR Acceptance Tests | Complete | 65 tests (62 pass, 3 skip) |
 | Basel 3.1 Expected Outputs | Not Started | Planned for Phase 1.2B |
 
 ---
@@ -53,16 +53,19 @@ Interfaces and contracts between RWA calculator components have been implemented
 |-----------|----------|------------|------------------|-------|
 | Domain enums | `domain/enums.py` | Complete | Complete | - |
 | Risk weight tables | `data/tables/crr_risk_weights.py` | Complete | Planned | - |
-| CCF tables | `engine/ccf.py` | Complete | Complete | 15 |
+| CCF tables | `engine/ccf.py` | Complete | Complete | 47 |
 | Data Loader | `engine/loader.py` | Complete | Complete | 31 |
-| Hierarchy Resolver | `engine/hierarchy.py` | Complete | Complete | 17 |
-| Exposure Classifier | `engine/classifier.py` | Complete | Complete | 19 |
+| Hierarchy Resolver | `engine/hierarchy.py` | Complete | Complete | 66 |
+| Exposure Classifier | `engine/classifier.py` | Complete | Complete | 24 |
 | CRM Processor | `engine/crm/processor.py` | Complete | Complete | - |
+| Haircut Calculator | `engine/crm/haircuts.py` | Complete | Complete | - |
 | SA Calculator | `engine/sa/calculator.py` | Complete | Complete | - |
 | IRB Calculator | `engine/irb/calculator.py` | Complete | Complete | - |
 | Slotting Calculator | `engine/slotting/calculator.py` | Complete | Complete | - |
-| **Equity Calculator** | `engine/equity/calculator.py` | **Complete** | N/A | - |
+| Equity Calculator | `engine/equity/calculator.py` | Complete | N/A | - |
 | Supporting Factors | `engine/sa/supporting_factors.py` | Complete | N/A | - |
+| FX Converter | `engine/fx_converter.py` | Complete | Complete | 14 |
+| Input Validation | `contracts/validation.py` | Complete | Complete | - |
 | Output Aggregator | `engine/aggregator.py` | Complete | Complete | 21 |
 | Output floor | `engine/aggregator.py` | N/A | Complete | - |
 | Pipeline Orchestrator | `engine/pipeline.py` | Complete | Complete | 30 |
@@ -70,12 +73,18 @@ Interfaces and contracts between RWA calculator components have been implemented
 ### Key Implementation Features
 
 - **Pure LazyFrame Operations**: Hierarchy resolution uses iterative Polars joins instead of Python dicts for 50-100x performance improvement
-- **Output Floor**: Full Basel 3.1 output floor with transitional schedule support (50% to 72.5%, 2027-2032)
-- **Supporting Factors**: CRR SME tiered factor (0.7619/0.85) and infrastructure factor (0.75)
-- **Summary Generation**: RWA aggregation by exposure class and calculation approach
-- **Pipeline Orchestrator**: Complete pipeline wiring with error accumulation and audit trail
+- **Multi-Level Facility Hierarchy**: Facility root lookup traverses facility-to-facility hierarchies (up to 10 levels), aggregates drawn amounts to root, and excludes sub-facilities from undrawn output
+- **Cross-Approach CCF Substitution**: When an IRB exposure is guaranteed by an SA counterparty, the guaranteed portion uses SA CCFs (CRR Art. 166/194)
+- **Overcollateralisation**: CRR Art. 230 / CRE32.9-12 ratios (1.0x financial, 1.25x receivables, 1.4x RE/physical) with minimum thresholds
 - **Equity Calculator**: Article 133 (SA) and Article 155 (IRB Simple) risk weight methods with diversified portfolio treatment
 - **Pre/Post CRM Tracking**: Full tracking of guarantee impact on RWA with covered/uncovered portions
+- **Output Floor**: Full Basel 3.1 output floor with transitional schedule support (50% to 72.5%, 2027-2032)
+- **Supporting Factors**: CRR SME tiered factor (0.7619/0.85) and infrastructure factor (0.75)
+- **Input Value Validation**: `validate_bundle_values()` with `DQ006` error code for invalid categorical values
+- **Retail A-IRB / Corporate F-IRB**: Hybrid IRB permissions with corporate-to-retail reclassification for qualifying exposures
+- **FX Conversion**: Multi-currency portfolio support with configurable target currency and full audit trail
+- **Pipeline Orchestrator**: Complete pipeline wiring with error accumulation and audit trail
+- **8 Polars Namespace Extensions**: Fluent, chainable APIs for SA, IRB, CRM, Haircuts, Slotting, Hierarchy, Aggregator, and Audit
 
 ---
 
@@ -86,20 +95,29 @@ CRR acceptance tests validate production pipeline outputs against expected value
 | Group | Description | Scenarios | Status |
 |-------|-------------|-----------|--------|
 | CRR-A | Standardised Approach | 12 | **10 PASS, 2 SKIP** |
-| CRR-B | Foundation IRB | 6 | 6 SKIP (needs PD data) |
-| CRR-C | Advanced IRB | 3 | 3 SKIP (needs fixtures) |
-| CRR-D | Credit Risk Mitigation | 6 | 6 SKIP (needs fixtures) |
-| CRR-E | Specialised Lending (Slotting) | 4 | 4 SKIP (needs fixtures) |
-| CRR-F | Supporting Factors | 7 | 7 SKIP (needs fixtures) |
-| CRR-G | Provisions & Impairments | 3 | 3 SKIP (needs fixtures) |
-| CRR-H | Complex/Combined | 4 | 4 SKIP (needs fixtures) |
+| CRR-B | Foundation IRB | 7 | **7 PASS** |
+| CRR-C | Advanced IRB | 3 | **2 PASS, 1 SKIP** |
+| CRR-D | Credit Risk Mitigation | 6 | **6 PASS** |
+| CRR-E | Specialised Lending (Slotting) | 4 | **4 PASS** |
+| CRR-F | Supporting Factors | 7 | **7 PASS** |
+| CRR-G | Provisions & Impairments | 3 | **3 PASS** |
+| CRR-H | Complex/Combined | 4 | **4 PASS** |
+| | **Total** | **65** | **62 PASS, 3 SKIP** |
+
+### Remaining Skipped Tests
+
+| Test | Reason |
+|------|--------|
+| CRR-A7 | Commercial RE low LTV — fixture data needed |
+| CRR-A8 | Off-balance sheet commitment CCF — fixture data needed |
+| CRR-C3 | Specialised lending A-IRB — fixture data needed |
 
 ### Key Achievements
 
 - Pipeline-based testing using session-scoped fixtures
-- Scenario-to-exposure reference mapping for all 46 scenarios
-- CRR-A (SA) tests fully operational with 10 passing tests
-- Remaining tests skipped pending fixture data (PD values for IRB, collateral/guarantee data for CRM)
+- Scenario-to-exposure reference mapping for all scenarios
+- 95% acceptance test pass rate (62/65)
+- All major calculation approaches validated end-to-end (SA, F-IRB, A-IRB, CRM, Slotting, Supporting Factors, Provisions)
 
 ---
 
@@ -122,7 +140,13 @@ Reference implementations for expected output generation:
 
 ## Test Results Summary
 
-**Total: 1,081 tests**
+**Total: 1,152 tests** (925 unit + 65 acceptance + benchmark)
+
+| Category | Tests | Status |
+|----------|-------|--------|
+| Unit tests | 925 | All passing |
+| Acceptance tests | 65 | 62 pass, 3 skip |
+| Benchmark tests | ~162 | Import fix needed |
 
 Run all tests:
 ```bash
@@ -132,6 +156,25 @@ uv run pytest -v
 ---
 
 ## Recent Completions
+
+### v0.1.18
+- [x] **Facility Root Lookup**: Multi-level facility hierarchy traversal (up to 10 levels)
+- [x] **Undrawn Aggregation**: Drawn amounts from sub-facility loans aggregated to root facility
+- [x] **Sub-Facility Exclusion**: Only root/standalone facilities produce undrawn exposure records
+- [x] **Contingent Liabilities**: Included in facility undrawn calculations
+
+### v0.1.17
+- [x] **Negative Drawn Amounts**: Clamped to zero in EAD calculations (negative balances don't increase headroom)
+- [x] **Duplicate Mapping Fix**: Resolved duplicate mapping issues in facility calculations
+
+### v0.1.16
+- [x] **Cross-Approach CCF Substitution**: SA CCFs applied to guaranteed portion of IRB exposures
+- [x] **Guarantor Approach Detection**: Based on IRB permissions, exposure class, and rating type
+- [x] **Aggregator Enhancements**: Updated summaries for post-CRM reporting
+
+### v0.1.15
+- [x] **Exposure Class Rename**: Sovereign → Central Govt / Central Bank for regulatory accuracy
+- [x] **CI/CD**: GitHub Actions workflow for documentation deployment
 
 ### v0.1.14
 - [x] **Overcollateralisation**: CRR Art. 230 / CRE32.9-12 overcollateralisation ratios and minimum thresholds
@@ -155,15 +198,16 @@ uv run pytest -v
 
 - [ ] Basel 3.1 expected outputs
 - [ ] Basel 3.1 acceptance tests
-- [ ] Updated risk weight tables
+- [ ] Updated risk weight tables (LTV-based real estate)
+- [ ] Differentiated PD floors
+- [ ] A-IRB LGD floors
 - [ ] Output floor phase-in validation
 
-### Fixture Completion
+### Remaining Fixture Completion
 
-- [ ] IRB fixture data (PD values)
-- [ ] CRM fixture data (collateral, guarantees)
-- [ ] Slotting fixture data
-- [ ] Provisions fixture data
+- [ ] Commercial RE low LTV fixture data (CRR-A7)
+- [ ] Off-balance sheet commitment CCF fixture data (CRR-A8)
+- [ ] Specialised lending A-IRB fixture data (CRR-C3)
 
 ---
 
