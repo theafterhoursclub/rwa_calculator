@@ -430,6 +430,112 @@ class HierarchyResolver:
             "rating_type", "rating_date", "inherited", "source_counterparty", "inheritance_reason",
         ])
 
+    def _build_facility_root_lookup(
+        self,
+        facility_mappings: pl.LazyFrame,
+        max_depth: int = 10,
+    ) -> pl.LazyFrame:
+        """
+        Build root facility lookup for multi-level facility hierarchies.
+
+        Mirrors _build_ultimate_parent_lazy but for facility-to-facility relationships.
+        Iteratively traverses upward through facility hierarchy to find the root facility.
+
+        Args:
+            facility_mappings: Facility mappings with parent_facility_reference,
+                             child_reference, and child_type/node_type columns
+            max_depth: Maximum hierarchy depth to traverse
+
+        Returns:
+            LazyFrame with columns:
+            - child_facility_reference: The sub-facility
+            - root_facility_reference: Its ultimate root facility
+            - facility_hierarchy_depth: Number of levels traversed
+        """
+        empty_result = pl.LazyFrame(schema={
+            "child_facility_reference": pl.String,
+            "root_facility_reference": pl.String,
+            "facility_hierarchy_depth": pl.Int32,
+        })
+
+        # Detect type column (child_type / node_type / neither)
+        mapping_schema = facility_mappings.collect_schema()
+        mapping_cols = set(mapping_schema.names())
+
+        if "child_type" in mapping_cols:
+            type_col = "child_type"
+        elif "node_type" in mapping_cols:
+            type_col = "node_type"
+        else:
+            return empty_result
+
+        # Filter to facility→facility relationships only
+        facility_edges = facility_mappings.filter(
+            pl.col(type_col).fill_null("").str.to_lowercase() == "facility"
+        ).select([
+            pl.col("child_reference").alias("child_facility_reference"),
+            pl.col("parent_facility_reference"),
+        ]).unique()
+
+        # Check if there are any facility edges
+        if facility_edges.head(1).collect().height == 0:
+            return empty_result
+
+        # Parent lookup for iterative joins
+        parent_map = facility_edges.select([
+            pl.col("child_facility_reference").alias("_lookup_child"),
+            pl.col("parent_facility_reference").alias("_lookup_parent"),
+        ])
+
+        # Initialize: each sub-facility's current parent is its direct parent
+        result = facility_edges.join(
+            parent_map,
+            left_on="parent_facility_reference",
+            right_on="_lookup_child",
+            how="left",
+        ).with_columns([
+            pl.coalesce(
+                pl.col("_lookup_parent"),
+                pl.col("parent_facility_reference"),
+            ).alias("current_root"),
+            pl.when(pl.col("_lookup_parent").is_not_null())
+            .then(pl.lit(2).cast(pl.Int32))
+            .otherwise(pl.lit(1).cast(pl.Int32))
+            .alias("depth"),
+        ]).select([
+            pl.col("child_facility_reference"),
+            pl.col("current_root"),
+            pl.col("depth"),
+        ])
+
+        # Iteratively traverse upward
+        for _ in range(max_depth - 1):
+            result = result.join(
+                parent_map,
+                left_on="current_root",
+                right_on="_lookup_child",
+                how="left",
+            ).with_columns([
+                pl.coalesce(
+                    pl.col("_lookup_parent"),
+                    pl.col("current_root"),
+                ).alias("current_root"),
+                pl.when(pl.col("_lookup_parent").is_not_null())
+                .then(pl.col("depth") + 1)
+                .otherwise(pl.col("depth"))
+                .alias("depth"),
+            ]).select([
+                pl.col("child_facility_reference"),
+                pl.col("current_root"),
+                pl.col("depth"),
+            ])
+
+        return result.select([
+            pl.col("child_facility_reference"),
+            pl.col("current_root").alias("root_facility_reference"),
+            pl.col("depth").alias("facility_hierarchy_depth"),
+        ])
+
     def _enrich_counterparties_with_hierarchy(
         self,
         counterparties: pl.LazyFrame,
@@ -506,21 +612,27 @@ class HierarchyResolver:
         self,
         facilities: pl.LazyFrame,
         loans: pl.LazyFrame,
+        contingents: pl.LazyFrame | None,
         facility_mappings: pl.LazyFrame,
+        facility_root_lookup: pl.LazyFrame | None = None,
     ) -> pl.LazyFrame:
         """
         Calculate undrawn amounts for facilities.
 
-        For each facility:
-            undrawn = facility.limit - sum(linked_loans.drawn_amount)
+        For each root/standalone facility:
+            undrawn = facility.limit - sum(descendant loans' drawn_amount)
+                                     - sum(descendant contingents' nominal_amount)
 
-        Creates separate facility_undrawn exposure records with CCF attributes
-        inherited from the parent facility (risk_type, ccf_modelled, etc.).
+        For multi-level hierarchies, amounts from loans and contingents under
+        sub-facilities are aggregated up to the root facility. Sub-facilities
+        do not produce their own undrawn exposure records.
 
         Args:
             facilities: Facilities with limit, risk_type, and other CCF fields
             loans: Loans with drawn_amount
+            contingents: Contingents with nominal_amount (optional)
             facility_mappings: Mappings between facilities and children
+            facility_root_lookup: Root lookup from _build_facility_root_lookup
 
         Returns:
             LazyFrame with facility_undrawn exposure records
@@ -558,6 +670,16 @@ class HierarchyResolver:
                 "child_type": pl.String,
             })
 
+        # Detect type column for filtering mappings (used by both loan and contingent sections)
+        mapping_schema = facility_mappings.collect_schema()
+        mapping_cols = set(mapping_schema.names())
+        if "child_type" in mapping_cols:
+            type_col = "child_type"
+        elif "node_type" in mapping_cols:
+            type_col = "node_type"
+        else:
+            type_col = None
+
         # Get loan schema columns to ensure we can join
         loan_schema = loans.collect_schema()
         loan_ref_col = "loan_reference" if "loan_reference" in loan_schema.names() else None
@@ -565,21 +687,10 @@ class HierarchyResolver:
         if loan_ref_col is None:
             # No valid loans, all facilities are 100% undrawn
             loan_drawn_totals = pl.LazyFrame(schema={
-                "parent_facility_reference": pl.String,
+                "aggregation_facility": pl.String,
                 "total_drawn": pl.Float64,
             })
         else:
-            # Filter mappings to only loan children (case-insensitive)
-            # Support both child_type and node_type column names
-            mapping_schema = facility_mappings.collect_schema()
-            mapping_cols = set(mapping_schema.names())
-            if "child_type" in mapping_cols:
-                type_col = "child_type"
-            elif "node_type" in mapping_cols:
-                type_col = "node_type"
-            else:
-                type_col = None
-
             if type_col is not None:
                 loan_mappings = facility_mappings.filter(
                     pl.col(type_col).fill_null("").str.to_lowercase() == "loan"
@@ -592,29 +703,135 @@ class HierarchyResolver:
             # Sum drawn amounts by parent facility
             # Clamp negative drawn amounts to 0 before summing - negative balances
             # should not increase available undrawn headroom
-            loan_drawn_totals = loans.join(
+            loan_with_parent = loans.join(
                 loan_mappings,
                 left_on="loan_reference",
                 right_on="child_reference",
                 how="inner",
-            ).group_by("parent_facility_reference").agg([
+            )
+
+            # For multi-level hierarchies, map each loan's drawn amount to the ROOT facility
+            if facility_root_lookup is not None and facility_root_lookup.head(1).collect().height > 0:
+                loan_with_parent = loan_with_parent.join(
+                    facility_root_lookup.select([
+                        pl.col("child_facility_reference"),
+                        pl.col("root_facility_reference").alias("_root_fac"),
+                    ]),
+                    left_on="parent_facility_reference",
+                    right_on="child_facility_reference",
+                    how="left",
+                ).with_columns([
+                    pl.coalesce(
+                        pl.col("_root_fac"),
+                        pl.col("parent_facility_reference"),
+                    ).alias("aggregation_facility"),
+                ]).drop("_root_fac")
+            else:
+                loan_with_parent = loan_with_parent.with_columns([
+                    pl.col("parent_facility_reference").alias("aggregation_facility"),
+                ])
+
+            loan_drawn_totals = loan_with_parent.group_by("aggregation_facility").agg([
                 pl.col("drawn_amount").clip(lower_bound=0.0).sum().alias("total_drawn"),
             ])
 
+        # Calculate contingent utilisation (parallel to loan drawn totals)
+        contingent_ref_col = None
+        if contingents is not None:
+            cont_schema = contingents.collect_schema()
+            if "contingent_reference" in cont_schema.names():
+                contingent_ref_col = "contingent_reference"
+
+        if contingent_ref_col is None:
+            contingent_totals = pl.LazyFrame(schema={
+                "aggregation_facility": pl.String,
+                "total_contingent": pl.Float64,
+            })
+        else:
+            # Filter mappings to only contingent children
+            if type_col is not None:
+                contingent_mappings = facility_mappings.filter(
+                    pl.col(type_col).fill_null("").str.to_lowercase() == "contingent"
+                ).unique(subset=["child_reference", "parent_facility_reference"])
+            else:
+                contingent_mappings = facility_mappings.unique(
+                    subset=["child_reference", "parent_facility_reference"]
+                )
+
+            # Join contingents with their parent facility
+            contingent_with_parent = contingents.join(
+                contingent_mappings,
+                left_on="contingent_reference",
+                right_on="child_reference",
+                how="inner",
+            )
+
+            # For multi-level hierarchies, map to root facility
+            if facility_root_lookup is not None and facility_root_lookup.head(1).collect().height > 0:
+                contingent_with_parent = contingent_with_parent.join(
+                    facility_root_lookup.select([
+                        pl.col("child_facility_reference"),
+                        pl.col("root_facility_reference").alias("_root_fac"),
+                    ]),
+                    left_on="parent_facility_reference",
+                    right_on="child_facility_reference",
+                    how="left",
+                ).with_columns([
+                    pl.coalesce(
+                        pl.col("_root_fac"),
+                        pl.col("parent_facility_reference"),
+                    ).alias("aggregation_facility"),
+                ]).drop("_root_fac")
+            else:
+                contingent_with_parent = contingent_with_parent.with_columns([
+                    pl.col("parent_facility_reference").alias("aggregation_facility"),
+                ])
+
+            contingent_totals = contingent_with_parent.group_by("aggregation_facility").agg([
+                pl.col("nominal_amount").clip(lower_bound=0.0).sum().alias("total_contingent"),
+            ])
+
+        # Identify sub-facilities to exclude from output
+        # Sub-facilities appear as child_reference with child_type="facility"
+        if facility_root_lookup is not None and facility_root_lookup.head(1).collect().height > 0:
+            sub_facility_refs = facility_root_lookup.select(
+                pl.col("child_facility_reference").alias("_sub_ref"),
+            )
+        else:
+            sub_facility_refs = pl.LazyFrame(schema={"_sub_ref": pl.String})
+
         # Join with facilities to calculate undrawn
+        # Combine loan drawn + contingent utilisation
         facility_with_drawn = facilities.join(
             loan_drawn_totals,
             left_on="facility_reference",
-            right_on="parent_facility_reference",
+            right_on="aggregation_facility",
+            how="left",
+        ).join(
+            contingent_totals,
+            left_on="facility_reference",
+            right_on="aggregation_facility",
             how="left",
         ).with_columns([
             pl.col("total_drawn").fill_null(0.0),
+            pl.col("total_contingent").fill_null(0.0),
         ]).with_columns([
-            # undrawn = limit - total_drawn, floor at 0
-            (pl.col("limit") - pl.col("total_drawn"))
+            # total_utilised = loans drawn + contingent nominal
+            (pl.col("total_drawn") + pl.col("total_contingent")).alias("total_utilised"),
+        ]).with_columns([
+            # undrawn = limit - total_utilised, floor at 0
+            (pl.col("limit") - pl.col("total_utilised"))
             .clip(lower_bound=0.0)
             .alias("undrawn_amount"),
         ])
+
+        # Exclude sub-facilities: only root/standalone facilities produce undrawn exposures
+        facility_with_drawn = facility_with_drawn.join(
+            sub_facility_refs,
+            left_on="facility_reference",
+            right_on="_sub_ref",
+            how="anti",
+        )
 
         # Get facility schema to check for optional columns
         facility_schema = facilities.collect_schema()
@@ -709,32 +926,51 @@ class HierarchyResolver:
 
         # Add contingents if present
         if contingents is not None:
-            # Standardize contingent columns
+            # Detect bs_type column and default to OFB if missing
+            cont_cols = set(contingents.collect_schema().names())
+            has_bs_type = "bs_type" in cont_cols
+            is_drawn = (
+                pl.col("bs_type").fill_null("OFB").str.to_uppercase() == "ONB"
+                if has_bs_type
+                else pl.lit(False)
+            )
+
+            # Standardize contingent columns with bs_type-dependent behavior:
+            # ONB (drawn): drawn_amount=nominal, nominal=0, CCF fields nullified
+            # OFB (undrawn): drawn_amount=0, nominal=X, CCF fields preserved
             contingents_unified = contingents.select([
                 pl.col("contingent_reference").alias("exposure_reference"),
                 pl.lit("contingent").alias("exposure_type"),
                 pl.col("product_type"),
-                pl.col("book_code").cast(pl.String, strict=False),  # Ensure consistent type
+                pl.col("book_code").cast(pl.String, strict=False),
                 pl.col("counterparty_reference"),
                 pl.col("value_date"),
                 pl.col("maturity_date"),
                 pl.col("currency"),
-                pl.lit(0.0).alias("drawn_amount"),
-                pl.lit(0.0).alias("interest"),  # Contingents have no accrued interest
+                pl.when(is_drawn).then(pl.col("nominal_amount"))
+                .otherwise(pl.lit(0.0)).alias("drawn_amount"),
+                pl.lit(0.0).alias("interest"),
                 pl.lit(0.0).alias("undrawn_amount"),
-                pl.col("nominal_amount"),
+                pl.when(is_drawn).then(pl.lit(0.0))
+                .otherwise(pl.col("nominal_amount")).alias("nominal_amount"),
                 pl.col("lgd").cast(pl.Float64, strict=False),
                 pl.col("seniority"),
-                pl.col("risk_type"),
-                pl.col("ccf_modelled").cast(pl.Float64, strict=False),
-                pl.col("is_short_term_trade_lc"),  # Art. 166(9) exception for F-IRB
+                pl.when(is_drawn).then(pl.lit(None).cast(pl.String))
+                .otherwise(pl.col("risk_type")).alias("risk_type"),
+                pl.when(is_drawn).then(pl.lit(None).cast(pl.Float64))
+                .otherwise(pl.col("ccf_modelled").cast(pl.Float64, strict=False)).alias("ccf_modelled"),
+                pl.when(is_drawn).then(pl.lit(None).cast(pl.Boolean))
+                .otherwise(pl.col("is_short_term_trade_lc")).alias("is_short_term_trade_lc"),
             ])
             exposure_frames.append(contingents_unified)
+
+        # Build facility root lookup for multi-level hierarchies
+        facility_root_lookup = self._build_facility_root_lookup(facility_mappings)
 
         # Calculate and add facility undrawn exposures
         # This creates separate exposure records for undrawn facility headroom
         facility_undrawn = self._calculate_facility_undrawn(
-            facilities, loans, facility_mappings
+            facilities, loans, contingents, facility_mappings, facility_root_lookup
         )
         exposure_frames.append(facility_undrawn)
 
@@ -796,9 +1032,46 @@ class HierarchyResolver:
 
         exposures = exposures.with_columns([
             pl.col("parent_facility_reference").is_not_null().alias("exposure_has_parent"),
-            pl.col("parent_facility_reference").alias("root_facility_reference"),  # Simplified
-            pl.lit(1).cast(pl.Int8).alias("facility_hierarchy_depth"),
         ])
+
+        # Resolve root_facility_reference and facility_hierarchy_depth using root lookup
+        if facility_root_lookup.head(1).collect().height > 0:
+            exposures = exposures.join(
+                facility_root_lookup.select([
+                    pl.col("child_facility_reference").alias("_frl_child"),
+                    pl.col("root_facility_reference").alias("_frl_root"),
+                    pl.col("facility_hierarchy_depth").alias("_frl_depth"),
+                ]),
+                left_on="parent_facility_reference",
+                right_on="_frl_child",
+                how="left",
+            ).with_columns([
+                # Multi-level: root from lookup; single-level: parent itself; no parent: null
+                pl.when(pl.col("_frl_root").is_not_null())
+                .then(pl.col("_frl_root"))
+                .when(pl.col("parent_facility_reference").is_not_null())
+                .then(pl.col("parent_facility_reference"))
+                .otherwise(pl.lit(None).cast(pl.String))
+                .alias("root_facility_reference"),
+                # Multi-level: lookup depth + 1; single-level: 1; no parent: 0
+                pl.when(pl.col("_frl_depth").is_not_null())
+                .then((pl.col("_frl_depth") + 1).cast(pl.Int8))
+                .when(pl.col("parent_facility_reference").is_not_null())
+                .then(pl.lit(1).cast(pl.Int8))
+                .otherwise(pl.lit(0).cast(pl.Int8))
+                .alias("facility_hierarchy_depth"),
+            ]).drop(["_frl_root", "_frl_depth"])
+        else:
+            exposures = exposures.with_columns([
+                pl.when(pl.col("parent_facility_reference").is_not_null())
+                .then(pl.col("parent_facility_reference"))
+                .otherwise(pl.lit(None).cast(pl.String))
+                .alias("root_facility_reference"),
+                pl.when(pl.col("parent_facility_reference").is_not_null())
+                .then(pl.lit(1).cast(pl.Int8))
+                .otherwise(pl.lit(0).cast(pl.Int8))
+                .alias("facility_hierarchy_depth"),
+            ])
 
         # Add counterparty hierarchy fields from lookup (now includes ultimate parent)
         exposures = exposures.join(

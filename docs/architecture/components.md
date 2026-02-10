@@ -92,7 +92,7 @@ class ParquetLoader:
 
 ### Purpose
 
-Resolve counterparty and facility hierarchies, inherit ratings.
+Resolve counterparty and facility hierarchies, inherit ratings, unify exposures, and calculate facility undrawn amounts.
 
 ### Interface
 
@@ -109,48 +109,64 @@ class HierarchyResolverProtocol(Protocol):
 
 ### Implementation
 
+The `resolve()` method orchestrates the full hierarchy resolution:
+
 ```python
 class HierarchyResolver:
-    """Resolve counterparty and lending group hierarchies."""
+    """Resolve counterparty, facility, and lending group hierarchies."""
 
-    def resolve(
-        self,
-        raw_data: RawDataBundle,
-        config: CalculationConfig
-    ) -> ResolvedHierarchyBundle:
-        # Resolve counterparty hierarchy
-        counterparties = self._resolve_counterparty_hierarchy(
-            raw_data.counterparties,
-            raw_data.org_mapping
-        )
+    def resolve(self, data: RawDataBundle, config: CalculationConfig) -> ResolvedHierarchyBundle:
+        # Step 1: Build counterparty hierarchy lookup
+        #   → _build_ultimate_parent_lazy() - traverse org_mappings (up to 10 levels)
+        #   → _build_rating_inheritance_lazy() - inherit ratings from parent if missing
+        #   → Returns CounterpartyLookup (counterparties, parent_mappings,
+        #                                  ultimate_parent_mappings, rating_inheritance)
 
-        # Resolve lending groups
-        counterparties = self._resolve_lending_groups(
-            counterparties,
-            raw_data.lending_mapping
-        )
+        # Step 2: Unify exposures (loans + contingents + facility undrawn)
+        #   → _build_facility_root_lookup() - traverse facility hierarchies
+        #   → _calculate_facility_undrawn() - limit minus aggregated drawn amounts
+        #   → Combines all exposure types into single LazyFrame
 
-        # Inherit ratings
-        counterparties = self._inherit_ratings(
-            counterparties,
-            raw_data.ratings
-        )
+        # Step 2a: Apply FX conversion (exposures + CRM data)
 
-        # Build resolved bundle
-        return ResolvedHierarchyBundle(
-            counterparties=counterparties,
-            facilities=raw_data.facilities,
-            loans=raw_data.loans,
-            # ... other data
-        )
+        # Step 2b: Add collateral LTV to exposures
+
+        # Step 3: Calculate residential property coverage
+
+        # Step 4: Calculate lending group totals (retail threshold)
+
+        # Step 5: Add lending group totals to exposures
+
+        return ResolvedHierarchyBundle(...)
 ```
+
+### Key Internal Methods
+
+| Method | Purpose |
+|--------|---------|
+| `_build_counterparty_lookup()` | Build complete counterparty hierarchy with ratings |
+| `_build_ultimate_parent_lazy()` | Traverse org_mappings to find ultimate parent (up to 10 levels) |
+| `_build_rating_inheritance_lazy()` | Inherit ratings: own → parent → unrated |
+| `_build_facility_root_lookup()` | Traverse facility-to-facility hierarchies to find root facility |
+| `_calculate_facility_undrawn()` | Calculate undrawn = limit - sum(descendant drawn), excluding sub-facilities |
+| `_unify_exposures()` | Combine loan, contingent, and facility_undrawn into single LazyFrame |
+| `_calculate_lending_group_totals()` | Aggregate exposure by lending group for retail threshold |
+| `_add_collateral_ltv()` | Add LTV from collateral (direct → facility → counterparty priority) |
+| `_calculate_residential_property_coverage()` | Separate residential vs all-property collateral coverage |
+| `_add_lending_group_totals_to_exposures()` | Join lending group totals to each exposure |
 
 ### Key Features
 
-- Iterative join-based hierarchy resolution
+- Iterative join-based hierarchy resolution (counterparty and facility)
 - Support for deep hierarchies (up to 10 levels)
-- Rating inheritance from parent
-- Lending group aggregation
+- Multi-level facility hierarchy: drawn amounts aggregated to root facility
+- Sub-facility exclusion from undrawn exposure output (avoids double-counting)
+- Rating inheritance from parent (own → parent → unrated)
+- Lending group aggregation with residential property exclusion (CRR Art. 123(c))
+- Multi-level collateral linking (direct, facility, counterparty) with pro-rata allocation
+- FX conversion of exposures and CRM data
+- Flexible type column detection (`child_type` / `node_type` / neither)
+- Non-blocking error accumulation
 
 ## Classifier
 
