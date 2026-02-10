@@ -17,23 +17,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.18] - 2026-02-10
 
-### Changed
-- Version bump for PyPI release
+### Added
+
+#### Facility Hierarchy Enhancements
+- Facility root lookup and undrawn calculations for full facility hierarchy resolution
+- Include contingent liabilities in facility undrawn calculations
+- Enhanced facility hierarchy resolution logic
 
 ## [0.1.17] - 2026-02-10
 
-### Changed
-- Version bump for PyPI release
+### Added
+- CCF: handle negative drawn amounts in EAD calculations
+
+### Fixed
+- Hierarchy: resolve duplicate mapping issues in facility calculations
 
 ## [0.1.16] - 2026-02-09
 
-### Changed
-- Version bump for PyPI release
+### Added
+
+#### Cross-Approach CCF Substitution
+- SA CCF expression and cross-approach substitution for guaranteed IRB exposures
+- When an IRB exposure is guaranteed by an SA counterparty, the guaranteed portion uses SA CCFs
+- New columns: `ccf_original`, `ccf_guaranteed`, `ccf_unguaranteed`, `guarantee_ratio`, `guarantor_approach`, `guarantor_rating_type`
+
+#### Aggregator Enhancements
+- Updated summaries for post-CRM reporting
+- Enhanced approach handling for IRB results
 
 ## [0.1.15] - 2026-02-08
 
-### Changed
-- Version bump for PyPI release
+### Added
+- Correlation: rename sovereign exposure class to central govt/central bank
+- CI: add GitHub Actions workflow for documentation deployment
 
 ## [0.1.14] - 2026-02-07
 
@@ -118,43 +134,66 @@ Enhanced guarantee processing with full tracking of exposure amounts before and 
 
 ## [0.1.11] - 2026-01-28
 
-### Changed
-- Version bump for PyPI release
+### Added
+- Namespace: add exact fractional years calculation
+- Config: add MCP server configuration
 
 ## [0.1.10] - 2026-01-28
 
-### Changed
-- Version bump for PyPI release
-
-## [0.1.9] - 2026-01-28
-
-### Changed
-- Version bump for PyPI release
+### Added
+- CCF: include interest in EAD calculations
 
 ## [0.1.8] - 2026-01-28
 
-### Changed
-- Version bump for PyPI release
+### Added
+- Data: add script to generate sample data in parquet format
+- Correlation: add SME adjustment with EUR/GBP conversion
+- Orgs: make org_mappings optional in data loaders
+
+### Fixed
+- Config: update EUR to GBP exchange rate
 
 ## [0.1.7] - 2026-01-27
 
+### Added
+- Tests: add unit tests for API error handling and validation
+- Protocols: update aggregation method with new bundles
+- Loader: enhance data loading with validation checks
+- BDD: add specifications for CRR provisions, risk weights, and supporting factors
+
 ### Changed
-- Version bump for PyPI release
+- Loans: update loan schema and documentation
 
 ## [0.1.6] - 2026-01-25
 
+### Added
+- Stats: implement backend detection for statistical functions
+- Documentation: add detailed implementation plan and project roadmap
+
 ### Changed
-- Version bump for PyPI release
+- Stats: remove dual stats backend implementation
+- Documentation: update optional dependencies and installation instructions
 
 ## [0.1.5] - 2026-01-25
 
+### Added
+- Counterparties: enhance counterparty schema and classification
+- Documentation: add logo to documentation theme
+
 ### Changed
-- Version bump for PyPI release
+- CCF: remove unused CCF module and tests
+- Contingents: remove ccf_category and update risk_type
+
+### Performance
+- Benchmark: update results with improved metrics
 
 ## [0.1.4] - 2026-01-25
 
-### Changed
-- Version bump for PyPI release
+### Added
+- Deploy: add automated deployment script
+
+### Performance
+- Benchmark: transition to pure Polars expressions
 
 ## [0.1.3] - 2025-01-24
 
@@ -437,24 +476,23 @@ The calculator now provides comprehensive Polars namespace extensions for fluent
 | Version | Date | Status |
 |---------|------|--------|
 | 0.1.18 | 2026-02-10 | Current |
-| 0.1.17 | 2026-02-10 | Previous |
-| 0.1.16 | 2026-02-10 | - |
-| 0.1.15 | 2026-02-09 | - |
-| 0.1.14 | 2026-02-08 | - |
+| 0.1.17 | 2026-02-10 | - |
+| 0.1.16 | 2026-02-09 | - |
+| 0.1.15 | 2026-02-08 | - |
+| 0.1.14 | 2026-02-07 | - |
 | 0.1.13 | 2026-02-07 | - |
-| 0.1.12 | 2026-02-07 | - |
-| 0.1.11 | 2026-02-02 | - |
+| 0.1.12 | 2026-02-02 | - |
+| 0.1.11 | 2026-01-28 | - |
 | 0.1.10 | 2026-01-28 | - |
-| 0.1.9 | 2026-01-28 | - |
-| 0.1.8 | 2026-01-28 | - |
-| 0.1.7 | 2026-01-28 | - |
-| 0.1.6 | 2026-01-27 | - |
-| 0.1.5 | 2026-01-25 | - |
-| 0.1.4 | 2026-01-25 | - |
-| 0.1.3 | 2026-01-25 | - |
-| 0.1.2 | 2025-01-24 | - |
-| 0.1.1 | 2025-01-22 | - |
-| 0.1.0 | 2025-01-18 | Initial |
+| 0.1.8  | 2026-01-28 | - |
+| 0.1.7  | 2026-01-27 | - |
+| 0.1.6  | 2026-01-25 | - |
+| 0.1.5  | 2026-01-25 | - |
+| 0.1.4  | 2026-01-25 | - |
+| 0.1.3  | 2025-01-24 | - |
+| 0.1.2  | 2025-01-24 | - |
+| 0.1.1  | 2025-01-22 | - |
+| 0.1.0  | 2025-01-18 | Initial |
 
 ## Migration Notes
 
