@@ -322,13 +322,13 @@ class HierarchyLazyFrame:
             how="left",
         )
 
-        # Determine exposure amount column
+        # Determine exposure amount expression (floor drawn_amount at 0)
         if "drawn_amount" in schema.names():
-            amount_col = "drawn_amount"
+            amount_expr = pl.col("drawn_amount").clip(lower_bound=0.0)
         elif "ead_final" in schema.names():
-            amount_col = "ead_final"
+            amount_expr = pl.col("ead_final")
         elif "ead" in schema.names():
-            amount_col = "ead"
+            amount_expr = pl.col("ead")
         else:
             return self._lf.with_columns([pl.lit(0.0).alias("lending_group_total")])
 
@@ -336,7 +336,7 @@ class HierarchyLazyFrame:
         lending_group_totals = exposures_with_group.filter(
             pl.col("lending_group_reference").is_not_null()
         ).group_by("lending_group_reference").agg([
-            pl.col(amount_col).sum().alias("total_exposure"),
+            amount_expr.sum().alias("total_exposure"),
             pl.len().alias("exposure_count"),
         ])
 

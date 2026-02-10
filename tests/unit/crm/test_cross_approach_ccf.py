@@ -583,3 +583,31 @@ class TestGuaranteeRatio:
         assert row["unguaranteed_portion"][0] == pytest.approx(0.0)
         # All EAD uses SA CCF: 520 + 300*0.5 = 670
         assert row["ead_final"][0] == pytest.approx(670.0)
+
+    def test_negative_drawn_with_sa_guarantor(
+        self,
+        crm_processor: CRMProcessor,
+        firb_config: CalculationConfig,
+    ) -> None:
+        """Negative drawn should be floored at 0 in cross-approach CCF split.
+
+        drawn=-100, interest=10, nominal=300, MR risk_type, 60% SA guarantee.
+        on_bal = max(-100, 0) + 10 = 10 (not -90).
+        Guaranteed:   10*0.6 + 300*0.6*0.5 = 6 + 90 = 96
+        Unguaranteed: 10*0.4 + 300*0.4*0.75 = 4 + 90 = 94
+        ead_final = 96 + 94 = 190
+        """
+        result = _run_crm(
+            crm_processor,
+            firb_config,
+            [_base_exposure(drawn=-100.0, interest=10.0, nominal=300.0)],
+            [_base_guarantee(pct=0.6)],
+            [
+                _base_counterparty("GUARANTOR01", "individual"),
+                _base_counterparty("BORROWER01", "corporate"),
+            ],
+        )
+
+        row = result.filter(pl.col("exposure_reference") == "EXP001")
+        # on_bal should use floored drawn (0, not -100)
+        assert row["ead_final"][0] == pytest.approx(190.0)

@@ -2397,3 +2397,250 @@ class TestLendingGroupDuplicateMembership:
         assert len(df) == 2, (
             f"Expected 2 total rows, got {len(df)}."
         )
+
+
+class TestNegativeDrawnAmountInHierarchy:
+    """Tests for negative drawn amounts in hierarchy calculations.
+
+    Credit balances (negative drawn) should not reduce exposure totals
+    used in property coverage or lending group calculations.
+    """
+
+    def test_negative_drawn_property_coverage(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """total_exposure_amount in property coverage should floor at 0."""
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["CP001"],
+            "counterparty_name": ["Test"],
+            "entity_type": ["individual"],
+            "country_code": ["GB"],
+            "annual_revenue": [0.0],
+            "total_assets": [0.0],
+            "default_status": [False],
+            "sector_code": ["RETAIL"],
+            "is_financial_institution": [False],
+            "is_regulated": [False],
+            "is_pse": [False],
+            "is_mdb": [False],
+            "is_international_org": [False],
+            "is_central_counterparty": [False],
+            "is_regional_govt_local_auth": [False],
+            "is_managed_as_retail": [False],
+        }).lazy()
+
+        enriched_counterparties = counterparties.with_columns([
+            pl.lit(False).alias("counterparty_has_parent"),
+            pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
+            pl.lit(None).cast(pl.Int8).alias("cqs"),
+            pl.lit(None).cast(pl.Float64).alias("pd"),
+            pl.lit(None).cast(pl.String).alias("rating_value"),
+            pl.lit(None).cast(pl.String).alias("rating_agency"),
+            pl.lit(False).alias("rating_inherited"),
+            pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
+            pl.lit("unrated").alias("rating_inheritance_reason"),
+        ])
+
+        counterparty_lookup = CounterpartyLookup(
+            counterparties=enriched_counterparties,
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
+        )
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_NEG"],
+            "product_type": ["MORTGAGE"],
+            "book_code": ["RETAIL"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [-50000.0],
+            "lgd": [0.15],
+            "beel": [0.01],
+            "seniority": ["senior"],
+            "risk_type": ["FR"],
+            "ccf_modelled": [None],
+            "is_short_term_trade_lc": [None],
+        }).lazy()
+
+        exposures, _ = resolver._unify_exposures(
+            loans,
+            pl.LazyFrame(schema={
+                "contingent_reference": pl.String,
+                "product_type": pl.String,
+                "book_code": pl.String,
+                "counterparty_reference": pl.String,
+                "value_date": pl.Date,
+                "maturity_date": pl.Date,
+                "currency": pl.String,
+                "nominal_amount": pl.Float64,
+                "lgd": pl.Float64,
+                "beel": pl.Float64,
+                "seniority": pl.String,
+                "risk_type": pl.String,
+                "ccf_modelled": pl.Float64,
+                "is_short_term_trade_lc": pl.Boolean,
+            }),
+            None,
+            pl.LazyFrame(schema={
+                "parent_facility_reference": pl.String,
+                "child_reference": pl.String,
+                "child_type": pl.String,
+            }),
+            counterparty_lookup,
+        )
+
+        coverage = resolver._calculate_residential_property_coverage(
+            exposures,
+            None,
+        )
+
+        df = coverage.collect()
+        row = df.filter(pl.col("exposure_reference") == "LOAN_NEG")
+
+        # total_exposure_amount should be 0, not -50000
+        assert row["exposure_for_retail_threshold"][0] >= 0.0
+
+    def test_negative_drawn_lending_group_totals(
+        self,
+        resolver: HierarchyResolver,
+        lending_group_mappings: pl.LazyFrame,
+    ) -> None:
+        """Lending group totals should floor negative drawn amounts at 0."""
+        counterparties = pl.DataFrame({
+            "counterparty_reference": ["LG_ANCHOR", "LG_MEMBER1", "LG_MEMBER2"],
+            "counterparty_name": ["Anchor", "Member 1", "Member 2"],
+            "entity_type": ["individual", "individual", "corporate"],
+            "country_code": ["GB", "GB", "GB"],
+            "annual_revenue": [0.0, 0.0, 500000.0],
+            "total_assets": [0.0, 0.0, 1000000.0],
+            "default_status": [False, False, False],
+            "sector_code": ["RETAIL", "RETAIL", "RETAIL"],
+            "is_financial_institution": [False, False, False],
+            "is_regulated": [False, False, False],
+            "is_pse": [False, False, False],
+            "is_mdb": [False, False, False],
+            "is_international_org": [False, False, False],
+            "is_central_counterparty": [False, False, False],
+            "is_regional_govt_local_auth": [False, False, False],
+            "is_managed_as_retail": [False, False, False],
+        }).lazy()
+
+        enriched_counterparties = counterparties.with_columns([
+            pl.lit(False).alias("counterparty_has_parent"),
+            pl.lit(None).cast(pl.String).alias("parent_counterparty_reference"),
+            pl.lit(None).cast(pl.String).alias("ultimate_parent_reference"),
+            pl.lit(0).cast(pl.Int32).alias("counterparty_hierarchy_depth"),
+            pl.lit(None).cast(pl.Int8).alias("cqs"),
+            pl.lit(None).cast(pl.Float64).alias("pd"),
+            pl.lit(None).cast(pl.String).alias("rating_value"),
+            pl.lit(None).cast(pl.String).alias("rating_agency"),
+            pl.lit(False).alias("rating_inherited"),
+            pl.lit(None).cast(pl.String).alias("rating_source_counterparty"),
+            pl.lit("unrated").alias("rating_inheritance_reason"),
+        ])
+
+        counterparty_lookup = CounterpartyLookup(
+            counterparties=enriched_counterparties,
+            parent_mappings=pl.LazyFrame(schema={
+                "child_counterparty_reference": pl.String,
+                "parent_counterparty_reference": pl.String,
+            }),
+            ultimate_parent_mappings=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "ultimate_parent_reference": pl.String,
+                "hierarchy_depth": pl.Int32,
+            }),
+            rating_inheritance=pl.LazyFrame(schema={
+                "counterparty_reference": pl.String,
+                "cqs": pl.Int8,
+                "pd": pl.Float64,
+                "rating_value": pl.String,
+                "inherited": pl.Boolean,
+                "source_counterparty": pl.String,
+                "inheritance_reason": pl.String,
+            }),
+        )
+
+        # Member1 has negative drawn (credit balance on current account)
+        loans = pl.DataFrame({
+            "loan_reference": ["LG_LOAN1", "LG_LOAN2", "LG_LOAN3"],
+            "product_type": ["MORTGAGE", "PERSONAL", "BUSINESS"],
+            "book_code": ["RETAIL", "RETAIL", "RETAIL"],
+            "counterparty_reference": ["LG_ANCHOR", "LG_MEMBER1", "LG_MEMBER2"],
+            "value_date": [date(2023, 1, 1)] * 3,
+            "maturity_date": [date(2028, 1, 1)] * 3,
+            "currency": ["GBP", "GBP", "GBP"],
+            "drawn_amount": [300000.0, -50000.0, 400000.0],
+            "lgd": [0.15, 0.45, 0.45],
+            "beel": [0.01, 0.01, 0.01],
+            "seniority": ["senior", "senior", "senior"],
+            "risk_type": ["FR", "FR", "FR"],
+            "ccf_modelled": [None, None, None],
+            "is_short_term_trade_lc": [None, None, None],
+        }).lazy()
+
+        exposures, _ = resolver._unify_exposures(
+            loans,
+            pl.LazyFrame(schema={
+                "contingent_reference": pl.String,
+                "product_type": pl.String,
+                "book_code": pl.String,
+                "counterparty_reference": pl.String,
+                "value_date": pl.Date,
+                "maturity_date": pl.Date,
+                "currency": pl.String,
+                "nominal_amount": pl.Float64,
+                "lgd": pl.Float64,
+                "beel": pl.Float64,
+                "seniority": pl.String,
+                "risk_type": pl.String,
+                "ccf_modelled": pl.Float64,
+                "is_short_term_trade_lc": pl.Boolean,
+            }),
+            None,
+            pl.LazyFrame(schema={
+                "parent_facility_reference": pl.String,
+                "child_reference": pl.String,
+                "child_type": pl.String,
+            }),
+            counterparty_lookup,
+        )
+
+        residential_coverage = resolver._calculate_residential_property_coverage(
+            exposures,
+            None,
+        )
+
+        lending_group_totals, _ = resolver._calculate_lending_group_totals(
+            exposures,
+            lending_group_mappings,
+            residential_coverage,
+        )
+
+        df = lending_group_totals.collect()
+
+        # total_drawn should floor the -50k at 0: 300k + 0 + 400k = 700k
+        assert df["total_drawn"][0] == pytest.approx(700000.0)
+        # total_exposure should also floor: (300k+0) + (0+0) + (400k+0) = 700k
+        assert df["total_exposure"][0] == pytest.approx(700000.0)

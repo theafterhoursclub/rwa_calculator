@@ -31,6 +31,14 @@ if TYPE_CHECKING:
     from rwa_calc.contracts.config import CalculationConfig
 
 
+def drawn_for_ead() -> pl.Expr:
+    """Drawn amount floored at 0 for EAD calculations.
+
+    Negative drawn (credit balances) should not reduce EAD without a netting agreement.
+    """
+    return pl.col("drawn_amount").clip(lower_bound=0.0)
+
+
 def sa_ccf_expression(risk_type_col: str = "risk_type") -> pl.Expr:
     """
     Return a Polars expression that maps risk_type to SA CCFs.
@@ -210,14 +218,14 @@ class CCFCalculator:
         # Interest is included in on-balance-sheet EAD but not in facility undrawn calculation
         if has_interest:
             exposures = exposures.with_columns([
-                (pl.col("drawn_amount")
+                (drawn_for_ead()
                  + pl.col("interest").fill_null(0.0)
                  + pl.col("ead_from_ccf")).alias("ead_pre_crm"),
             ])
         else:
             # Legacy: no interest column, EAD = drawn + CCF-adjusted undrawn
             exposures = exposures.with_columns([
-                (pl.col("drawn_amount") + pl.col("ead_from_ccf")).alias("ead_pre_crm"),
+                (drawn_for_ead() + pl.col("ead_from_ccf")).alias("ead_pre_crm"),
             ])
 
         # Add CCF audit trail
