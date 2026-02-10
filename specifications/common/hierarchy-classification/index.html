@@ -2929,6 +2929,45 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#multi-level-facility-hierarchies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Level Facility Hierarchies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multi-Level Facility Hierarchies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#undrawn-amount-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Undrawn Amount Aggregation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-column-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type Column Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3717,6 +3756,45 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#multi-level-facility-hierarchies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Level Facility Hierarchies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multi-Level Facility Hierarchies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#undrawn-amount-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Undrawn Amount Aggregation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-column-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type Column Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3929,10 +4007,59 @@
 <h3 id="facility-to-exposure-mapping">Facility-to-Exposure Mapping<a class="headerlink" href="#facility-to-exposure-mapping" title="Permanent link">&para;</a></h3>
 <p>The <code>facility_mappings</code> table links facilities to their underlying exposures (loans and contingents):</p>
 <ul>
-<li>Facility undrawn amount = max(facility_limit - sum(drawn_amounts), 0)</li>
+<li>Facility undrawn amount = <code>max(facility_limit - sum(drawn_amounts), 0)</code></li>
 <li>Supports multiple exposure types under a single facility</li>
 <li>Pro-rata allocation of facility-level attributes</li>
 </ul>
+<h3 id="multi-level-facility-hierarchies">Multi-Level Facility Hierarchies<a class="headerlink" href="#multi-level-facility-hierarchies" title="Permanent link">&para;</a></h3>
+<p>Facilities can form their own hierarchies (e.g., a master facility with sub-facilities beneath it). The resolver handles this via <strong>facility root lookup</strong> — an iterative traversal that mirrors the counterparty hierarchy pattern:</p>
+<ul>
+<li><strong>Facility-to-facility edges</strong> are identified from <code>facility_mappings</code> where <code>child_type = "facility"</code></li>
+<li>The hierarchy is traversed upward (up to 10 levels) to find the <strong>root facility</strong> for each sub-facility</li>
+<li>Output columns: <code>child_facility_reference</code>, <code>root_facility_reference</code>, <code>facility_hierarchy_depth</code></li>
+</ul>
+<h4 id="undrawn-amount-aggregation">Undrawn Amount Aggregation<a class="headerlink" href="#undrawn-amount-aggregation" title="Permanent link">&para;</a></h4>
+<p>For multi-level facility hierarchies, drawn amounts from loans under sub-facilities are aggregated up to the root facility:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Root Facility (limit = 1,000,000)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── Sub-Facility A
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── Loan 1 (drawn = 200,000)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   └── Loan 2 (drawn = 100,000)
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>└── Sub-Facility B
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    └── Loan 3 (drawn = 150,000)
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>Root undrawn = 1,000,000 - (200,000 + 100,000 + 150,000) = 550,000
+</span></code></pre></div>
+<p>Key rules:</p>
+<ul>
+<li><strong>Root/standalone facilities</strong> produce undrawn exposure records</li>
+<li><strong>Sub-facilities are excluded</strong> from producing their own undrawn records (avoids double-counting)</li>
+<li>Negative drawn amounts are clamped to zero before aggregation (negative balances do not increase headroom)</li>
+<li>Only facilities with <code>undrawn_amount &gt; 0</code> generate exposure records</li>
+</ul>
+<h4 id="type-column-handling">Type Column Handling<a class="headerlink" href="#type-column-handling" title="Permanent link">&para;</a></h4>
+<p>The <code>facility_mappings</code> table may use different column names for the child type discriminator:</p>
+<table>
+<thead>
+<tr>
+<th>Column Present</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>child_type</code></td>
+<td>Used to filter loan vs facility children (preferred)</td>
+</tr>
+<tr>
+<td><code>node_type</code></td>
+<td>Fallback — same filtering logic</td>
+</tr>
+<tr>
+<td>Neither</td>
+<td>No facility hierarchy traversal; all mappings treated as loan mappings</td>
+</tr>
+</tbody>
+</table>
 <h2 id="exposure-classification">Exposure Classification<a class="headerlink" href="#exposure-classification" title="Permanent link">&para;</a></h2>
 <h3 id="entity-type-to-exposure-class">Entity Type to Exposure Class<a class="headerlink" href="#entity-type-to-exposure-class" title="Permanent link">&para;</a></h3>
 <p>Counterparty entity type determines the base SA exposure class:</p>

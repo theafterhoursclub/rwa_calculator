@@ -1880,6 +1880,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#key-internal-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Internal Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#key-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4207,6 +4218,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#key-internal-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Internal Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#key-features_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4870,7 +4892,7 @@
 </ul>
 <h2 id="hierarchy-resolver">Hierarchy Resolver<a class="headerlink" href="#hierarchy-resolver" title="Permanent link">&para;</a></h2>
 <h3 id="purpose_1">Purpose<a class="headerlink" href="#purpose_1" title="Permanent link">&para;</a></h3>
-<p>Resolve counterparty and facility hierarchies, inherit ratings.</p>
+<p>Resolve counterparty and facility hierarchies, inherit ratings, unify exposures, and calculate facility undrawn amounts.</p>
 <h3 id="interface_1">Interface<a class="headerlink" href="#interface_1" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">HierarchyResolverProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span>
@@ -4882,46 +4904,97 @@
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="o">...</span>
 </span></code></pre></div>
 <h3 id="implementation_1">Implementation<a class="headerlink" href="#implementation_1" title="Permanent link">&para;</a></h3>
+<p>The <code>resolve()</code> method orchestrates the full hierarchy resolution:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">HierarchyResolver</span><span class="p">:</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve counterparty and lending group hierarchies.&quot;&quot;&quot;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve counterparty, facility, and lending group hierarchies.&quot;&quot;&quot;</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="n">raw_data</span><span class="p">:</span> <span class="n">RawDataBundle</span><span class="p">,</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="n">config</span><span class="p">:</span> <span class="n">CalculationConfig</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResolvedHierarchyBundle</span><span class="p">:</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="c1"># Resolve counterparty hierarchy</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="n">counterparties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_counterparty_hierarchy</span><span class="p">(</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>            <span class="n">raw_data</span><span class="o">.</span><span class="n">counterparties</span><span class="p">,</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>            <span class="n">raw_data</span><span class="o">.</span><span class="n">org_mapping</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="p">)</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="c1"># Resolve lending groups</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="n">counterparties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_lending_groups</span><span class="p">(</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>            <span class="n">counterparties</span><span class="p">,</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>            <span class="n">raw_data</span><span class="o">.</span><span class="n">lending_mapping</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="p">)</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>        <span class="c1"># Inherit ratings</span>
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>        <span class="n">counterparties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inherit_ratings</span><span class="p">(</span>
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>            <span class="n">counterparties</span><span class="p">,</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>            <span class="n">raw_data</span><span class="o">.</span><span class="n">ratings</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>        <span class="p">)</span>
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>        <span class="c1"># Build resolved bundle</span>
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>        <span class="k">return</span> <span class="n">ResolvedHierarchyBundle</span><span class="p">(</span>
-</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>            <span class="n">counterparties</span><span class="o">=</span><span class="n">counterparties</span><span class="p">,</span>
-</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>            <span class="n">facilities</span><span class="o">=</span><span class="n">raw_data</span><span class="o">.</span><span class="n">facilities</span><span class="p">,</span>
-</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>            <span class="n">loans</span><span class="o">=</span><span class="n">raw_data</span><span class="o">.</span><span class="n">loans</span><span class="p">,</span>
-</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>            <span class="c1"># ... other data</span>
-</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>        <span class="p">)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">RawDataBundle</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">CalculationConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResolvedHierarchyBundle</span><span class="p">:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="c1"># Step 1: Build counterparty hierarchy lookup</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="c1">#   → _build_ultimate_parent_lazy() - traverse org_mappings (up to 10 levels)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="c1">#   → _build_rating_inheritance_lazy() - inherit ratings from parent if missing</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="c1">#   → Returns CounterpartyLookup (counterparties, parent_mappings,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="c1">#                                  ultimate_parent_mappings, rating_inheritance)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="c1"># Step 2: Unify exposures (loans + contingents + facility undrawn)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="c1">#   → _build_facility_root_lookup() - traverse facility hierarchies</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="c1">#   → _calculate_facility_undrawn() - limit minus aggregated drawn amounts</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="c1">#   → Combines all exposure types into single LazyFrame</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="c1"># Step 2a: Apply FX conversion (exposures + CRM data)</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="c1"># Step 2b: Add collateral LTV to exposures</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        <span class="c1"># Step 3: Calculate residential property coverage</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>        <span class="c1"># Step 4: Calculate lending group totals (retail threshold)</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>        <span class="c1"># Step 5: Add lending group totals to exposures</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>        <span class="k">return</span> <span class="n">ResolvedHierarchyBundle</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </span></code></pre></div>
+<h3 id="key-internal-methods">Key Internal Methods<a class="headerlink" href="#key-internal-methods" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_build_counterparty_lookup()</code></td>
+<td>Build complete counterparty hierarchy with ratings</td>
+</tr>
+<tr>
+<td><code>_build_ultimate_parent_lazy()</code></td>
+<td>Traverse org_mappings to find ultimate parent (up to 10 levels)</td>
+</tr>
+<tr>
+<td><code>_build_rating_inheritance_lazy()</code></td>
+<td>Inherit ratings: own → parent → unrated</td>
+</tr>
+<tr>
+<td><code>_build_facility_root_lookup()</code></td>
+<td>Traverse facility-to-facility hierarchies to find root facility</td>
+</tr>
+<tr>
+<td><code>_calculate_facility_undrawn()</code></td>
+<td>Calculate undrawn = limit - sum(descendant drawn), excluding sub-facilities</td>
+</tr>
+<tr>
+<td><code>_unify_exposures()</code></td>
+<td>Combine loan, contingent, and facility_undrawn into single LazyFrame</td>
+</tr>
+<tr>
+<td><code>_calculate_lending_group_totals()</code></td>
+<td>Aggregate exposure by lending group for retail threshold</td>
+</tr>
+<tr>
+<td><code>_add_collateral_ltv()</code></td>
+<td>Add LTV from collateral (direct → facility → counterparty priority)</td>
+</tr>
+<tr>
+<td><code>_calculate_residential_property_coverage()</code></td>
+<td>Separate residential vs all-property collateral coverage</td>
+</tr>
+<tr>
+<td><code>_add_lending_group_totals_to_exposures()</code></td>
+<td>Join lending group totals to each exposure</td>
+</tr>
+</tbody>
+</table>
 <h3 id="key-features_1">Key Features<a class="headerlink" href="#key-features_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Iterative join-based hierarchy resolution</li>
+<li>Iterative join-based hierarchy resolution (counterparty and facility)</li>
 <li>Support for deep hierarchies (up to 10 levels)</li>
-<li>Rating inheritance from parent</li>
-<li>Lending group aggregation</li>
+<li>Multi-level facility hierarchy: drawn amounts aggregated to root facility</li>
+<li>Sub-facility exclusion from undrawn exposure output (avoids double-counting)</li>
+<li>Rating inheritance from parent (own → parent → unrated)</li>
+<li>Lending group aggregation with residential property exclusion (CRR Art. 123(c))</li>
+<li>Multi-level collateral linking (direct, facility, counterparty) with pro-rata allocation</li>
+<li>FX conversion of exposures and CRM data</li>
+<li>Flexible type column detection (<code>child_type</code> / <code>node_type</code> / neither)</li>
+<li>Non-blocking error accumulation</li>
 </ul>
 <h2 id="classifier">Classifier<a class="headerlink" href="#classifier" title="Permanent link">&para;</a></h2>
 <h3 id="purpose_2">Purpose<a class="headerlink" href="#purpose_2" title="Permanent link">&para;</a></h3>
