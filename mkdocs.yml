@@ -108,7 +108,7 @@ nav:
       - FX Conversion: user-guide/methodology/fx-conversion.md
     - Exposure Classes:
       - user-guide/exposure-classes/index.md
-      - Sovereign: user-guide/exposure-classes/sovereign.md
+      - Central Govt & Central Bank: user-guide/exposure-classes/central-govt-central-bank.md
       - Institution: user-guide/exposure-classes/institution.md
       - Corporate: user-guide/exposure-classes/corporate.md
       - Retail: user-guide/exposure-classes/retail.md

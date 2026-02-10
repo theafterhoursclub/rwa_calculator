@@ -127,7 +127,7 @@ class ParquetLoader:
 
 ### Purpose
 
-Resolve counterparty and facility hierarchies, inherit ratings and attributes.
+Resolve counterparty and facility hierarchies, inherit ratings, unify exposures, and prepare enriched data for classification.
 
 ### Input
 
@@ -136,14 +136,42 @@ Resolve counterparty and facility hierarchies, inherit ratings and attributes.
 ### Output
 
 `ResolvedHierarchyBundle` with:
-- Resolved parent-child relationships
-- Inherited ratings (from parent if not available)
-- Aggregated exposures at counterparty level
-- Lending group totals
+- `exposures`: Unified LazyFrame (loans + contingents + facility undrawn)
+- `counterparty_lookup`: Enriched counterparties with hierarchy metadata and inherited ratings
+- `collateral`, `guarantees`, `provisions`: FX-converted CRM data
+- `lending_group_totals`: Aggregated group exposure for retail threshold testing
+- `hierarchy_errors`: Accumulated non-blocking errors
 
-### Implementation
+### Processing Steps
 
-The hierarchy resolution uses iterative Polars LazyFrame joins for performance. See [`hierarchy.py:208-277`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L208-L277) for the full implementation.
+```
+Step 1: Build counterparty hierarchy lookup
+  ├── _build_ultimate_parent_lazy()      → traverse org_mappings (up to 10 levels)
+  ├── _build_rating_inheritance_lazy()   → inherit ratings (own → parent → unrated)
+  └── _enrich_counterparties_with_hierarchy() → add hierarchy metadata
+
+Step 2: Unify exposures
+  ├── Standardise loans         → exposure_type = "loan"
+  ├── Standardise contingents   → exposure_type = "contingent"
+  ├── _build_facility_root_lookup()       → traverse facility-to-facility hierarchies
+  ├── _calculate_facility_undrawn()       → limit - sum(descendant drawn amounts)
+  └── pl.concat(all exposure types)       → single unified LazyFrame
+
+Step 2a: FX conversion          → convert all monetary values to base currency
+Step 2b: Add collateral LTV     → direct → facility → counterparty priority
+
+Step 3: Residential property coverage
+  └── Separate residential vs all-property collateral for threshold exclusion
+
+Step 4: Lending group totals
+  └── Aggregate by group, exclude residential from retail threshold (CRR Art. 123(c))
+
+Step 5: Add lending group totals to exposures
+```
+
+### Counterparty Hierarchy
+
+The hierarchy resolution uses iterative Polars LazyFrame joins for performance. See [`hierarchy.py:258-327`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L258-L327) for the full implementation.
 
 ::: rwa_calc.engine.hierarchy.HierarchyResolver._build_ultimate_parent_lazy
     options:
@@ -152,12 +180,12 @@ The hierarchy resolution uses iterative Polars LazyFrame joins for performance. 
 
 ??? example "Actual Implementation (hierarchy.py)"
     ```python
-    --8<-- "src/rwa_calc/engine/hierarchy.py:208:277"
+    --8<-- "src/rwa_calc/engine/hierarchy.py:258:327"
     ```
 
 ### Rating Inheritance
 
-Ratings are inherited from parent entities when not directly available. See [`hierarchy.py:279-381`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L279-L381).
+Ratings are inherited from parent entities when not directly available. See [`hierarchy.py:329-431`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L329-L431).
 
 The inheritance priority is:
 1. Entity's own rating
@@ -166,7 +194,23 @@ The inheritance priority is:
 
 ??? example "Actual Implementation (hierarchy.py)"
     ```python
-    --8<-- "src/rwa_calc/engine/hierarchy.py:279:381"
+    --8<-- "src/rwa_calc/engine/hierarchy.py:329:431"
+    ```
+
+### Facility Hierarchy
+
+Facilities can form multi-level hierarchies (e.g., master facility → sub-facilities). The resolver traverses these using the same iterative join pattern as counterparty hierarchies. See [`hierarchy.py:433-537`](https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/hierarchy.py#L433-L537).
+
+Key behaviour:
+- Facility-to-facility edges identified from `facility_mappings` where `child_type = "facility"`
+- Traverses up to 10 levels to find the root facility for each sub-facility
+- Drawn amounts from all descendant loans are aggregated to the root facility
+- Sub-facilities are excluded from producing their own undrawn exposure records
+- Only root/standalone facilities with `undrawn_amount > 0` generate `facility_undrawn` exposures
+
+??? example "Actual Implementation (hierarchy.py)"
+    ```python
+    --8<-- "src/rwa_calc/engine/hierarchy.py:433:537"
     ```
 
 ## Stage 3: Classification
