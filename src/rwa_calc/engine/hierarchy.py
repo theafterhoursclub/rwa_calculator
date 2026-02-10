@@ -872,7 +872,7 @@ class HierarchyResolver:
             # Per CRR Article 147, "total amount owed" = drawn amount only (not undrawn)
             pl.col("residential_collateral_value").fill_null(0.0),
             pl.col("exposure_for_retail_threshold").fill_null(
-                pl.col("drawn_amount")
+                pl.col("drawn_amount").clip(lower_bound=0.0)
             ),
         ])
 
@@ -882,9 +882,9 @@ class HierarchyResolver:
         lending_group_totals = exposures_with_group.filter(
             pl.col("lending_group_reference").is_not_null()
         ).group_by("lending_group_reference").agg([
-            pl.col("drawn_amount").sum().alias("total_drawn"),
+            pl.col("drawn_amount").clip(lower_bound=0.0).sum().alias("total_drawn"),
             pl.col("nominal_amount").sum().alias("total_nominal"),
-            (pl.col("drawn_amount") + pl.col("nominal_amount")).sum().alias("total_exposure"),
+            (pl.col("drawn_amount").clip(lower_bound=0.0) + pl.col("nominal_amount")).sum().alias("total_exposure"),
             pl.col("exposure_for_retail_threshold").sum().alias("adjusted_exposure"),
             pl.col("residential_collateral_value").sum().alias("total_residential_coverage"),
             pl.len().alias("exposure_count"),
@@ -1046,7 +1046,7 @@ class HierarchyResolver:
             pl.col("exposure_reference"),
             pl.col("counterparty_reference"),
             pl.col("parent_facility_reference"),
-            pl.col("drawn_amount").alias("total_exposure_amount"),
+            pl.col("drawn_amount").clip(lower_bound=0.0).alias("total_exposure_amount"),
         ])
 
         # Check if collateral is valid for property coverage calculation
@@ -1375,7 +1375,7 @@ class HierarchyResolver:
             pl.col("residential_collateral_value").fill_null(0.0),
             pl.col("property_collateral_value").fill_null(0.0),
             pl.col("exposure_for_retail_threshold").fill_null(
-                pl.col("drawn_amount")
+                pl.col("drawn_amount").clip(lower_bound=0.0)
             ),
         ]
         # Add has_facility_property_collateral if it exists

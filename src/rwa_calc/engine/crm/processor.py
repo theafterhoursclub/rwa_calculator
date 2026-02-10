@@ -31,7 +31,7 @@ from rwa_calc.contracts.bundles import (
 )
 from rwa_calc.contracts.errors import LazyFrameResult
 from rwa_calc.domain.enums import ApproachType, ExposureClass
-from rwa_calc.engine.ccf import CCFCalculator, sa_ccf_expression
+from rwa_calc.engine.ccf import CCFCalculator, drawn_for_ead, sa_ccf_expression
 from rwa_calc.engine.classifier import ENTITY_TYPE_TO_SA_CLASS
 from rwa_calc.engine.crm.haircuts import HaircutCalculator
 from rwa_calc.data.tables.crr_firb_lgd import get_firb_lgd_table
@@ -1152,7 +1152,7 @@ class CRMProcessor:
         ])
 
         # Recalculate EAD with split CCFs when cross-approach substitution applies
-        on_bal = pl.col("drawn_amount") + (
+        on_bal = drawn_for_ead() + (
             pl.col("interest").fill_null(0.0) if has_interest else pl.lit(0.0)
         )
         ratio = pl.col("guarantee_ratio")

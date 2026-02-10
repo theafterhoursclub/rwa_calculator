@@ -17,7 +17,7 @@ import polars as pl
 import pytest
 
 from rwa_calc.contracts.config import CalculationConfig
-from rwa_calc.engine.ccf import CCFCalculator, create_ccf_calculator, sa_ccf_expression
+from rwa_calc.engine.ccf import CCFCalculator, create_ccf_calculator, drawn_for_ead, sa_ccf_expression
 
 
 # =============================================================================
@@ -902,3 +902,106 @@ class TestSACCFExpression:
         }).select(sa_ccf_expression().alias("ccf"))
         expected = [1.0, 0.5, 0.2, 0.0]
         assert df["ccf"].to_list() == pytest.approx(expected)
+
+
+# =============================================================================
+# Negative Drawn Amount Tests
+# =============================================================================
+
+
+class TestNegativeDrawnAmount:
+    """Tests for negative drawn amounts (credit balances) in EAD calculations.
+
+    Loans such as current accounts with overdrafts can have negative drawn_amount
+    when the counterparty has a credit balance. Without netting agreements, these
+    should be treated as 0 for EAD purposes.
+    """
+
+    def test_drawn_for_ead_helper(self) -> None:
+        """drawn_for_ead() should floor negative values at 0."""
+        df = pl.DataFrame({"drawn_amount": [-100.0, 0.0, 50.0]}).select(
+            drawn_for_ead().alias("floored")
+        )
+        assert df["floored"].to_list() == pytest.approx([0.0, 0.0, 50.0])
+
+    def test_negative_drawn_ead_treated_as_zero(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Negative drawn amount should contribute 0 to ead_pre_crm, not reduce it."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP001"],
+            "drawn_amount": [-100000.0],
+            "interest": [5000.0],
+            "nominal_amount": [200000.0],
+            "risk_type": ["MR"],
+            "approach": ["standardised"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # CCF = 50% for MR → ead_from_ccf = 200k * 0.5 = 100k
+        assert result["ead_from_ccf"][0] == pytest.approx(100000.0)
+        # EAD = max(drawn, 0) + interest + ead_from_ccf = 0 + 5000 + 100000 = 105000
+        assert result["ead_pre_crm"][0] == pytest.approx(105000.0)
+
+    def test_negative_drawn_with_ccf_component(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Negative drawn with nominal should produce EAD = 0 + ccf*nominal."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP001"],
+            "drawn_amount": [-50000.0],
+            "interest": [0.0],
+            "nominal_amount": [100000.0],
+            "risk_type": ["FR"],
+            "approach": ["standardised"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # CCF = 100% for FR → ead_from_ccf = 100k * 1.0 = 100k
+        assert result["ead_from_ccf"][0] == pytest.approx(100000.0)
+        # EAD = max(-50k, 0) + 0 + 100k = 100k (NOT -50k + 100k = 50k)
+        assert result["ead_pre_crm"][0] == pytest.approx(100000.0)
+
+    def test_negative_drawn_without_interest_column(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Legacy path (no interest column): negative drawn floored at 0."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP001"],
+            "drawn_amount": [-75000.0],
+            "nominal_amount": [100000.0],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # EAD = max(-75k, 0) + 50k = 50k (NOT -75k + 50k = -25k)
+        assert result["ead_pre_crm"][0] == pytest.approx(50000.0)
+
+    def test_positive_drawn_unchanged(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Positive drawn amounts should not be affected by the floor."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP001"],
+            "drawn_amount": [500000.0],
+            "interest": [20000.0],
+            "nominal_amount": [300000.0],
+            "risk_type": ["MR"],
+            "approach": ["standardised"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # EAD = 500k + 20k + 300k*0.5 = 670k
+        assert result["ead_pre_crm"][0] == pytest.approx(670000.0)
