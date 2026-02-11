@@ -39,6 +39,16 @@ def drawn_for_ead() -> pl.Expr:
     return pl.col("drawn_amount").clip(lower_bound=0.0)
 
 
+def on_balance_ead() -> pl.Expr:
+    """On-balance-sheet EAD: max(0, drawn) + accrued interest.
+
+    Combines the floored drawn amount with accrued interest for a single
+    reusable expression. Interest is fill_null(0) so this works even when
+    the interest column contains nulls.
+    """
+    return pl.col("drawn_amount").clip(lower_bound=0.0) + pl.col("interest").fill_null(0.0)
+
+
 def sa_ccf_expression(risk_type_col: str = "risk_type") -> pl.Expr:
     """
     Return a Polars expression that maps risk_type to SA CCFs.
@@ -218,9 +228,7 @@ class CCFCalculator:
         # Interest is included in on-balance-sheet EAD but not in facility undrawn calculation
         if has_interest:
             exposures = exposures.with_columns([
-                (drawn_for_ead()
-                 + pl.col("interest").fill_null(0.0)
-                 + pl.col("ead_from_ccf")).alias("ead_pre_crm"),
+                (on_balance_ead() + pl.col("ead_from_ccf")).alias("ead_pre_crm"),
             ])
         else:
             # Legacy: no interest column, EAD = drawn + CCF-adjusted undrawn

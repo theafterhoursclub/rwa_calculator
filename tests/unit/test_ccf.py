@@ -17,7 +17,7 @@ import polars as pl
 import pytest
 
 from rwa_calc.contracts.config import CalculationConfig
-from rwa_calc.engine.ccf import CCFCalculator, create_ccf_calculator, drawn_for_ead, sa_ccf_expression
+from rwa_calc.engine.ccf import CCFCalculator, create_ccf_calculator, drawn_for_ead, on_balance_ead, sa_ccf_expression
 
 
 # =============================================================================
@@ -902,6 +902,75 @@ class TestSACCFExpression:
         }).select(sa_ccf_expression().alias("ccf"))
         expected = [1.0, 0.5, 0.2, 0.0]
         assert df["ccf"].to_list() == pytest.approx(expected)
+
+
+# =============================================================================
+# On-Balance-Sheet EAD Helper Tests
+# =============================================================================
+
+
+class TestOnBalanceEAD:
+    """Tests for on_balance_ead() helper expression."""
+
+    def test_positive_drawn_plus_interest(self) -> None:
+        """on_balance_ead() should return max(0, drawn) + interest."""
+        df = pl.DataFrame({
+            "drawn_amount": [500.0],
+            "interest": [10.0],
+        }).select(on_balance_ead().alias("ead"))
+        assert df["ead"][0] == pytest.approx(510.0)
+
+    def test_negative_drawn_plus_interest(self) -> None:
+        """Negative drawn should be floored at 0; interest still included."""
+        df = pl.DataFrame({
+            "drawn_amount": [-100000.0],
+            "interest": [100.0],
+        }).select(on_balance_ead().alias("ead"))
+        # max(0, -100k) + 100 = 100
+        assert df["ead"][0] == pytest.approx(100.0)
+
+    def test_null_interest_treated_as_zero(self) -> None:
+        """Null interest should be treated as 0."""
+        df = pl.DataFrame({
+            "drawn_amount": [1000.0],
+            "interest": [None],
+        }).select(on_balance_ead().alias("ead"))
+        assert df["ead"][0] == pytest.approx(1000.0)
+
+    def test_zero_drawn_zero_interest(self) -> None:
+        """Both zero should return 0."""
+        df = pl.DataFrame({
+            "drawn_amount": [0.0],
+            "interest": [0.0],
+        }).select(on_balance_ead().alias("ead"))
+        assert df["ead"][0] == pytest.approx(0.0)
+
+    def test_batch_values(self) -> None:
+        """Multiple rows with mixed positive, negative, null values."""
+        df = pl.DataFrame({
+            "drawn_amount": [-100.0, 0.0, 500.0, -50000.0],
+            "interest": [100.0, 0.0, 20.0, None],
+        }).select(on_balance_ead().alias("ead"))
+        assert df["ead"].to_list() == pytest.approx([100.0, 0.0, 520.0, 0.0])
+
+    def test_negative_drawn_only_interest_contributes_to_ead(
+        self,
+        ccf_calculator: CCFCalculator,
+        crr_config: CalculationConfig,
+    ) -> None:
+        """Loan with negative drawn + interest: ead_pre_crm should equal interest amount."""
+        exposures = pl.DataFrame({
+            "exposure_reference": ["EXP_NEG_INT"],
+            "drawn_amount": [-100000.0],
+            "interest": [100.0],
+            "nominal_amount": [0.0],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        result = ccf_calculator.apply_ccf(exposures, crr_config).collect()
+
+        # EAD = max(0, -100k) + 100 + 0 = 100
+        assert result["ead_pre_crm"][0] == pytest.approx(100.0)
 
 
 # =============================================================================

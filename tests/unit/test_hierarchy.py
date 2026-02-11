@@ -1240,6 +1240,61 @@ class TestFacilityUndrawnCalculation:
         assert len(fac) == 1
         assert fac["undrawn_amount"][0] == pytest.approx(500000.0)
 
+    def test_negative_drawn_with_interest_facility_undrawn(
+        self,
+        resolver: HierarchyResolver,
+    ) -> None:
+        """Negative drawn with interest: interest doesn't reduce facility headroom.
+
+        When a loan has drawn_amount=-100k and interest=100, the loan exposure
+        should carry interest=100, but the facility undrawn should still equal
+        the full limit (interest doesn't consume headroom).
+        """
+        facilities = pl.DataFrame({
+            "facility_reference": ["FAC_INT"],
+            "product_type": ["RCF"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 1, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "limit": [1000000.0],
+            "committed": [True],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+            "risk_type": ["MR"],
+        }).lazy()
+
+        loans = pl.DataFrame({
+            "loan_reference": ["LOAN_NEG_INT"],
+            "product_type": ["TERM_LOAN"],
+            "book_code": ["CORP"],
+            "counterparty_reference": ["CP001"],
+            "value_date": [date(2023, 6, 1)],
+            "maturity_date": [date(2028, 1, 1)],
+            "currency": ["GBP"],
+            "drawn_amount": [-100000.0],
+            "interest": [100.0],
+            "lgd": [0.45],
+            "seniority": ["senior"],
+        }).lazy()
+
+        mappings = pl.DataFrame({
+            "parent_facility_reference": ["FAC_INT"],
+            "child_reference": ["LOAN_NEG_INT"],
+            "child_type": ["loan"],
+        }).lazy()
+
+        facility_undrawn = resolver._calculate_facility_undrawn(
+            facilities, loans, None, mappings
+        )
+        df = facility_undrawn.collect()
+
+        # Facility undrawn should be full limit (interest doesn't reduce headroom)
+        fac = df.filter(pl.col("exposure_reference") == "FAC_INT_UNDRAWN")
+        assert len(fac) == 1
+        assert fac["undrawn_amount"][0] == pytest.approx(1000000.0)
+
     def test_facility_uncommitted_lr_risk_type(
         self,
         resolver: HierarchyResolver,
