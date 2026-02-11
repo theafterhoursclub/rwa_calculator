@@ -36,7 +36,7 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from rwa_calc.domain.enums import ApproachType
-from rwa_calc.engine.ccf import drawn_for_ead, sa_ccf_expression
+from rwa_calc.engine.ccf import drawn_for_ead, on_balance_ead, sa_ccf_expression
 from rwa_calc.engine.classifier import ENTITY_TYPE_TO_SA_CLASS
 
 if TYPE_CHECKING:
@@ -94,7 +94,10 @@ class CRMLazyFrame:
         elif "ead" in schema.names():
             base_ead_col = "ead"
         elif "drawn_amount" in schema.names():
-            lf = lf.with_columns([drawn_for_ead().alias("ead_pre_crm")])
+            if "interest" in schema.names():
+                lf = lf.with_columns([on_balance_ead().alias("ead_pre_crm")])
+            else:
+                lf = lf.with_columns([drawn_for_ead().alias("ead_pre_crm")])
             base_ead_col = "ead_pre_crm"
         else:
             # No EAD column found, create placeholder
@@ -452,9 +455,7 @@ class CRMLazyFrame:
                 pl.col("ccf").alias("ccf_unguaranteed"),
             ])
 
-            on_bal = drawn_for_ead() + (
-                pl.col("interest").fill_null(0.0) if has_interest else pl.lit(0.0)
-            )
+            on_bal = on_balance_ead() if has_interest else drawn_for_ead()
             ratio = pl.col("guarantee_ratio")
             new_guaranteed = (on_bal * ratio) + (pl.col("nominal_amount") * ratio * pl.col("ccf_guaranteed"))
             new_unguaranteed = (on_bal * (pl.lit(1.0) - ratio)) + (
