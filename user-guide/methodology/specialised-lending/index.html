@@ -2168,6 +2168,7 @@
 </table>
 <h2 id="risk-weights">Risk Weights<a class="headerlink" href="#risk-weights" title="Permanent link">¶</a></h2>
 <h3 id="crr-risk-weights">CRR Risk Weights<a class="headerlink" href="#crr-risk-weights" title="Permanent link">¶</a></h3>
+<p>Under CRR, all specialised lending types (including HVCRE) use the same risk weights, with Strong and Good both at 70%:</p>
 <table>
 <thead>
 <tr>
@@ -2181,42 +2182,10 @@
 </thead>
 <tbody>
 <tr>
-<td>Project Finance</td>
+<td>All types (incl. HVCRE)</td>
 <td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>Object Finance</td>
 <td>70%</td>
-<td>90%</td>
 <td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>Commodities Finance</td>
-<td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>IPRE</td>
-<td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>HVCRE</td>
-<td>95%</td>
-<td>120%</td>
-<td>140%</td>
 <td>250%</td>
 <td>0%*</td>
 </tr>
@@ -2224,6 +2193,7 @@
 </table>
 <p>*Default exposures: 0% RW with 50% EL deduction</p>
 <h3 id="basel-31-risk-weights">Basel 3.1 Risk Weights<a class="headerlink" href="#basel-31-risk-weights" title="Permanent link">¶</a></h3>
+<p>Basel 3.1 introduces differentiated weights for HVCRE and pre-operational project finance:</p>
 <table>
 <thead>
 <tr>
@@ -2245,33 +2215,9 @@
 <td>0%*</td>
 </tr>
 <tr>
-<td>PF (Operational)</td>
+<td>Standard (PF Operational, OF, CF, IPRE)</td>
 <td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>Object Finance</td>
 <td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>Commodities Finance</td>
-<td>70%</td>
-<td>90%</td>
-<td>115%</td>
-<td>250%</td>
-<td>0%*</td>
-</tr>
-<tr>
-<td>IPRE</td>
-<td>70%</td>
-<td>90%</td>
 <td>115%</td>
 <td>250%</td>
 <td>0%*</td>
@@ -2290,7 +2236,7 @@
 <p class="admonition-title">Basel 3.1 Project Finance Changes</p>
 <p>Pre-operational project finance receives higher risk weights under Basel 3.1:
 - Strong: 70% → 80%
-- Good: 90% → 100%
+- Good: 70% → 100%
 - Satisfactory: 115% → 120%
 - Weak: 250% → 350%</p>
 </div>
@@ -2452,8 +2398,8 @@
 <thead>
 <tr>
 <th>Category</th>
-<th>Standard SL</th>
-<th>HVCRE</th>
+<th>CRR (all types)</th>
+<th>Basel 3.1 HVCRE</th>
 </tr>
 </thead>
 <tbody>
@@ -2464,7 +2410,7 @@
 </tr>
 <tr>
 <td>Good</td>
-<td>90%</td>
+<td>70%</td>
 <td>120%</td>
 </tr>
 <tr>

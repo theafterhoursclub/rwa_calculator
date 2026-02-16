@@ -2840,6 +2840,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cross-approach-ccf-substitution-crr-art-1533" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Approach CCF Substitution (CRR Art. 153(3))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-Approach CCF Substitution (CRR Art. 153(3))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guarantor-approach-determination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guarantor Approach Determination
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ead-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EAD Split
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#key-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3944,6 +3994,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cross-approach-ccf-substitution-crr-art-1533" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-Approach CCF Substitution (CRR Art. 153(3))
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-Approach CCF Substitution (CRR Art. 153(3))">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guarantor-approach-determination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guarantor Approach Determination
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ead-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EAD Split
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#key-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4258,6 +4358,24 @@
 <li><code>pre_crm_exposure_class</code> / <code>post_crm_exposure_class_guaranteed</code></li>
 <li><code>guaranteed_portion</code> / <code>unguaranteed_portion</code></li>
 <li><code>is_guarantee_beneficial</code></li>
+</ul>
+<h2 id="cross-approach-ccf-substitution-crr-art-1533">Cross-Approach CCF Substitution (CRR Art. 153(3))<a class="headerlink" href="#cross-approach-ccf-substitution-crr-art-1533" title="Permanent link">&para;</a></h2>
+<p>When an IRB exposure is guaranteed by a counterparty under the Standardised Approach, the guaranteed portion uses SA CCFs instead of IRB supervisory CCFs.</p>
+<h3 id="guarantor-approach-determination">Guarantor Approach Determination<a class="headerlink" href="#guarantor-approach-determination" title="Permanent link">&para;</a></h3>
+<p>The guarantor's approach is "sa" when:
+- The firm lacks IRB permission for the guarantor's exposure class, OR
+- The guarantor has only an external rating (no internal PD)</p>
+<p>The guarantor's approach is "irb" only when both conditions are met:
+- The firm has IRB permission for the guarantor's exposure class, AND
+- The guarantor has an internal rating with PD</p>
+<h3 id="ead-split">EAD Split<a class="headerlink" href="#ead-split" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ead_guaranteed = guarantee_ratio × (drawn + undrawn × ccf_sa)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>ead_unguaranteed = (1 - guarantee_ratio) × (drawn + undrawn × ccf_irb)
+</span></code></pre></div>
+<h3 id="output-fields">Output Fields<a class="headerlink" href="#output-fields" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ccf_original</code>, <code>ccf_guaranteed</code>, <code>ccf_unguaranteed</code></li>
+<li><code>guarantee_ratio</code>, <code>guarantor_approach</code>, <code>guarantor_rating_type</code></li>
 </ul>
 <h2 id="key-scenarios">Key Scenarios<a class="headerlink" href="#key-scenarios" title="Permanent link">&para;</a></h2>
 <table>

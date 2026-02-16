@@ -1833,9 +1833,11 @@
     F --&gt;|SA| G[SA Calculator]
     F --&gt;|IRB| H[IRB Calculator]
     F --&gt;|Slotting| I[Slotting Calculator]
+    F --&gt;|Equity| L[Equity Calculator]
     G --&gt; J[Aggregator]
     H --&gt; J
     I --&gt; J
+    L --&gt; J
     J --&gt; K[Final RWA]</code></pre>
 <h2 id="supported-calculations">Supported Calculations<a class="headerlink" href="#supported-calculations" title="Permanent link">¶</a></h2>
 <h3 id="by-approach">By Approach<a class="headerlink" href="#by-approach" title="Permanent link">¶</a></h3>
@@ -1866,6 +1868,11 @@
 <tr>
 <td><strong>Slotting</strong></td>
 <td>Category-based approach for specialised lending</td>
+<td>CRR, Basel 3.1</td>
+</tr>
+<tr>
+<td><strong>Equity</strong></td>
+<td>Risk weights for equity holdings (Art. 133 SA / Art. 155 IRB Simple)</td>
 <td>CRR, Basel 3.1</td>
 </tr>
 </tbody>
@@ -1954,7 +1961,7 @@
 <li><strong>Polars</strong> - Vectorized DataFrame operations with LazyFrame optimization</li>
 <li><strong>Pydantic</strong> - Data validation and type safety</li>
 <li><strong>polars-normal-stats</strong> - Pure Polars statistical functions for IRB formulas</li>
-<li><strong>Pytest</strong> - Comprehensive test coverage (800+ tests)</li>
+<li><strong>Pytest</strong> - Comprehensive test coverage (1,188+ tests)</li>
 </ul>
 <h2 id="regulatory-references">Regulatory References<a class="headerlink" href="#regulatory-references" title="Permanent link">¶</a></h2>
 <p>This implementation follows:</p>
@@ -1976,7 +1983,7 @@
 <tbody>
 <tr>
 <td>Calculator</td>
-<td>0.1.18</td>
+<td>0.1.21</td>
 </tr>
 <tr>
 <td>CRR Support</td>

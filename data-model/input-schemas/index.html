@@ -4605,6 +4605,12 @@
 <td>No</td>
 <td>Short-term trade LC for goods movement (Art. 166(9))</td>
 </tr>
+<tr>
+<td><code>is_buy_to_let</code></td>
+<td><code>Boolean</code></td>
+<td>No</td>
+<td>Buy-to-let property lending — excluded from SME supporting factor (CRR Art. 501)</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Valid <code>product_type</code> values:</strong></p>
@@ -4820,6 +4826,12 @@
 <td>Outstanding principal balance</td>
 </tr>
 <tr>
+<td><code>interest</code></td>
+<td><code>Float64</code></td>
+<td>No</td>
+<td>Accrued interest (adds to on-balance-sheet EAD)</td>
+</tr>
+<tr>
 <td><code>lgd</code></td>
 <td><code>Float64</code></td>
 <td>No</td>
@@ -4835,23 +4847,17 @@
 <td><code>seniority</code></td>
 <td><code>String</code></td>
 <td>Yes</td>
-<td><code>senior</code> or <code>subordinated</code></td>
+<td><code>senior</code> or <code>subordinated</code> (affects F-IRB LGD)</td>
 </tr>
 <tr>
-<td><code>risk_type</code></td>
-<td><code>String</code></td>
-<td>Yes</td>
-<td>Off-balance sheet risk category (see Facility schema)</td>
-</tr>
-<tr>
-<td><code>ccf_modelled</code></td>
-<td><code>Float64</code></td>
+<td><code>is_buy_to_let</code></td>
+<td><code>Boolean</code></td>
 <td>No</td>
-<td>A-IRB modelled CCF (0.0-1.5)</td>
+<td>Buy-to-let property lending — excluded from SME supporting factor (CRR Art. 501)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Note:</strong> For drawn loans, <code>risk_type</code> is typically <code>FR</code> (full_risk) since the amount is already drawn and CCF doesn't apply. However, the field is required for schema consistency across all exposure types.</p>
+<p><strong>Note:</strong> Loans do not have CCF fields (<code>risk_type</code>, <code>ccf_modelled</code>, <code>is_short_term_trade_lc</code>) because CCF only applies to off-balance sheet items. For drawn loans, EAD = <code>drawn_amount</code> + <code>interest</code> directly.</p>
 <p><strong>Example:</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
@@ -5081,14 +5087,20 @@
 <tr>
 <td><code>market_value</code></td>
 <td><code>Float64</code></td>
-<td>Yes</td>
-<td>Current market value</td>
+<td>Conditional</td>
+<td>Current market value (required unless <code>pledge_percentage</code> provided)</td>
 </tr>
 <tr>
 <td><code>nominal_value</code></td>
 <td><code>Float64</code></td>
 <td>No</td>
 <td>Nominal/face value</td>
+</tr>
+<tr>
+<td><code>pledge_percentage</code></td>
+<td><code>Float64</code></td>
+<td>Conditional</td>
+<td>Fraction of beneficiary EAD (0.5 = 50%). Used when <code>market_value</code> not provided. Resolved to absolute <code>market_value</code> before haircuts.</td>
 </tr>
 <tr>
 <td><code>beneficiary_type</code></td>
@@ -5826,8 +5838,7 @@ After conversion, the following columns are added:
 <thead>
 <tr>
 <th>Category</th>
-<th>RW (&gt;=2.5yr)</th>
-<th>RW (&lt;2.5yr)</th>
+<th>CRR RW</th>
 <th>Description</th>
 </tr>
 </thead>
@@ -5835,30 +5846,25 @@ After conversion, the following columns are added:
 <tr>
 <td><code>strong</code></td>
 <td>70%</td>
-<td>50%</td>
 <td>Excellent risk profile</td>
 </tr>
 <tr>
 <td><code>good</code></td>
-<td>90%</td>
 <td>70%</td>
-<td>Good risk profile</td>
+<td>Good risk profile (same as Strong under CRR)</td>
 </tr>
 <tr>
 <td><code>satisfactory</code></td>
-<td>115%</td>
 <td>115%</td>
 <td>Acceptable risk profile</td>
 </tr>
 <tr>
 <td><code>weak</code></td>
 <td>250%</td>
-<td>250%</td>
 <td>Higher risk profile</td>
 </tr>
 <tr>
 <td><code>default</code></td>
-<td>0%</td>
 <td>0%</td>
 <td>In default (provisions apply)</td>
 </tr>

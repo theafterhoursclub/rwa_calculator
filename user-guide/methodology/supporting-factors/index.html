@@ -4351,6 +4351,10 @@
 <td><strong>Exposure type</strong></td>
 <td>Not in default</td>
 </tr>
+<tr>
+<td><strong>Not buy-to-let</strong></td>
+<td><code>is_buy_to_let = False</code> (BTL exposures excluded per CRR Art. 501)</td>
+</tr>
 </tbody>
 </table>
 <h3 id="calculation">Calculation<a class="headerlink" href="#calculation" title="Permanent link">&para;</a></h3>
@@ -4580,7 +4584,7 @@
 <p><strong>Exposure:</strong>
 - Infrastructure project finance
 - Toll road concession
-- Base RWA: £15m (slotting category "Good", 90% RW)
+- Base RWA: £15m (slotting category "Satisfactory", 115% RW)
 - Qualifies for infrastructure factor</p>
 <p><strong>Calculation:</strong>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">factor</span> <span class="o">=</span> <span class="mf">0.75</span>
@@ -4653,7 +4657,7 @@
 </span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">sme_factor</span> <span class="o">=</span> <span class="n">calculate_sme_factor</span><span class="p">(</span>
 </span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">total_exposure</span><span class="o">=</span><span class="mi">8_000_000</span><span class="p">,</span>
 </span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">counterparty_turnover</span><span class="o">=</span><span class="mi">30_000_000</span><span class="p">,</span>
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">eur_gbp_rate</span><span class="o">=</span><span class="mf">0.88</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">eur_gbp_rate</span><span class="o">=</span><span class="mf">0.8732</span>
 </span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="p">)</span>
 </span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
 </span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="c1"># Infrastructure check</span>
@@ -4665,15 +4669,15 @@
 </span></code></pre></div>
 <h2 id="eurgbp-conversion">EUR/GBP Conversion<a class="headerlink" href="#eurgbp-conversion" title="Permanent link">&para;</a></h2>
 <p>Thresholds are defined in EUR and converted to GBP:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Default rate</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">EUR_GBP_RATE</span> <span class="o">=</span> <span class="mf">0.88</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Default rate (matches CalculationConfig.eur_gbp_rate)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">EUR_GBP_RATE</span> <span class="o">=</span> <span class="mf">0.8732</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Thresholds</span>
 </span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">SME_TURNOVER_EUR</span> <span class="o">=</span> <span class="mi">50_000_000</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">SME_TURNOVER_GBP</span> <span class="o">=</span> <span class="mi">50_000_000</span> <span class="err">×</span> <span class="mf">0.88</span> <span class="o">=</span> <span class="mi">44_000_000</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">SME_TURNOVER_GBP</span> <span class="o">=</span> <span class="mi">50_000_000</span> <span class="err">×</span> <span class="mf">0.8732</span> <span class="err">≈</span> <span class="mi">43_660_000</span>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
 </span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">SME_EXPOSURE_EUR</span> <span class="o">=</span> <span class="mi">2_500_000</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">SME_EXPOSURE_GBP</span> <span class="o">=</span> <span class="mi">2_500_000</span> <span class="err">×</span> <span class="mf">0.88</span> <span class="o">=</span> <span class="mi">2_200_000</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">SME_EXPOSURE_GBP</span> <span class="o">=</span> <span class="mi">2_500_000</span> <span class="err">×</span> <span class="mf">0.8732</span> <span class="err">≈</span> <span class="mi">2_183_000</span>
 </span></code></pre></div>
 <h3 id="configuring-fx-rate">Configuring FX Rate<a class="headerlink" href="#configuring-fx-rate" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
