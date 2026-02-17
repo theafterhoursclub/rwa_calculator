@@ -5476,6 +5476,43 @@
 </tr>
 </tbody>
 </table>
+<p><strong>Valid <code>beneficiary_type</code> values:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loan</code></td>
+<td>Allocated directly to a specific loan</td>
+<td>Matched by <code>beneficiary_reference</code> = <code>loan_reference</code></td>
+</tr>
+<tr>
+<td><code>exposure</code></td>
+<td>Allocated directly to a specific exposure</td>
+<td>Matched by <code>beneficiary_reference</code> = exposure reference</td>
+</tr>
+<tr>
+<td><code>contingent</code></td>
+<td>Allocated directly to a contingent</td>
+<td>Matched by <code>beneficiary_reference</code> = <code>contingent_reference</code></td>
+</tr>
+<tr>
+<td><code>facility</code></td>
+<td>Allocated at facility level</td>
+<td>Distributed pro-rata across facility's exposures by <code>ead_gross</code></td>
+</tr>
+<tr>
+<td><code>counterparty</code></td>
+<td>Allocated at counterparty level</td>
+<td>Distributed pro-rata across all counterparty exposures by <code>ead_gross</code></td>
+</tr>
+</tbody>
+</table>
 <p><strong>Valid <code>ifrs9_stage</code> values:</strong></p>
 <table>
 <thead>

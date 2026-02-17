@@ -3980,7 +3980,7 @@
 - <code>AIRB</code> - Advanced IRB
 - <code>SLOTTING</code> - Slotting Approach</p>
 <h2 id="crm-adjusted-schema">CRM Adjusted Schema<a class="headerlink" href="#crm-adjusted-schema" title="Permanent link">&para;</a></h2>
-<p>After CRM processing, exposures include mitigation adjustments.</p>
+<p>After CRM processing, exposures include mitigation adjustments. Provision columns are populated during the <code>resolve_provisions</code> step (before CCF), while collateral and guarantee columns are populated during the EAD waterfall.</p>
 <table>
 <thead>
 <tr>
@@ -4001,9 +4001,34 @@
 <td>(all classified exposure columns)</td>
 </tr>
 <tr>
+<td><code>provision_allocated</code></td>
+<td><code>Float64</code></td>
+<td>Total provision matched to this exposure</td>
+</tr>
+<tr>
+<td><code>provision_on_drawn</code></td>
+<td><code>Float64</code></td>
+<td>Provision absorbed by drawn amount (SA only)</td>
+</tr>
+<tr>
+<td><code>provision_on_nominal</code></td>
+<td><code>Float64</code></td>
+<td>Provision reducing nominal before CCF (SA only)</td>
+</tr>
+<tr>
+<td><code>nominal_after_provision</code></td>
+<td><code>Float64</code></td>
+<td><code>nominal_amount - provision_on_nominal</code></td>
+</tr>
+<tr>
+<td><code>provision_deducted</code></td>
+<td><code>Float64</code></td>
+<td>Total = <code>provision_on_drawn + provision_on_nominal</code></td>
+</tr>
+<tr>
 <td><code>provision_amount</code></td>
 <td><code>Float64</code></td>
-<td>Applied provision</td>
+<td>Applied provision (legacy)</td>
 </tr>
 <tr>
 <td><code>provision_type</code></td>

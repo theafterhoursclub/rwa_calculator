@@ -2648,6 +2648,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="EAD Calculation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provision-adjusted-ead-art-1112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provision-Adjusted EAD (Art. 111(2))
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3619,6 +3636,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="EAD Calculation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provision-adjusted-ead-art-1112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provision-Adjusted EAD (Art. 111(2))
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3798,7 +3832,7 @@
 <li>Falls back to SA CCFs if not available</li>
 </ul>
 <h2 id="ead-calculation">EAD Calculation<a class="headerlink" href="#ead-calculation" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>EAD = Drawn Amount + Accrued Interest + (Undrawn Amount x CCF)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>EAD = Drawn Amount + Accrued Interest + (Undrawn Amount × CCF)
 </span></code></pre></div>
 <p>Where:</p>
 <ul>
@@ -3806,6 +3840,16 @@
 <li><strong>Accrued Interest</strong>: Interest due but not yet paid</li>
 <li><strong>Undrawn Amount</strong>: Committed but undrawn facility limit minus drawn amount</li>
 </ul>
+<h3 id="provision-adjusted-ead-art-1112">Provision-Adjusted EAD (Art. 111(2))<a class="headerlink" href="#provision-adjusted-ead-art-1112" title="Permanent link">&para;</a></h3>
+<p>When provisions are present (SA only), they are resolved <strong>before</strong> CCF application using a drawn-first deduction:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>provision_on_drawn = min(provision_allocated, max(0, Drawn Amount))
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>provision_on_nominal = provision_allocated - provision_on_drawn
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>nominal_after_provision = Undrawn Amount - provision_on_nominal
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>EAD = (max(0, Drawn Amount) - provision_on_drawn) + Accrued Interest
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>      + (nominal_after_provision × CCF)
+</span></code></pre></div>
+<p>This ensures that provisions reduce the nominal amount before the CCF multiplier is applied, compliant with CRR Art. 111(2). For IRB/Slotting exposures, provisions are tracked but not deducted — the standard EAD formula applies.</p>
 <h2 id="key-scenarios">Key Scenarios<a class="headerlink" href="#key-scenarios" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

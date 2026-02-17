@@ -3129,34 +3129,48 @@
 - Substituted risk weights (guarantees)
 - Provision adjustments</p>
 <h3 id="processing-order">Processing Order<a class="headerlink" href="#processing-order" title="Permanent link">¶</a></h3>
+<p>Provisions are resolved <strong>before</strong> CCF application so that the nominal amount is adjusted before credit conversion. The full CRM pipeline order is:</p>
 <ol>
-<li>Apply specific provisions (reduce EAD)</li>
-<li>Apply collateral with haircuts</li>
-<li>Apply guarantees (substitution approach)</li>
+<li><strong>Resolve provisions</strong> — drawn-first deduction (SA only); IRB tracks but does not deduct</li>
+<li><strong>Apply CCFs</strong> — uses <code>nominal_after_provision</code> for off-balance sheet conversion</li>
+<li><strong>Initialize EAD waterfall</strong> — set <code>ead_pre_crm</code> from drawn + interest + CCF contribution</li>
+<li><strong>Apply collateral</strong> with haircuts and overcollateralisation</li>
+<li><strong>Apply guarantees</strong> (substitution approach, cross-approach CCF substitution)</li>
+<li><strong>Finalize EAD</strong> — floor at zero; provisions already baked into <code>ead_pre_crm</code></li>
 </ol>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_crm</span><span class="p">(</span>
 </span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>    <span class="n">exposures</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">,</span>
 </span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a>    <span class="n">collateral</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">,</span>
 </span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a>    <span class="n">guarantees</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">,</span>
 </span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>    <span class="n">provisions</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">,</span>
-</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">CalculationConfig</span>
-</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">:</span>
-</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="w">    </span><span class="sd">"""Apply CRM in correct order."""</span>
-</span><span id="__span-8-9"><a href="#__codelineno-8-9" id="__codelineno-8-9" name="__codelineno-8-9"></a>
-</span><span id="__span-8-10"><a href="#__codelineno-8-10" id="__codelineno-8-10" name="__codelineno-8-10"></a>    <span class="c1"># Step 1: Provisions</span>
-</span><span id="__span-8-11"><a href="#__codelineno-8-11" id="__codelineno-8-11" name="__codelineno-8-11"></a>    <span class="n">after_provisions</span> <span class="o">=</span> <span class="n">apply_provisions</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">provisions</span><span class="p">)</span>
-</span><span id="__span-8-12"><a href="#__codelineno-8-12" id="__codelineno-8-12" name="__codelineno-8-12"></a>
-</span><span id="__span-8-13"><a href="#__codelineno-8-13" id="__codelineno-8-13" name="__codelineno-8-13"></a>    <span class="c1"># Step 2: Collateral</span>
-</span><span id="__span-8-14"><a href="#__codelineno-8-14" id="__codelineno-8-14" name="__codelineno-8-14"></a>    <span class="n">after_collateral</span> <span class="o">=</span> <span class="n">apply_collateral_haircuts</span><span class="p">(</span>
-</span><span id="__span-8-15"><a href="#__codelineno-8-15" id="__codelineno-8-15" name="__codelineno-8-15"></a>        <span class="n">after_provisions</span><span class="p">,</span> <span class="n">collateral</span><span class="p">,</span> <span class="n">config</span>
-</span><span id="__span-8-16"><a href="#__codelineno-8-16" id="__codelineno-8-16" name="__codelineno-8-16"></a>    <span class="p">)</span>
-</span><span id="__span-8-17"><a href="#__codelineno-8-17" id="__codelineno-8-17" name="__codelineno-8-17"></a>
-</span><span id="__span-8-18"><a href="#__codelineno-8-18" id="__codelineno-8-18" name="__codelineno-8-18"></a>    <span class="c1"># Step 3: Guarantees</span>
-</span><span id="__span-8-19"><a href="#__codelineno-8-19" id="__codelineno-8-19" name="__codelineno-8-19"></a>    <span class="n">after_guarantees</span> <span class="o">=</span> <span class="n">apply_guarantee_substitution</span><span class="p">(</span>
-</span><span id="__span-8-20"><a href="#__codelineno-8-20" id="__codelineno-8-20" name="__codelineno-8-20"></a>        <span class="n">after_collateral</span><span class="p">,</span> <span class="n">guarantees</span><span class="p">,</span> <span class="n">config</span>
-</span><span id="__span-8-21"><a href="#__codelineno-8-21" id="__codelineno-8-21" name="__codelineno-8-21"></a>    <span class="p">)</span>
-</span><span id="__span-8-22"><a href="#__codelineno-8-22" id="__codelineno-8-22" name="__codelineno-8-22"></a>
-</span><span id="__span-8-23"><a href="#__codelineno-8-23" id="__codelineno-8-23" name="__codelineno-8-23"></a>    <span class="k">return</span> <span class="n">after_guarantees</span>
+</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a>    <span class="n">counterparty_lookup</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">,</span>
+</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">CalculationConfig</span>
+</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">:</span>
+</span><span id="__span-8-9"><a href="#__codelineno-8-9" id="__codelineno-8-9" name="__codelineno-8-9"></a><span class="w">    </span><span class="sd">"""Apply CRM in correct order (Art. 111(2) compliant)."""</span>
+</span><span id="__span-8-10"><a href="#__codelineno-8-10" id="__codelineno-8-10" name="__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a href="#__codelineno-8-11" id="__codelineno-8-11" name="__codelineno-8-11"></a>    <span class="c1"># Step 1: Resolve provisions (before CCF)</span>
+</span><span id="__span-8-12"><a href="#__codelineno-8-12" id="__codelineno-8-12" name="__codelineno-8-12"></a>    <span class="c1">#   SA: drawn-first deduction, remainder reduces nominal</span>
+</span><span id="__span-8-13"><a href="#__codelineno-8-13" id="__codelineno-8-13" name="__codelineno-8-13"></a>    <span class="c1">#   IRB/Slotting: tracked but not deducted from EAD</span>
+</span><span id="__span-8-14"><a href="#__codelineno-8-14" id="__codelineno-8-14" name="__codelineno-8-14"></a>    <span class="n">after_provisions</span> <span class="o">=</span> <span class="n">resolve_provisions</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">provisions</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-8-15"><a href="#__codelineno-8-15" id="__codelineno-8-15" name="__codelineno-8-15"></a>
+</span><span id="__span-8-16"><a href="#__codelineno-8-16" id="__codelineno-8-16" name="__codelineno-8-16"></a>    <span class="c1"># Step 2: Apply CCFs (uses nominal_after_provision)</span>
+</span><span id="__span-8-17"><a href="#__codelineno-8-17" id="__codelineno-8-17" name="__codelineno-8-17"></a>    <span class="n">after_ccf</span> <span class="o">=</span> <span class="n">apply_credit_conversion_factors</span><span class="p">(</span><span class="n">after_provisions</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-8-18"><a href="#__codelineno-8-18" id="__codelineno-8-18" name="__codelineno-8-18"></a>
+</span><span id="__span-8-19"><a href="#__codelineno-8-19" id="__codelineno-8-19" name="__codelineno-8-19"></a>    <span class="c1"># Step 3: Initialize EAD waterfall</span>
+</span><span id="__span-8-20"><a href="#__codelineno-8-20" id="__codelineno-8-20" name="__codelineno-8-20"></a>    <span class="n">after_init</span> <span class="o">=</span> <span class="n">initialize_ead_waterfall</span><span class="p">(</span><span class="n">after_ccf</span><span class="p">)</span>
+</span><span id="__span-8-21"><a href="#__codelineno-8-21" id="__codelineno-8-21" name="__codelineno-8-21"></a>
+</span><span id="__span-8-22"><a href="#__codelineno-8-22" id="__codelineno-8-22" name="__codelineno-8-22"></a>    <span class="c1"># Step 4: Collateral</span>
+</span><span id="__span-8-23"><a href="#__codelineno-8-23" id="__codelineno-8-23" name="__codelineno-8-23"></a>    <span class="n">after_collateral</span> <span class="o">=</span> <span class="n">apply_collateral_haircuts</span><span class="p">(</span>
+</span><span id="__span-8-24"><a href="#__codelineno-8-24" id="__codelineno-8-24" name="__codelineno-8-24"></a>        <span class="n">after_init</span><span class="p">,</span> <span class="n">collateral</span><span class="p">,</span> <span class="n">config</span>
+</span><span id="__span-8-25"><a href="#__codelineno-8-25" id="__codelineno-8-25" name="__codelineno-8-25"></a>    <span class="p">)</span>
+</span><span id="__span-8-26"><a href="#__codelineno-8-26" id="__codelineno-8-26" name="__codelineno-8-26"></a>
+</span><span id="__span-8-27"><a href="#__codelineno-8-27" id="__codelineno-8-27" name="__codelineno-8-27"></a>    <span class="c1"># Step 5: Guarantees</span>
+</span><span id="__span-8-28"><a href="#__codelineno-8-28" id="__codelineno-8-28" name="__codelineno-8-28"></a>    <span class="n">after_guarantees</span> <span class="o">=</span> <span class="n">apply_guarantee_substitution</span><span class="p">(</span>
+</span><span id="__span-8-29"><a href="#__codelineno-8-29" id="__codelineno-8-29" name="__codelineno-8-29"></a>        <span class="n">after_collateral</span><span class="p">,</span> <span class="n">guarantees</span><span class="p">,</span> <span class="n">counterparty_lookup</span><span class="p">,</span> <span class="n">config</span>
+</span><span id="__span-8-30"><a href="#__codelineno-8-30" id="__codelineno-8-30" name="__codelineno-8-30"></a>    <span class="p">)</span>
+</span><span id="__span-8-31"><a href="#__codelineno-8-31" id="__codelineno-8-31" name="__codelineno-8-31"></a>
+</span><span id="__span-8-32"><a href="#__codelineno-8-32" id="__codelineno-8-32" name="__codelineno-8-32"></a>    <span class="c1"># Step 6: Finalize (no provision subtraction — already in ead_pre_crm)</span>
+</span><span id="__span-8-33"><a href="#__codelineno-8-33" id="__codelineno-8-33" name="__codelineno-8-33"></a>    <span class="k">return</span> <span class="n">finalize_ead</span><span class="p">(</span><span class="n">after_guarantees</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="stage-5-rwa-calculation">Stage 5: RWA Calculation<a class="headerlink" href="#stage-5-rwa-calculation" title="Permanent link">¶</a></h2>
 <h3 id="purpose_4">Purpose<a class="headerlink" href="#purpose_4" title="Permanent link">¶</a></h3>

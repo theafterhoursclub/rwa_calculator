@@ -2346,23 +2346,35 @@
 <p><strong>Input:</strong> <code>ClassifiedExposuresBundle</code>
 <strong>Output:</strong> <code>CRMAdjustedBundle</code></p>
 <p>See <a href="https://github.com/OpenAfterHours/rwa_calculator/blob/master/src/rwa_calc/engine/crm/processor.py"><code>crm/processor.py</code></a> for implementation.</p>
-<p>Transformations:
-- Apply provision deductions
-- Calculate collateral haircuts
-- Apply guarantee substitution
-- Calculate net exposure</p>
+<p>Transformations (Art. 111(2) compliant order):</p>
+<ol>
+<li><strong>Resolve provisions</strong> — drawn-first deduction (SA), tracking only (IRB/Slotting)</li>
+<li><strong>Apply CCFs</strong> — uses <code>nominal_after_provision</code> for off-balance sheet conversion</li>
+<li><strong>Initialize EAD</strong> — set <code>ead_pre_crm</code> from drawn + interest + CCF contribution</li>
+<li><strong>Apply collateral</strong> — haircuts, overcollateralisation, multi-level allocation</li>
+<li><strong>Apply guarantees</strong> — substitution, cross-approach CCF substitution</li>
+<li><strong>Finalize EAD</strong> — floor at zero, no further provision subtraction</li>
+</ol>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="c1"># CRM processing adds columns</span>
 </span><span id="__span-10-2"><a href="#__codelineno-10-2" id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="n">crm_adjusted</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-10-3"><a href="#__codelineno-10-3" id="__codelineno-10-3" name="__codelineno-10-3"></a>    <span class="n">classified</span>
 </span><span id="__span-10-4"><a href="#__codelineno-10-4" id="__codelineno-10-4" name="__codelineno-10-4"></a>    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
-</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a>        <span class="n">provision_amount</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a>        <span class="n">collateral_value</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a>        <span class="n">collateral_haircut</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a>        <span class="n">guaranteed_amount</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a>        <span class="n">guarantor_rw</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a>        <span class="n">net_ead</span><span class="o">=...</span><span class="p">,</span>
-</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a>    <span class="p">)</span>
-</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a><span class="p">)</span>
+</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a>        <span class="c1"># Provision resolution (before CCF)</span>
+</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a>        <span class="n">provision_allocated</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a>        <span class="n">provision_on_drawn</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a>        <span class="n">provision_on_nominal</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a>        <span class="n">nominal_after_provision</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a>        <span class="n">provision_deducted</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a>        <span class="c1"># Collateral</span>
+</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a>        <span class="n">collateral_value</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-13"><a href="#__codelineno-10-13" id="__codelineno-10-13" name="__codelineno-10-13"></a>        <span class="n">collateral_haircut</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-14"><a href="#__codelineno-10-14" id="__codelineno-10-14" name="__codelineno-10-14"></a>        <span class="c1"># Guarantees</span>
+</span><span id="__span-10-15"><a href="#__codelineno-10-15" id="__codelineno-10-15" name="__codelineno-10-15"></a>        <span class="n">guaranteed_amount</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-16"><a href="#__codelineno-10-16" id="__codelineno-10-16" name="__codelineno-10-16"></a>        <span class="n">guarantor_rw</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-17"><a href="#__codelineno-10-17" id="__codelineno-10-17" name="__codelineno-10-17"></a>        <span class="c1"># Final</span>
+</span><span id="__span-10-18"><a href="#__codelineno-10-18" id="__codelineno-10-18" name="__codelineno-10-18"></a>        <span class="n">net_ead</span><span class="o">=...</span><span class="p">,</span>
+</span><span id="__span-10-19"><a href="#__codelineno-10-19" id="__codelineno-10-19" name="__codelineno-10-19"></a>    <span class="p">)</span>
+</span><span id="__span-10-20"><a href="#__codelineno-10-20" id="__codelineno-10-20" name="__codelineno-10-20"></a><span class="p">)</span>
 </span></code></pre></div>
 <details class="example">
 <summary>CRM Processing (processor.py)</summary>
@@ -2437,8 +2449,9 @@
 </span><span id="__span-11-69"><a href="#__codelineno-11-69" id="__codelineno-11-69" name="__codelineno-11-69"></a>        <span class="c1"># Start with all exposures</span>
 </span><span id="__span-11-70"><a href="#__codelineno-11-70" id="__codelineno-11-70" name="__codelineno-11-70"></a>        <span class="n">exposures</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">all_exposures</span>
 </span><span id="__span-11-71"><a href="#__codelineno-11-71" id="__codelineno-11-71" name="__codelineno-11-71"></a>
-</span><span id="__span-11-72"><a href="#__codelineno-11-72" id="__codelineno-11-72" name="__codelineno-11-72"></a>        <span class="c1"># Step 1: Apply CCF to calculate EAD for contingents</span>
-</span><span id="__span-11-73"><a href="#__codelineno-11-73" id="__codelineno-11-73" name="__codelineno-11-73"></a>        <span class="n">exposures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_ccf</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-11-72"><a href="#__codelineno-11-72" id="__codelineno-11-72" name="__codelineno-11-72"></a>        <span class="c1"># Step 1: Resolve provisions BEFORE CCF (CRR Art. 111(2))</span>
+</span><span id="__span-11-73"><a href="#__codelineno-11-73" id="__codelineno-11-73" name="__codelineno-11-73"></a>        <span class="c1"># This adds provision_on_drawn, provision_on_nominal, nominal_after_provision</span>
+</span><span id="__span-11-74"><a href="#__codelineno-11-74" id="__codelineno-11-74" name="__codelineno-11-74"></a>        <span class="c1"># so CCF can use the provision-adjusted nominal amount</span>
 </span></code></pre></div>
 </details>
 <h3 id="stage-5-rwa-calculation">Stage 5: RWA Calculation<a class="headerlink" href="#stage-5-rwa-calculation" title="Permanent link">¶</a></h3>

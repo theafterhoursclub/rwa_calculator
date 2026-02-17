@@ -821,10 +821,10 @@
 <nav aria-label="Provisions" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#sa-treatment">
+<a class="md-nav__link" href="#sa-treatment-art-1112-compliant">
 <span class="md-ellipsis">
       
-        SA Treatment
+        SA Treatment (Art. 111(2) Compliant)
       
     </span>
 </a>
@@ -923,6 +923,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.resolve_provisions">
+<span class="md-ellipsis">
+      
+        resolve_provisions
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.apply_collateral">
 <span class="md-ellipsis">
       
@@ -936,15 +945,6 @@
 <span class="md-ellipsis">
       
         apply_guarantees
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.apply_provisions">
-<span class="md-ellipsis">
-      
-        apply_provisions
       
     </span>
 </a>
@@ -2173,10 +2173,10 @@
 <nav aria-label="Provisions" class="md-nav">
 <ul class="md-nav__list">
 <li class="md-nav__item">
-<a class="md-nav__link" href="#sa-treatment">
+<a class="md-nav__link" href="#sa-treatment-art-1112-compliant">
 <span class="md-ellipsis">
       
-        SA Treatment
+        SA Treatment (Art. 111(2) Compliant)
       
     </span>
 </a>
@@ -2275,6 +2275,15 @@
 </a>
 </li>
 <li class="md-nav__item">
+<a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.resolve_provisions">
+<span class="md-ellipsis">
+      
+        resolve_provisions
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
 <a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.apply_collateral">
 <span class="md-ellipsis">
       
@@ -2288,15 +2297,6 @@
 <span class="md-ellipsis">
       
         apply_guarantees
-      
-    </span>
-</a>
-</li>
-<li class="md-nav__item">
-<a class="md-nav__link" href="#rwa_calc.engine.crm.processor.CRMProcessor.apply_provisions">
-<span class="md-ellipsis">
-      
-        apply_provisions
       
     </span>
 </a>
@@ -2876,21 +2876,40 @@
 <h3 id="regulatory-reference">Regulatory Reference<a class="headerlink" href="#regulatory-reference" title="Permanent link">¶</a></h3>
 <p>CRR Article 153(3) and CRE31.4 — when a guarantee provides credit protection, the CCF applicable to the protected portion should be consistent with the guarantor's treatment.</p>
 <h2 id="provisions">Provisions<a class="headerlink" href="#provisions" title="Permanent link">¶</a></h2>
-<h3 id="sa-treatment">SA Treatment<a class="headerlink" href="#sa-treatment" title="Permanent link">¶</a></h3>
-<p>Specific provisions reduce EAD:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="n">EAD</span> <span class="o">=</span> <span class="n">Gross_Exposure</span> <span class="o">-</span> <span class="n">Specific_Provision</span>
-</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="n">RWA</span> <span class="o">=</span> <span class="n">EAD</span> <span class="err">×</span> <span class="n">Risk_Weight</span>
+<h3 id="sa-treatment-art-1112-compliant">SA Treatment (Art. 111(2) Compliant)<a class="headerlink" href="#sa-treatment-art-1112-compliant" title="Permanent link">¶</a></h3>
+<p>Provisions are resolved <strong>before</strong> CCF application using a drawn-first deduction approach:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="c1"># Step 1: Drawn-first deduction</span>
+</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="n">provision_on_drawn</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">provision_allocated</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">drawn_amount</span><span class="p">))</span>
+</span><span id="__span-11-3"><a href="#__codelineno-11-3" id="__codelineno-11-3" name="__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a href="#__codelineno-11-4" id="__codelineno-11-4" name="__codelineno-11-4"></a><span class="c1"># Step 2: Remainder reduces nominal before CCF</span>
+</span><span id="__span-11-5"><a href="#__codelineno-11-5" id="__codelineno-11-5" name="__codelineno-11-5"></a><span class="n">provision_on_nominal</span> <span class="o">=</span> <span class="n">provision_allocated</span> <span class="o">-</span> <span class="n">provision_on_drawn</span>
+</span><span id="__span-11-6"><a href="#__codelineno-11-6" id="__codelineno-11-6" name="__codelineno-11-6"></a><span class="n">nominal_after_provision</span> <span class="o">=</span> <span class="n">nominal_amount</span> <span class="o">-</span> <span class="n">provision_on_nominal</span>
+</span><span id="__span-11-7"><a href="#__codelineno-11-7" id="__codelineno-11-7" name="__codelineno-11-7"></a>
+</span><span id="__span-11-8"><a href="#__codelineno-11-8" id="__codelineno-11-8" name="__codelineno-11-8"></a><span class="c1"># Step 3: CCF applied to adjusted nominal</span>
+</span><span id="__span-11-9"><a href="#__codelineno-11-9" id="__codelineno-11-9" name="__codelineno-11-9"></a><span class="n">ead_from_ccf</span> <span class="o">=</span> <span class="n">nominal_after_provision</span> <span class="err">×</span> <span class="n">CCF</span>
+</span><span id="__span-11-10"><a href="#__codelineno-11-10" id="__codelineno-11-10" name="__codelineno-11-10"></a>
+</span><span id="__span-11-11"><a href="#__codelineno-11-11" id="__codelineno-11-11" name="__codelineno-11-11"></a><span class="c1"># Step 4: Final EAD</span>
+</span><span id="__span-11-12"><a href="#__codelineno-11-12" id="__codelineno-11-12" name="__codelineno-11-12"></a><span class="n">EAD</span> <span class="o">=</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">drawn_amount</span><span class="p">)</span> <span class="o">-</span> <span class="n">provision_on_drawn</span><span class="p">)</span> <span class="o">+</span> <span class="n">interest</span> <span class="o">+</span> <span class="n">ead_from_ccf</span>
+</span><span id="__span-11-13"><a href="#__codelineno-11-13" id="__codelineno-11-13" name="__codelineno-11-13"></a><span class="n">RWA</span> <span class="o">=</span> <span class="n">EAD</span> <span class="err">×</span> <span class="n">Risk_Weight</span>
 </span></code></pre></div>
+<p>Provisions are allocated via multi-level beneficiary resolution:</p>
+<ul>
+<li><strong>Direct</strong> (loan/exposure/contingent): provision matched to specific exposure</li>
+<li><strong>Facility</strong>: provision distributed pro-rata across facility's exposures</li>
+<li><strong>Counterparty</strong>: provision distributed pro-rata across all counterparty exposures</li>
+</ul>
 <h3 id="irb-treatment">IRB Treatment<a class="headerlink" href="#irb-treatment" title="Permanent link">¶</a></h3>
-<p>Provisions compare to Expected Loss:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="n">EL</span> <span class="o">=</span> <span class="n">PD</span> <span class="err">×</span> <span class="n">LGD</span> <span class="err">×</span> <span class="n">EAD</span>
-</span><span id="__span-12-2"><a href="#__codelineno-12-2" id="__codelineno-12-2" name="__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a href="#__codelineno-12-3" id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="k">if</span> <span class="n">Provisions</span> <span class="o">&gt;=</span> <span class="n">EL</span><span class="p">:</span>
-</span><span id="__span-12-4"><a href="#__codelineno-12-4" id="__codelineno-12-4" name="__codelineno-12-4"></a>    <span class="c1"># Excess provisions can be added to Tier 2 (limited)</span>
-</span><span id="__span-12-5"><a href="#__codelineno-12-5" id="__codelineno-12-5" name="__codelineno-12-5"></a>    <span class="n">Excess</span> <span class="o">=</span> <span class="n">Provisions</span> <span class="o">-</span> <span class="n">EL</span>
-</span><span id="__span-12-6"><a href="#__codelineno-12-6" id="__codelineno-12-6" name="__codelineno-12-6"></a><span class="k">else</span><span class="p">:</span>
-</span><span id="__span-12-7"><a href="#__codelineno-12-7" id="__codelineno-12-7" name="__codelineno-12-7"></a>    <span class="c1"># Shortfall deducted from CET1</span>
-</span><span id="__span-12-8"><a href="#__codelineno-12-8" id="__codelineno-12-8" name="__codelineno-12-8"></a>    <span class="n">Shortfall</span> <span class="o">=</span> <span class="n">EL</span> <span class="o">-</span> <span class="n">Provisions</span>
+<p>Under IRB, provisions are tracked (<code>provision_allocated</code>) but <strong>not deducted</strong> from EAD. Instead, the calculator computes Expected Loss for comparison:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="c1"># Provisions NOT deducted from EAD (provision_deducted = 0)</span>
+</span><span id="__span-12-2"><a href="#__codelineno-12-2" id="__codelineno-12-2" name="__codelineno-12-2"></a><span class="c1"># provision_on_drawn = 0, provision_on_nominal = 0</span>
+</span><span id="__span-12-3"><a href="#__codelineno-12-3" id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="n">EL</span> <span class="o">=</span> <span class="n">PD</span> <span class="err">×</span> <span class="n">LGD</span> <span class="err">×</span> <span class="n">EAD</span>
+</span><span id="__span-12-4"><a href="#__codelineno-12-4" id="__codelineno-12-4" name="__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a href="#__codelineno-12-5" id="__codelineno-12-5" name="__codelineno-12-5"></a><span class="k">if</span> <span class="n">Provisions</span> <span class="o">&gt;=</span> <span class="n">EL</span><span class="p">:</span>
+</span><span id="__span-12-6"><a href="#__codelineno-12-6" id="__codelineno-12-6" name="__codelineno-12-6"></a>    <span class="c1"># Excess provisions can be added to Tier 2 (limited)</span>
+</span><span id="__span-12-7"><a href="#__codelineno-12-7" id="__codelineno-12-7" name="__codelineno-12-7"></a>    <span class="n">Excess</span> <span class="o">=</span> <span class="n">Provisions</span> <span class="o">-</span> <span class="n">EL</span>
+</span><span id="__span-12-8"><a href="#__codelineno-12-8" id="__codelineno-12-8" name="__codelineno-12-8"></a><span class="k">else</span><span class="p">:</span>
+</span><span id="__span-12-9"><a href="#__codelineno-12-9" id="__codelineno-12-9" name="__codelineno-12-9"></a>    <span class="c1"># Shortfall deducted from CET1</span>
+</span><span id="__span-12-10"><a href="#__codelineno-12-10" id="__codelineno-12-10" name="__codelineno-12-10"></a>    <span class="n">Shortfall</span> <span class="o">=</span> <span class="n">EL</span> <span class="o">-</span> <span class="n">Provisions</span>
 </span></code></pre></div>
 <h3 id="scra-and-gcra-provisions">SCRA and GCRA Provisions<a class="headerlink" href="#scra-and-gcra-provisions" title="Permanent link">¶</a></h3>
 <table>
@@ -2939,11 +2958,14 @@
 </tbody>
 </table>
 <h2 id="crm-hierarchy">CRM Hierarchy<a class="headerlink" href="#crm-hierarchy" title="Permanent link">¶</a></h2>
-<p>When multiple CRM types are available:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a href="#__codelineno-13-1" id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="c1"># Order of application</span>
-</span><span id="__span-13-2"><a href="#__codelineno-13-2" id="__codelineno-13-2" name="__codelineno-13-2"></a><span class="mf">1.</span> <span class="n">Apply</span> <span class="n">specific</span> <span class="n">provisions</span> <span class="p">(</span><span class="n">reduce</span> <span class="n">EAD</span><span class="p">)</span>
-</span><span id="__span-13-3"><a href="#__codelineno-13-3" id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="mf">2.</span> <span class="n">Apply</span> <span class="n">collateral</span> <span class="p">(</span><span class="n">reduce</span> <span class="n">net</span> <span class="n">exposure</span><span class="p">)</span>
-</span><span id="__span-13-4"><a href="#__codelineno-13-4" id="__codelineno-13-4" name="__codelineno-13-4"></a><span class="mf">3.</span> <span class="n">Apply</span> <span class="n">guarantees</span> <span class="p">(</span><span class="n">substitution</span> <span class="n">on</span> <span class="n">remainder</span><span class="p">)</span>
+<p>When multiple CRM types are available, provisions are resolved first (before CCF), then the remaining CRM is applied after EAD initialization:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a href="#__codelineno-13-1" id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="c1"># Order of application (Art. 111(2) compliant)</span>
+</span><span id="__span-13-2"><a href="#__codelineno-13-2" id="__codelineno-13-2" name="__codelineno-13-2"></a><span class="mf">1.</span> <span class="n">Resolve</span> <span class="n">provisions</span> <span class="p">(</span><span class="n">before</span> <span class="n">CCF</span><span class="p">)</span> <span class="err">—</span> <span class="n">drawn</span><span class="o">-</span><span class="n">first</span> <span class="n">deduction</span><span class="p">,</span> <span class="n">adjusts</span> <span class="n">nominal</span>
+</span><span id="__span-13-3"><a href="#__codelineno-13-3" id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="mf">2.</span> <span class="n">Apply</span> <span class="n">CCFs</span> <span class="p">(</span><span class="n">uses</span> <span class="n">nominal_after_provision</span> <span class="k">for</span> <span class="n">off</span><span class="o">-</span><span class="n">balance</span> <span class="n">sheet</span> <span class="n">conversion</span><span class="p">)</span>
+</span><span id="__span-13-4"><a href="#__codelineno-13-4" id="__codelineno-13-4" name="__codelineno-13-4"></a><span class="mf">3.</span> <span class="n">Initialize</span> <span class="n">EAD</span> <span class="n">waterfall</span>
+</span><span id="__span-13-5"><a href="#__codelineno-13-5" id="__codelineno-13-5" name="__codelineno-13-5"></a><span class="mf">4.</span> <span class="n">Apply</span> <span class="n">collateral</span> <span class="p">(</span><span class="n">reduce</span> <span class="n">net</span> <span class="n">exposure</span> <span class="k">with</span> <span class="n">haircuts</span><span class="p">)</span>
+</span><span id="__span-13-6"><a href="#__codelineno-13-6" id="__codelineno-13-6" name="__codelineno-13-6"></a><span class="mf">5.</span> <span class="n">Apply</span> <span class="n">guarantees</span> <span class="p">(</span><span class="n">substitution</span> <span class="n">on</span> <span class="n">remainder</span><span class="p">)</span>
+</span><span id="__span-13-7"><a href="#__codelineno-13-7" id="__codelineno-13-7" name="__codelineno-13-7"></a><span class="mf">6.</span> <span class="n">Finalize</span> <span class="n">EAD</span> <span class="p">(</span><span class="n">no</span> <span class="n">further</span> <span class="n">provision</span> <span class="n">subtraction</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="example-with-multiple-crm">Example with Multiple CRM<a class="headerlink" href="#example-with-multiple-crm" title="Permanent link">¶</a></h3>
 <p><strong>Exposure:</strong>
@@ -3078,6 +3100,120 @@
 <td>
 <div class="doc-md-description">
 <p>LazyFrameResult with CRM-adjusted exposures and any errors</p>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="doc doc-object doc-function">
+<h3 class="doc doc-heading" id="rwa_calc.engine.crm.processor.CRMProcessor.resolve_provisions">
+<code class="highlight language-python"><span class="n">resolve_provisions</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">provisions</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span></code>
+<a class="headerlink" href="#rwa_calc.engine.crm.processor.CRMProcessor.resolve_provisions" title="Permanent link">¶</a></h3>
+<div class="doc doc-contents">
+<p>Resolve provisions with multi-level beneficiary and drawn-first deduction.</p>
+<p>This is called <em>before</em> CCF so that nominal_after_provision feeds into
+the CCF calculation: <code>ead_from_ccf = nominal_after_provision * ccf</code>.</p>
+<p>Resolution levels (based on beneficiary_type):
+1. Direct (loan/exposure/contingent): join on exposure_reference
+2. Facility: join on parent_facility_reference, pro-rata by exposure weight
+3. Counterparty: join on counterparty_reference, pro-rata by exposure weight</p>
+<p>SA drawn-first deduction (CRR Art. 111(2)):
+- <code>floored_drawn = max(0, drawn_amount)</code>
+- <code>provision_on_drawn = min(provision_allocated, floored_drawn)</code>
+- <code>provision_on_nominal = min(remainder, nominal_amount)</code>
+- Interest is never reduced by provision.</p>
+<p>IRB/Slotting: provision_on_drawn=0, provision_on_nominal=0 (provisions
+feed into EL shortfall/excess instead). provision_allocated is tracked.</p>
+<p><span class="doc-section-title">Parameters:</span></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="doc-section-item">
+<td>
+<code>exposures</code>
+</td>
+<td>
+<code><span title="polars.LazyFrame">LazyFrame</span></code>
+</td>
+<td>
+<div class="doc-md-description">
+<p>Exposures with drawn_amount, interest, nominal_amount, approach</p>
+</div>
+</td>
+<td>
+<em>required</em>
+</td>
+</tr>
+<tr class="doc-section-item">
+<td>
+<code>provisions</code>
+</td>
+<td>
+<code><span title="polars.LazyFrame">LazyFrame</span></code>
+</td>
+<td>
+<div class="doc-md-description">
+<p>Provision data with beneficiary_reference, amount,
+        and optionally beneficiary_type</p>
+</div>
+</td>
+<td>
+<em>required</em>
+</td>
+</tr>
+<tr class="doc-section-item">
+<td>
+<code>config</code>
+</td>
+<td>
+<code><span title="rwa_calc.contracts.config.CalculationConfig">CalculationConfig</span></code>
+</td>
+<td>
+<div class="doc-md-description">
+<p>Calculation configuration</p>
+</div>
+</td>
+<td>
+<em>required</em>
+</td>
+</tr>
+</tbody>
+</table>
+<p><span class="doc-section-title">Returns:</span></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="doc-section-item">
+<td>
+<code><span title="polars.LazyFrame">LazyFrame</span></code>
+</td>
+<td>
+<div class="doc-md-description">
+<p>Exposures with provision_allocated, provision_on_drawn,</p>
+</div>
+</td>
+</tr>
+<tr class="doc-section-item">
+<td>
+<code><span title="polars.LazyFrame">LazyFrame</span></code>
+</td>
+<td>
+<div class="doc-md-description">
+<p>provision_on_nominal, provision_deducted, nominal_after_provision</p>
 </div>
 </td>
 </tr>
@@ -3298,98 +3434,6 @@
 </table>
 </div>
 </div>
-<div class="doc doc-object doc-function">
-<h3 class="doc doc-heading" id="rwa_calc.engine.crm.processor.CRMProcessor.apply_provisions">
-<code class="highlight language-python"><span class="n">apply_provisions</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">provisions</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span></code>
-<a class="headerlink" href="#rwa_calc.engine.crm.processor.CRMProcessor.apply_provisions" title="Permanent link">¶</a></h3>
-<div class="doc doc-contents">
-<p>Apply provision deduction from EAD.</p>
-<p>For SA, specific provisions are deducted from EAD.
-For IRB, provisions are compared to EL for shortfall/excess.</p>
-<p><span class="doc-section-title">Parameters:</span></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr class="doc-section-item">
-<td>
-<code>exposures</code>
-</td>
-<td>
-<code><span title="polars.LazyFrame">LazyFrame</span></code>
-</td>
-<td>
-<div class="doc-md-description">
-<p>Exposures with EAD</p>
-</div>
-</td>
-<td>
-<em>required</em>
-</td>
-</tr>
-<tr class="doc-section-item">
-<td>
-<code>provisions</code>
-</td>
-<td>
-<code><span title="polars.LazyFrame">LazyFrame</span></code>
-</td>
-<td>
-<div class="doc-md-description">
-<p>Provision data</p>
-</div>
-</td>
-<td>
-<em>required</em>
-</td>
-</tr>
-<tr class="doc-section-item">
-<td>
-<code>config</code>
-</td>
-<td>
-<code><span title="rwa_calc.contracts.config.CalculationConfig">CalculationConfig</span></code>
-</td>
-<td>
-<div class="doc-md-description">
-<p>Calculation configuration</p>
-</div>
-</td>
-<td>
-<em>required</em>
-</td>
-</tr>
-</tbody>
-</table>
-<p><span class="doc-section-title">Returns:</span></p>
-<table>
-<thead>
-<tr>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="doc-section-item">
-<td>
-<code><span title="polars.LazyFrame">LazyFrame</span></code>
-</td>
-<td>
-<div class="doc-md-description">
-<p>Exposures with provision effects applied</p>
-</div>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 </div>
 </div>
 </div><details class="example">
@@ -3510,8 +3554,9 @@ For IRB, provisions are compared to EL for shortfall/excess.</p>
 </span><span id="__span-16-114"><a href="#__codelineno-16-114" id="__codelineno-16-114" name="__codelineno-16-114"></a>        <span class="c1"># Start with all exposures</span>
 </span><span id="__span-16-115"><a href="#__codelineno-16-115" id="__codelineno-16-115" name="__codelineno-16-115"></a>        <span class="n">exposures</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">all_exposures</span>
 </span><span id="__span-16-116"><a href="#__codelineno-16-116" id="__codelineno-16-116" name="__codelineno-16-116"></a>
-</span><span id="__span-16-117"><a href="#__codelineno-16-117" id="__codelineno-16-117" name="__codelineno-16-117"></a>        <span class="c1"># Step 1: Apply CCF to calculate EAD for contingents</span>
-</span><span id="__span-16-118"><a href="#__codelineno-16-118" id="__codelineno-16-118" name="__codelineno-16-118"></a>        <span class="n">exposures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_ccf</span><span class="p">(</span><span class="n">exposures</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-16-117"><a href="#__codelineno-16-117" id="__codelineno-16-117" name="__codelineno-16-117"></a>        <span class="c1"># Step 1: Resolve provisions BEFORE CCF (CRR Art. 111(2))</span>
+</span><span id="__span-16-118"><a href="#__codelineno-16-118" id="__codelineno-16-118" name="__codelineno-16-118"></a>        <span class="c1"># This adds provision_on_drawn, provision_on_nominal, nominal_after_provision</span>
+</span><span id="__span-16-119"><a href="#__codelineno-16-119" id="__codelineno-16-119" name="__codelineno-16-119"></a>        <span class="c1"># so CCF can use the provision-adjusted nominal amount</span>
 </span></code></pre></div>
 </details>
 <h3 id="haircut-calculator">Haircut Calculator<a class="headerlink" href="#haircut-calculator" title="Permanent link">¶</a></h3>

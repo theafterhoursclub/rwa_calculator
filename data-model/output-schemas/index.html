@@ -4281,6 +4281,26 @@
 <td>Exposure at default</td>
 </tr>
 <tr>
+<td><code>provision_allocated</code></td>
+<td><code>Float64</code></td>
+<td>Total provision matched to this exposure</td>
+</tr>
+<tr>
+<td><code>provision_on_drawn</code></td>
+<td><code>Float64</code></td>
+<td>Provision absorbed by drawn amount (SA only)</td>
+</tr>
+<tr>
+<td><code>provision_on_nominal</code></td>
+<td><code>Float64</code></td>
+<td>Provision reducing nominal before CCF (SA only)</td>
+</tr>
+<tr>
+<td><code>nominal_after_provision</code></td>
+<td><code>Float64</code></td>
+<td><code>nominal_amount - provision_on_nominal</code></td>
+</tr>
+<tr>
 <td><code>rwa_pre_floor</code></td>
 <td><code>Float64</code></td>
 <td>RWA before output floor</td>
