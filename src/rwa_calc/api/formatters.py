@@ -77,16 +77,16 @@ class ResultFormatter:
 
         results_df = self._materialize_results(bundle.results)
 
-        summary = self._compute_summary(
-            results_df=results_df,
-            sa_results=bundle.sa_results,
-            irb_results=bundle.irb_results,
-            slotting_results=bundle.slotting_results,
-            floor_impact=bundle.floor_impact,
+        # Batch-collect summary frames that share the same query root
+        summary_by_class, summary_by_approach = self._batch_materialize_summaries(
+            bundle.summary_by_class,
+            bundle.summary_by_approach,
         )
 
-        summary_by_class = self._materialize_optional(bundle.summary_by_class)
-        summary_by_approach = self._materialize_optional(bundle.summary_by_approach)
+        summary = self._compute_summary(
+            results_df=results_df,
+            floor_impact=bundle.floor_impact,
+        )
 
         errors = convert_errors(bundle.errors) if bundle.errors else []
 
@@ -188,42 +188,61 @@ class ResultFormatter:
                 "rwa_final": pl.Series([], dtype=pl.Float64),
             })
 
-    def _materialize_optional(
+    def _batch_materialize_summaries(
         self,
-        lazy_frame: pl.LazyFrame | None,
-    ) -> pl.DataFrame | None:
+        summary_by_class: pl.LazyFrame | None,
+        summary_by_approach: pl.LazyFrame | None,
+    ) -> tuple[pl.DataFrame | None, pl.DataFrame | None]:
         """
-        Materialize optional LazyFrame to DataFrame.
+        Batch-collect summary LazyFrames using pl.collect_all().
+
+        When both frames share a common query root, collect_all allows
+        Polars to deduplicate shared subplans for a single pass.
 
         Args:
-            lazy_frame: Optional LazyFrame
+            summary_by_class: Optional summary-by-class LazyFrame
+            summary_by_approach: Optional summary-by-approach LazyFrame
 
         Returns:
-            Materialized DataFrame or None
+            Tuple of (materialized class summary, materialized approach summary)
         """
-        if lazy_frame is None:
-            return None
+        frames_to_collect: list[pl.LazyFrame] = []
+        indices: dict[str, int] = {}
+
+        if summary_by_class is not None:
+            indices["class"] = len(frames_to_collect)
+            frames_to_collect.append(summary_by_class)
+
+        if summary_by_approach is not None:
+            indices["approach"] = len(frames_to_collect)
+            frames_to_collect.append(summary_by_approach)
+
+        if not frames_to_collect:
+            return None, None
+
         try:
-            return lazy_frame.collect()
+            collected = pl.collect_all(frames_to_collect)
         except Exception:
-            return None
+            return None, None
+
+        class_df = collected[indices["class"]] if "class" in indices else None
+        approach_df = collected[indices["approach"]] if "approach" in indices else None
+
+        return class_df, approach_df
 
     def _compute_summary(
         self,
         results_df: pl.DataFrame,
-        sa_results: pl.LazyFrame | None,
-        irb_results: pl.LazyFrame | None,
-        slotting_results: pl.LazyFrame | None,
         floor_impact: pl.LazyFrame | None,
     ) -> SummaryStatistics:
         """
-        Compute summary statistics from results.
+        Compute summary statistics from the already-materialized results DataFrame.
+
+        Filters results_df by approach_applied instead of re-collecting separate
+        LazyFrames, eliminating 6 redundant pipeline executions.
 
         Args:
             results_df: Materialized results DataFrame
-            sa_results: Optional SA results LazyFrame
-            irb_results: Optional IRB results LazyFrame
-            slotting_results: Optional Slotting results LazyFrame
             floor_impact: Optional floor impact LazyFrame
 
         Returns:
@@ -250,13 +269,8 @@ class ResultFormatter:
 
         avg_rw = total_rwa / total_ead if total_ead > 0 else Decimal("0")
 
-        total_ead_sa = self._sum_ead_from_lazyframe(sa_results)
-        total_ead_irb = self._sum_ead_from_lazyframe(irb_results)
-        total_ead_slotting = self._sum_ead_from_lazyframe(slotting_results)
-
-        total_rwa_sa = self._sum_rwa_from_lazyframe(sa_results)
-        total_rwa_irb = self._sum_rwa_from_lazyframe(irb_results)
-        total_rwa_slotting = self._sum_rwa_from_lazyframe(slotting_results)
+        # Compute per-approach stats from already-materialized results_df
+        approach_stats = self._compute_approach_stats(results_df, ead_col, rwa_col)
 
         floor_applied = False
         floor_impact_value = Decimal("0")
@@ -275,15 +289,69 @@ class ResultFormatter:
             total_rwa=total_rwa,
             exposure_count=results_df.height,
             average_risk_weight=avg_rw,
-            total_ead_sa=total_ead_sa,
-            total_ead_irb=total_ead_irb,
-            total_ead_slotting=total_ead_slotting,
-            total_rwa_sa=total_rwa_sa,
-            total_rwa_irb=total_rwa_irb,
-            total_rwa_slotting=total_rwa_slotting,
+            total_ead_sa=approach_stats["ead_sa"],
+            total_ead_irb=approach_stats["ead_irb"],
+            total_ead_slotting=approach_stats["ead_slotting"],
+            total_rwa_sa=approach_stats["rwa_sa"],
+            total_rwa_irb=approach_stats["rwa_irb"],
+            total_rwa_slotting=approach_stats["rwa_slotting"],
             floor_applied=floor_applied,
             floor_impact=floor_impact_value,
         )
+
+    def _compute_approach_stats(
+        self,
+        results_df: pl.DataFrame,
+        ead_col: str | None,
+        rwa_col: str | None,
+    ) -> dict[str, Decimal]:
+        """
+        Compute per-approach EAD and RWA totals from the materialized results DataFrame.
+
+        Filters on the approach_applied column instead of re-collecting separate LazyFrames.
+
+        Args:
+            results_df: Materialized results DataFrame
+            ead_col: Name of EAD column (or None)
+            rwa_col: Name of RWA column (or None)
+
+        Returns:
+            Dict with keys ead_sa, ead_irb, ead_slotting, rwa_sa, rwa_irb, rwa_slotting
+        """
+        stats: dict[str, Decimal] = {
+            "ead_sa": Decimal("0"),
+            "ead_irb": Decimal("0"),
+            "ead_slotting": Decimal("0"),
+            "rwa_sa": Decimal("0"),
+            "rwa_irb": Decimal("0"),
+            "rwa_slotting": Decimal("0"),
+        }
+
+        if "approach_applied" not in results_df.columns:
+            return stats
+
+        # SA approaches
+        sa_approaches = {"SA", "standardised"}
+        # IRB approaches (FIRB, AIRB, IRB, etc.)
+        irb_approaches = {"FIRB", "AIRB", "IRB"}
+        # Slotting approaches
+        slotting_approaches = {"SLOTTING"}
+
+        approach_mapping = {
+            "sa": sa_approaches,
+            "irb": irb_approaches,
+            "slotting": slotting_approaches,
+        }
+
+        for key, approaches in approach_mapping.items():
+            filtered = results_df.filter(pl.col("approach_applied").is_in(approaches))
+            if filtered.height > 0:
+                if ead_col and ead_col in filtered.columns:
+                    stats[f"ead_{key}"] = Decimal(str(filtered[ead_col].sum() or 0))
+                if rwa_col and rwa_col in filtered.columns:
+                    stats[f"rwa_{key}"] = Decimal(str(filtered[rwa_col].sum() or 0))
+
+        return stats
 
     def _find_column(
         self,
@@ -304,64 +372,6 @@ class ResultFormatter:
             if col in df.columns:
                 return col
         return None
-
-    def _sum_rwa_from_lazyframe(
-        self,
-        lazy_frame: pl.LazyFrame | None,
-    ) -> Decimal:
-        """
-        Sum RWA from a LazyFrame.
-
-        Args:
-            lazy_frame: Optional LazyFrame with RWA column
-
-        Returns:
-            Total RWA as Decimal
-        """
-        if lazy_frame is None:
-            return Decimal("0")
-
-        try:
-            df = lazy_frame.collect()
-            rwa_col = self._find_column(
-                df,
-                ["rwa", "rwa_final", "rwa_post_factor", "risk_weighted_assets"],
-            )
-            if rwa_col:
-                return Decimal(str(df[rwa_col].sum() or 0))
-        except Exception:
-            pass
-
-        return Decimal("0")
-
-    def _sum_ead_from_lazyframe(
-        self,
-        lazy_frame: pl.LazyFrame | None,
-    ) -> Decimal:
-        """
-        Sum EAD from a LazyFrame.
-
-        Args:
-            lazy_frame: Optional LazyFrame with EAD column
-
-        Returns:
-            Total EAD as Decimal
-        """
-        if lazy_frame is None:
-            return Decimal("0")
-
-        try:
-            df = lazy_frame.collect()
-            ead_col = self._find_column(
-                df,
-                ["ead_final", "ead", "exposure_at_default"],
-            )
-            if ead_col:
-                return Decimal(str(df[ead_col].sum() or 0))
-        except Exception:
-            pass
-
-        return Decimal("0")
 
 
 # =============================================================================
@@ -384,9 +394,6 @@ def compute_summary(results_df: pl.DataFrame) -> SummaryStatistics:
     formatter = ResultFormatter()
     return formatter._compute_summary(
         results_df=results_df,
-        sa_results=None,
-        irb_results=None,
-        slotting_results=None,
         floor_impact=None,
     )
 

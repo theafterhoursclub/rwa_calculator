@@ -289,19 +289,19 @@ class OutputAggregator:
         """
         frames = []
 
-        if sa_results is not None and self._has_rows(sa_results):
+        if sa_results is not None:
             sa_prepared = self._prepare_sa_results(sa_results)
             frames.append(sa_prepared)
 
-        if irb_results is not None and self._has_rows(irb_results):
+        if irb_results is not None:
             irb_prepared = self._prepare_irb_results(irb_results)
             frames.append(irb_prepared)
 
-        if slotting_results is not None and self._has_rows(slotting_results):
+        if slotting_results is not None:
             slotting_prepared = self._prepare_slotting_results(slotting_results)
             frames.append(slotting_prepared)
 
-        if equity_results is not None and self._has_rows(equity_results):
+        if equity_results is not None:
             equity_prepared = self._prepare_equity_results(equity_results)
             frames.append(equity_prepared)
 
@@ -316,18 +316,6 @@ class OutputAggregator:
             combined = pl.concat(frames, how="diagonal_relaxed")
 
         return combined
-
-    def _has_rows(self, frame: pl.LazyFrame) -> bool:
-        """Check if a LazyFrame has any rows (without full collect)."""
-        try:
-            schema = frame.collect_schema()
-            # If no columns, assume empty
-            if len(schema) == 0:
-                return False
-            # Check first row exists
-            return frame.head(1).collect().height > 0
-        except Exception:
-            return False
 
     def _prepare_sa_results(self, sa_results: pl.LazyFrame) -> pl.LazyFrame:
         """Prepare SA results with standard columns."""

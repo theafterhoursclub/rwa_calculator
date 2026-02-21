@@ -625,7 +625,8 @@ def validate_bundle_values(
     Validate all categorical column values in a RawDataBundle.
 
     Iterates over all tables in the bundle and checks column values
-    against the constraints registry.
+    against the constraints registry. Batches all column checks per table
+    into a single .collect() call for performance.
 
     Args:
         bundle: RawDataBundle to validate
@@ -658,8 +659,93 @@ def validate_bundle_values(
         if lf is None:
             continue
         table_constraints = constraints.get(table_name, {})
-        for col_name, valid_values in table_constraints.items():
-            errors = validate_column_values(lf, col_name, valid_values, context=table_name)
-            all_errors.extend(errors)
+        if not table_constraints:
+            continue
+        errors = _validate_table_columns_batched(lf, table_constraints, table_name)
+        all_errors.extend(errors)
 
     return all_errors
+
+
+def _validate_table_columns_batched(
+    lf: pl.LazyFrame,
+    table_constraints: dict[str, set[str]],
+    context: str,
+) -> list[CalculationError]:
+    """
+    Validate multiple columns in a single table with one .collect() call.
+
+    Builds a single LazyFrame query that checks all constrained columns at once,
+    reducing N separate .collect() calls to 1.
+
+    Args:
+        lf: LazyFrame for the table
+        table_constraints: Mapping of column name -> valid values
+        context: Table name for error messages
+
+    Returns:
+        List of CalculationError objects for invalid values found
+    """
+    schema = lf.collect_schema()
+    columns_to_check = [col for col in table_constraints if col in schema.names()]
+
+    if not columns_to_check:
+        return []
+
+    # Build a single query that finds invalid values for all columns at once.
+    # For each column, select rows where the value is not in the valid set,
+    # then union them into a single frame with (column_name, bad_value, count).
+    invalid_queries: list[pl.LazyFrame] = []
+    for col_name in columns_to_check:
+        valid_values = table_constraints[col_name]
+        q = (
+            lf.filter(pl.col(col_name).is_not_null())
+            .filter(~pl.col(col_name).str.to_lowercase().is_in(valid_values))
+            .group_by(pl.col(col_name).alias("bad_value"))
+            .len()
+            .with_columns(pl.lit(col_name).alias("column_name"))
+        )
+        invalid_queries.append(q)
+
+    if not invalid_queries:
+        return []
+
+    # Single collect for all column checks in this table
+    combined = pl.concat(invalid_queries, how="diagonal_relaxed")
+    try:
+        invalid_df = combined.collect()
+    except Exception:
+        # Fallback to per-column validation if batching fails
+        errors: list[CalculationError] = []
+        for col_name in columns_to_check:
+            errors.extend(
+                validate_column_values(lf, col_name, table_constraints[col_name], context=context)
+            )
+        return errors
+
+    if invalid_df.height == 0:
+        return []
+
+    errors = []
+    for row in invalid_df.iter_rows(named=True):
+        col_name = row["column_name"]
+        bad_value = row["bad_value"]
+        count = row["len"]
+        sorted_valid = sorted(table_constraints[col_name])
+        errors.append(
+            CalculationError(
+                code=ERROR_INVALID_COLUMN_VALUE,
+                message=(
+                    f"[{context}] Invalid value '{bad_value}' for column '{col_name}' "
+                    f"({count} row(s)). "
+                    f"Valid values: {sorted_valid}"
+                ),
+                severity=ErrorSeverity.WARNING,
+                category=ErrorCategory.DATA_QUALITY,
+                field_name=col_name,
+                expected_value=", ".join(sorted_valid),
+                actual_value=str(bad_value),
+            )
+        )
+
+    return errors
